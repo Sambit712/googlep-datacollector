@@ -214,10 +214,11 @@ logging:
 # Responsibilities:
 # - Load queries.yaml
 # - Substitute ${ENV_VAR} placeholders with os.environ values
-# - Validate required fields: reddit.client_id, reddit.client_secret,
-#   search.queries (non-empty list)
+# - Detect Reddit access mode: "praw" if client_id & client_secret are provided;
+#   otherwise "keyless_rss" (public RSS search feeds)
+# - Validate required fields: reddit.user_agent, search.queries (non-empty list)
 # - Parse groq config section (api_key, model, enabled)
-# - Warn (not error) if groq.api_key is missing — V0 doesn't require it
+# - Warn if groq.api_key is missing — V0 doesn't require it
 # - Raise ConfigError with descriptive message on validation failure
 # - Return a frozen config object (dataclass or namedtuple)
 ```
@@ -227,6 +228,7 @@ logging:
 | Decision                        | Rationale                                            |
 | ------------------------------- | ---------------------------------------------------- |
 | Env-var substitution in loader  | Keeps secrets out of YAML; `.env` loaded via dotenv  |
+| Dual Reddit access mode         | Supports Keyless Public RSS without API credentials; activates PRAW if keys exist |
 | Fail-fast validation            | Prevents pipeline from running with bad config       |
 | Frozen config object            | Prevents accidental mutation during pipeline run     |
 
@@ -234,9 +236,10 @@ logging:
 
 | Test case                              | Validates                                       |
 | -------------------------------------- | ----------------------------------------------- |
-| `test_load_valid_config`               | Happy path — all fields parsed correctly        |
-| `test_missing_client_id_raises`        | ConfigError on missing credential               |
+| `test_load_valid_config_praw`          | Happy path with PRAW credentials                |
+| `test_load_valid_config_keyless`       | Happy path with missing keys -> keyless mode    |
 | `test_empty_queries_raises`            | ConfigError when query list is empty             |
+| `test_missing_user_agent_raises`       | ConfigError when user_agent is missing          |
 | `test_env_var_substitution`            | `${VAR}` placeholders replaced with env values   |
 | `test_default_values`                  | Optional fields use sensible defaults            |
 | `test_malformed_yaml_raises`           | ConfigError on unparseable YAML                  |
@@ -247,47 +250,30 @@ logging:
 
 - [ ] `config_loader.py` loads and validates `queries.yaml`
 - [ ] Environment variable substitution works
+- [ ] Mode detection works (`keyless_rss` vs `praw`)
 - [ ] Groq config section parsed correctly (with missing-key warning)
-- [ ] All 8 test cases pass
+- [ ] All test cases pass
 
 ---
 
-## Phase 3 — Reddit API Client
+## Phase 3 — Reddit Client (Dual-Mode)
 
 ### Objective
-Build the PRAW-based client that authenticates with Reddit and executes search queries.
+Build the client that queries Reddit for posts matching given queries, supporting both Keyless Public RSS mode (default) and authenticated PRAW mode.
 
 ### Files to Create
 
 | File                       | Purpose                                |
 | -------------------------- | -------------------------------------- |
-| `src/reddit_client.py`     | PRAW wrapper for auth + search         |
+| `src/reddit_client.py`     | Client supporting Keyless RSS & PRAW   |
 
 ### Tasks
 
 #### 3.1 Implement `RedditClient` class
-
-```python
-class RedditClient:
-    """Wraps PRAW to search Reddit for posts matching given queries."""
-
-    def __init__(self, config: AppConfig):
-        """
-        Initialize PRAW Reddit instance using credentials from config.
-        Raises AuthenticationError if credentials are invalid.
-        """
-
-    def search(self, query: str, subreddit: str | None,
-               sort: str, time_filter: str,
-               limit: int) -> list[Submission]:
-        """
-        Execute a search query.
-        - If subreddit is provided, search within that subreddit.
-        - Otherwise, search globally via reddit.subreddit("all").
-        - Returns list of raw PRAW Submission objects.
-        - Handles rate-limiting (PRAW auto-waits).
-        - Retries on transient network errors (up to 3 attempts).
-        """
+- Supports `search(query, subreddit, sort, limit)`
+- If in `keyless_rss` mode: queries `https://www.reddit.com/r/{subreddit}/search.rss?q={query}&restrict_sr=1&sort={sort}`, parses Atom feed XML, extracts clean text, and enforces polite 2-second rate-throttling between queries.
+- If in `praw` mode: uses PRAW `subreddit.search(...)`.
+- `validate_connection()` verifies connectivity.
 
     def validate_connection(self) -> bool:
         """

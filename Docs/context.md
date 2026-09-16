@@ -49,7 +49,7 @@ Groq is the designated LLM inference provider for this project. It offers ultra-
 
 ## Data Sources & AI
 
-- **Reddit** — publicly available posts and conversations (V0 data source)
+- **Reddit** — publicly available posts and conversations (supports Dual-Mode: Keyless Public RSS feeds by default, and authenticated PRAW OAuth when credentials are provided)
 - **Groq** — fast LLM inference API for V1 analysis (API configured in V0)
 
 ## Key Design Principles

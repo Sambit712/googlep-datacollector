@@ -113,23 +113,23 @@ logging:
 
 ---
 
-### 3.3 Reddit API Client
+### 3.3 Reddit Client (Dual-Mode: Keyless Public RSS + Authenticated PRAW)
 
 | Aspect           | Detail                                                        |
 | ---------------- | ------------------------------------------------------------- |
-| **Purpose**      | Communicates with the Reddit API via PRAW                     |
+| **Purpose**      | Communicates with Reddit to retrieve posts matching search tasks |
 | **Input**        | A search task `(query, subreddit, params)`                    |
-| **Output**       | List of raw `Submission` objects                              |
+| **Output**       | List of normalized submission records or raw post objects     |
 | **Module**       | `src/reddit_client.py`                                        |
-| **Dependency**   | [PRAW](https://praw.readthedocs.io/) (Python Reddit API Wrapper) |
+| **Backends**     | 1. **Keyless Public RSS** (`requests` + Atom XML parser) — requires no keys<br/>2. **PRAW OAuth** (`praw`) — activated when credentials exist in `.env` |
 
 **Responsibilities:**
 
-- Authenticate using OAuth2 credentials from config / env vars
-- Execute subreddit-scoped or global search
-- Handle pagination and rate-limiting (PRAW handles most of this)
-- Surface HTTP / auth errors with clear messages
-- Return raw submission objects to the collector
+- Automatically detect mode based on `.env` credentials (falls back to Keyless RSS if credentials are absent)
+- For Keyless RSS: Query `https://www.reddit.com/r/{subreddit}/search.rss`, parse Atom feed XML, strip HTML formatting, and enforce polite request throttling (2.0s delay)
+- For PRAW: Authenticate using OAuth2 credentials and fetch via Reddit API
+- Surface network / HTTP errors gracefully with retries and clear logging
+- Return normalized raw post objects to the collector
 
 ---
 

@@ -1,0 +1,42 @@
+# Reddit Data-Retrieval Configuration — V0
+# Environment variables (${VAR}) are substituted at load time via .env
+
+reddit:
+  client_id: "${REDDIT_CLIENT_ID}"
+  client_secret: "${REDDIT_CLIENT_SECRET}"
+  user_agent: "${REDDIT_USER_AGENT}"
+
+search:
+  subreddits:
+    - "googlephotos"
+    - "techsupport"
+    - "photography"
+    - "apple"
+    - "android"
+  queries:
+    - "can't find old photo"
+    - "can't find old video"
+    - "looking for an old screenshot"
+    - "remember a photo but can't find it"
+    - "trying to find a picture I took"
+    - "lost photo in library"
+    - "how to find a photo when I don't remember the date"
+    - "searching for a specific image cannot find"
+  sort: "relevance"
+  time_filter: "all"
+  limit_per_query: 25
+
+pipeline:
+  deduplicate_by: "id"
+  output_format: "json"
+  output_dir: "data/output"
+  request_delay_seconds: 2.0
+
+groq:
+  api_key: "${GROQ_API_KEY}"
+  model: "llama-3.3-70b-versatile"
+  enabled: false                     # Set to true in V1; V0 only configures
+
+logging:
+  level: "INFO"
+  log_file: "logs/run.log"
