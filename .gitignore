@@ -1,0 +1,17 @@
+# Virtual environment
+.venv/
+
+# Credentials
+.env
+
+# Output data (large, regenerable)
+data/output/
+data/seen_ids.json
+
+# Logs
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
