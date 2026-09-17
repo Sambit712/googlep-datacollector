@@ -36,11 +36,12 @@ def validate_pipeline_output(json_path: Path) -> dict:
     post_ids = [p["post_id"] for p in posts]
     assert len(post_ids) == len(set(post_ids)), "Duplicate post_ids found in output!"
     
-    # Validate each post record
+    # Validate each post/evidence record
     required_keys = {
-        "post_id", "title", "selftext", "author", "subreddit",
-        "created_utc", "collected_at", "score", "num_comments",
-        "permalink", "search_query", "top_comments"
+        "record_id", "source", "source_type", "content_type", "source_id",
+        "title", "raw_text", "cleaned_text", "author", "subreddit",
+        "created_at", "retrieved_at", "url", "query_used", "queries_matched",
+        "post_id", "selftext", "permalink", "score", "num_comments"
     }
     
     for i, post in enumerate(posts):

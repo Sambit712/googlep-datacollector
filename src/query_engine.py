@@ -1,7 +1,9 @@
-"""Query Engine for Reddit Research Data-Retrieval System.
+"""Query Engine for Reddit Research Evidence-Collection System.
 
 Generates search task tuples from configuration by computing the
-Cartesian product of queries × subreddits.
+Cartesian product of queries × subreddits, tagging each task with
+its query category (product_specific vs behavior_specific) and
+subreddit tier (primary vs discovery).
 """
 
 from __future__ import annotations
@@ -25,31 +27,51 @@ class QueryEngine:
         """
         self.config = config
 
-    def generate_tasks(self) -> list[tuple[str, str | None, dict[str, Any]]]:
-        """Generate Cartesian product of queries × subreddits.
+    def generate_tasks(
+        self,
+        limit_override: int | None = None,
+    ) -> list[tuple[str, str | None, dict[str, Any]]]:
+        """Generate Cartesian product of queries × subreddits with categorization metadata.
 
         If no subreddits specified, yield (query, None, params) for global search.
+
+        Args:
+            limit_override: Optional override for max_results_per_query (e.g. from CLI --limit).
 
         Returns:
             List of (query_string, subreddit_name, search_params) tuples.
         """
         queries = self.config.search.queries
         subreddits = self.config.search.subreddits
-        params = {
-            "sort": self.config.search.sort,
-            "time_filter": self.config.search.time_filter,
-            "limit": self.config.search.limit_per_query,
-        }
+
+        limit = limit_override if limit_override is not None else self.config.search.limit_per_query
 
         tasks: list[tuple[str, str | None, dict[str, Any]]] = []
 
         if subreddits:
             for query in queries:
+                q_cat = self.config.search.query_to_category.get(query, "general")
                 for subreddit in subreddits:
-                    tasks.append((query, subreddit, params.copy()))
+                    sub_tier = self.config.search.subreddit_to_tier.get(subreddit, "primary")
+                    params = {
+                        "sort": self.config.search.sort,
+                        "time_filter": self.config.search.time_filter,
+                        "limit": limit,
+                        "query_category": q_cat,
+                        "subreddit_tier": sub_tier,
+                    }
+                    tasks.append((query, subreddit, params))
         else:
             for query in queries:
-                tasks.append((query, None, params.copy()))
+                q_cat = self.config.search.query_to_category.get(query, "general")
+                params = {
+                    "sort": self.config.search.sort,
+                    "time_filter": self.config.search.time_filter,
+                    "limit": limit,
+                    "query_category": q_cat,
+                    "subreddit_tier": "global",
+                }
+                tasks.append((query, None, params))
 
         logger.info(
             f"QueryEngine generated {len(tasks)} search tasks "

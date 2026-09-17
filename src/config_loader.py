@@ -1,8 +1,8 @@
-"""Configuration loader for the Reddit Research Data-Retrieval System.
+"""Configuration loader for the Reddit Research Evidence-Collection System.
 
 Loads YAML configuration, performs environment-variable substitution,
 validates required fields, detects Reddit access mode (keyless_rss vs praw),
-and returns an immutable AppConfig dataclass.
+parses query categories and subreddit tiers, and returns an immutable AppConfig.
 """
 
 from __future__ import annotations
@@ -44,6 +44,10 @@ class SearchConfig:
     sort: str = "relevance"
     time_filter: str = "all"
     limit_per_query: int = 25
+    query_categories: dict[str, list[str]] = field(default_factory=dict)
+    query_to_category: dict[str, str] = field(default_factory=dict)
+    subreddit_tiers: dict[str, list[str]] = field(default_factory=dict)
+    subreddit_to_tier: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,12 @@ class PipelineConfig:
     output_format: str = "json"
     output_dir: str = "data/output"
     request_delay_seconds: float = 2.0
+    max_comments_per_post: int = 3
+
+
+@dataclass(frozen=True)
+class PrivacyConfig:
+    anonymize_authors: bool = False
 
 
 @dataclass(frozen=True)
@@ -74,6 +84,7 @@ class AppConfig:
     pipeline: PipelineConfig
     groq: GroqConfig
     logging: LoggingConfig
+    privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
 
 
 def _substitute_env_vars(raw_text: str) -> str:
@@ -99,44 +110,48 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
     Args:
         config_path: Path to YAML configuration file.
 
-    Raises:
-        ConfigError: If file not found, YAML is malformed, or required fields missing.
-    """
-    # Load .env into environment if present
-    load_dotenv(override=False)
+    Returns:
+        AppConfig instance.
 
+    Raises:
+        ConfigError: If configuration is missing, unparseable, or invalid.
+    """
+    # 1. Load environment variables from .env
+    load_dotenv()
+
+    # 2. Check file existence
     path = Path(config_path)
     if not path.is_file():
-        raise ConfigError(f"Configuration file not found: {path}")
+        raise ConfigError(f"Configuration file not found: {path.resolve()}")
 
+    # 3. Read and substitute environment variables
     try:
         raw_text = path.read_text(encoding="utf-8")
-    except Exception as e:
-        raise ConfigError(f"Failed to read config file {path}: {e}") from e
+    except OSError as e:
+        raise ConfigError(f"Failed to read configuration file {path}: {e}") from e
 
     substituted_text = _substitute_env_vars(raw_text)
 
+    # 4. Parse YAML
     try:
         data = yaml.safe_load(substituted_text)
     except yaml.YAMLError as e:
         raise ConfigError(f"Malformed YAML in {path}: {e}") from e
 
     if not isinstance(data, dict):
-        raise ConfigError(f"Invalid configuration root in {path}: expected a YAML mapping/dictionary.")
+        raise ConfigError(f"Configuration file {path} must contain a top-level dictionary/mapping.")
 
     # --- 1. Reddit Section ---
     reddit_raw = data.get("reddit")
     if not isinstance(reddit_raw, dict):
         raise ConfigError("Missing required 'reddit' section in configuration.")
 
+    user_agent = str(reddit_raw.get("user_agent", "")).strip()
+    if not user_agent or _is_placeholder_or_empty(user_agent):
+        raise ConfigError("The 'reddit.user_agent' field is required and must not be empty.")
+
     raw_client_id = reddit_raw.get("client_id")
     raw_client_secret = reddit_raw.get("client_secret")
-    user_agent = str(reddit_raw.get("user_agent", "")).strip()
-
-    if _is_placeholder_or_empty(user_agent):
-        raise ConfigError(
-            "Missing or empty 'reddit.user_agent'. Reddit requires a descriptive User-Agent string."
-        )
 
     # Detect mode: praw requires both client_id and client_secret without placeholder values
     has_keys = not _is_placeholder_or_empty(raw_client_id) and not _is_placeholder_or_empty(raw_client_secret)
@@ -154,16 +169,48 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
     if not isinstance(search_raw, dict):
         raise ConfigError("Missing required 'search' section in configuration.")
 
-    queries = search_raw.get("queries")
-    if not isinstance(queries, list) or len(queries) == 0:
-        raise ConfigError("The 'search.queries' field must be a non-empty list of query strings.")
+    queries_raw = search_raw.get("queries")
+    cleaned_queries: list[str] = []
+    query_categories: dict[str, list[str]] = {}
+    query_to_category: dict[str, str] = {}
 
-    cleaned_queries = [str(q).strip() for q in queries if str(q).strip()]
+    if isinstance(queries_raw, dict):
+        for cat_name, q_list in queries_raw.items():
+            if isinstance(q_list, list):
+                clean_list = [str(q).strip() for q in q_list if str(q).strip()]
+                query_categories[cat_name] = clean_list
+                for q in clean_list:
+                    cleaned_queries.append(q)
+                    query_to_category[q] = cat_name
+    elif isinstance(queries_raw, list):
+        cleaned_queries = [str(q).strip() for q in queries_raw if str(q).strip()]
+        query_categories["general"] = cleaned_queries
+        for q in cleaned_queries:
+            query_to_category[q] = "general"
+    else:
+        raise ConfigError("The 'search.queries' field must be a non-empty list or dictionary of categories.")
+
     if not cleaned_queries:
-        raise ConfigError("The 'search.queries' list must contain at least one non-empty query string.")
+        raise ConfigError("The 'search.queries' field must contain at least one non-empty query string.")
 
     subreddits_raw = search_raw.get("subreddits", [])
-    subreddits = [str(s).strip() for s in subreddits_raw if str(s).strip()] if isinstance(subreddits_raw, list) else []
+    subreddits: list[str] = []
+    subreddit_tiers: dict[str, list[str]] = {}
+    subreddit_to_tier: dict[str, str] = {}
+
+    if isinstance(subreddits_raw, dict):
+        for tier_name, s_list in subreddits_raw.items():
+            if isinstance(s_list, list):
+                clean_list = [str(s).strip() for s in s_list if str(s).strip()]
+                subreddit_tiers[tier_name] = clean_list
+                for s in clean_list:
+                    subreddits.append(s)
+                    subreddit_to_tier[s] = tier_name
+    elif isinstance(subreddits_raw, list):
+        subreddits = [str(s).strip() for s in subreddits_raw if str(s).strip()]
+        subreddit_tiers["primary"] = subreddits
+        for s in subreddits:
+            subreddit_to_tier[s] = "primary"
 
     search_cfg = SearchConfig(
         queries=cleaned_queries,
@@ -171,6 +218,10 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         sort=str(search_raw.get("sort", "relevance")),
         time_filter=str(search_raw.get("time_filter", "all")),
         limit_per_query=int(search_raw.get("limit_per_query", 25)),
+        query_categories=query_categories,
+        query_to_category=query_to_category,
+        subreddit_tiers=subreddit_tiers,
+        subreddit_to_tier=subreddit_to_tier,
     )
 
     # --- 3. Pipeline Section ---
@@ -187,9 +238,19 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         output_format=out_fmt,
         output_dir=str(pipeline_raw.get("output_dir", "data/output")),
         request_delay_seconds=float(pipeline_raw.get("request_delay_seconds", 2.0)),
+        max_comments_per_post=int(pipeline_raw.get("max_comments_per_post", 3)),
     )
 
-    # --- 4. Groq Section ---
+    # --- 4. Privacy Section ---
+    privacy_raw = data.get("privacy", {})
+    if not isinstance(privacy_raw, dict):
+        privacy_raw = {}
+
+    privacy_cfg = PrivacyConfig(
+        anonymize_authors=bool(privacy_raw.get("anonymize_authors", False)),
+    )
+
+    # --- 5. Groq Section ---
     groq_raw = data.get("groq", {})
     if not isinstance(groq_raw, dict):
         groq_raw = {}
@@ -210,7 +271,7 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         enabled=bool(groq_raw.get("enabled", False)),
     )
 
-    # --- 5. Logging Section ---
+    # --- 6. Logging Section ---
     logging_raw = data.get("logging", {})
     if not isinstance(logging_raw, dict):
         logging_raw = {}
@@ -226,4 +287,5 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         pipeline=pipeline_cfg,
         groq=groq_cfg,
         logging=logging_cfg,
+        privacy=privacy_cfg,
     )

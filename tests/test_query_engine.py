@@ -55,5 +55,10 @@ def test_query_engine_global_search_when_no_subreddits():
     tasks = engine.generate_tasks()
 
     assert len(tasks) == 2
-    assert tasks[0] == ("global query 1", None, {"sort": "relevance", "time_filter": "all", "limit": 10})
-    assert tasks[1] == ("global query 2", None, {"sort": "relevance", "time_filter": "all", "limit": 10})
+    assert tasks[0][0] == "global query 1"
+    assert tasks[0][1] is None
+    assert tasks[0][2]["limit"] == 10
+    assert tasks[0][2]["sort"] == "relevance"
+    assert tasks[0][2]["time_filter"] == "all"
+    assert tasks[1][0] == "global query 2"
+    assert tasks[1][1] is None

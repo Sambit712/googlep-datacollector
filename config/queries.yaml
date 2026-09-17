@@ -1,4 +1,4 @@
-# Reddit Data-Retrieval Configuration — V0
+# Reddit Evidence-Collection Configuration — V0
 # Environment variables (${VAR}) are substituted at load time via .env
 
 reddit:
@@ -7,35 +7,53 @@ reddit:
   user_agent: "${REDDIT_USER_AGENT}"
 
 search:
+  # Subreddits categorized by research tier
   subreddits:
-    - "googlephotos"
-    - "techsupport"
-    - "photography"
-    - "apple"
-    - "android"
+    primary:
+      - "googlephotos"
+      - "GooglePixel"
+      - "Android"
+      - "iphone"
+    discovery:
+      - "photography"
+      - "techsupport"
+
+  # Queries categorized by strategy
   queries:
-    - "can't find old photo"
-    - "can't find old video"
-    - "looking for an old screenshot"
-    - "remember a photo but can't find it"
-    - "trying to find a picture I took"
-    - "lost photo in library"
-    - "how to find a photo when I don't remember the date"
-    - "searching for a specific image cannot find"
-  sort: "relevance"
-  time_filter: "all"
-  limit_per_query: 25
+    product_specific:
+      - "Google Photos search"
+      - "Google Photos can't find photo"
+      - "Google Photos old photo"
+      - "Google Photos screenshot search"
+      - "Google Photos search problem"
+    behavior_specific:
+      - "can't find old photo"
+      - "looking for old photo"
+      - "remember a photo but can't find it"
+      - "can't remember when photo was taken"
+      - "can't remember where photo was taken"
+      - "find old screenshot"
+      - "lost photo in camera roll"
+      - "scrolling through photos to find"
+
+  sort: "relevance"                  # relevance | hot | top | new
+  time_filter: "all"                 # all | year | month | week | day | hour
+  limit_per_query: 25                # max results per search task
 
 pipeline:
   deduplicate_by: "id"
-  output_format: "json"
+  output_format: "both"              # json | csv | both
   output_dir: "data/output"
-  request_delay_seconds: 2.0
+  request_delay_seconds: 2.0         # delay between queries to respect rate limits
+  max_comments_per_post: 3           # top-level comments to extract per post
+
+privacy:
+  anonymize_authors: false           # set to true to hash/mask usernames for research ethics
 
 groq:
   api_key: "${GROQ_API_KEY}"
   model: "llama-3.3-70b-versatile"
-  enabled: false                     # Set to true in V1; V0 only configures
+  enabled: false                     # V0 only configures; set true to test health check
 
 logging:
   level: "INFO"

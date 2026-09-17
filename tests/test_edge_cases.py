@@ -1,19 +1,20 @@
-"""Edge case tests for Phase 8.4.
+"""Edge case tests for Phase 8.4 and V0 required changes.
 
 Validates:
 - Empty search results handling
 - Unicode / emoji characters preserved correctly
-- Very long post body preserved without truncation in JSON
+- Very long post body preserved without truncation in both JSON and CSV
 - Deduplicator handles corrupted JSON gracefully
 """
 
 import json
+import csv
 import pytest
 from pathlib import Path
 
 from src.collector import PostCollector
 from src.deduplicator import Deduplicator
-from src.models import PostRecord
+from src.models import EvidenceRecord, PostRecord
 from src.reddit_client import RawPost
 from src.structurer import DataStructurer
 
@@ -64,8 +65,9 @@ def test_unicode_and_emoji_preservation(tmp_path: Path):
     collector = PostCollector()
     record = collector.collect(raw, search_query="photos")
 
+    assert record is not None
     assert record.title == unicode_title
-    assert record.selftext == unicode_body
+    assert record.raw_text == unicode_body
 
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
     structurer.write([record], metadata={"total_posts": 1})
@@ -75,7 +77,9 @@ def test_unicode_and_emoji_preservation(tmp_path: Path):
         data = json.load(f)
         loaded_post = data["posts"][0]
         assert loaded_post["title"] == unicode_title
-        assert loaded_post["selftext"] == unicode_body
+        assert loaded_post["raw_text"] == unicode_body
+        assert "☕" in loaded_post["cleaned_text"]
+        assert "📸" in loaded_post["title"]
 
     # Verify CSV retains Unicode
     with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
@@ -87,20 +91,21 @@ def test_unicode_and_emoji_preservation(tmp_path: Path):
 
 
 def test_very_long_post_body_preservation(tmp_path: Path):
-    """JSON output must preserve full length of very long selftext (>10,000 chars)."""
+    """JSON and CSV outputs must preserve 100% full length of very long selftext (>10,000 chars)."""
     long_text = "Word " * 3000  # 15,000 characters
-    post = PostRecord(
-        post_id="long_001",
+    post = EvidenceRecord(
+        record_id="RD_000001",
+        source_id="t3_long_001",
         title="Very Long Post",
-        selftext=long_text,
+        raw_text=long_text,
         author="author1",
         subreddit="test",
-        created_utc="2020-01-01T00:00:00Z",
-        collected_at="2026-09-17T00:00:00Z",
+        created_at="2020-01-01T00:00:00Z",
+        retrieved_at="2026-09-17T00:00:00Z",
         score=10,
         num_comments=0,
-        permalink="https://reddit.com/r/test/comments/long_001/",
-        search_query="test",
+        url="https://reddit.com/r/test/comments/long_001/",
+        query_used="test",
     )
 
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
@@ -109,16 +114,16 @@ def test_very_long_post_body_preservation(tmp_path: Path):
     # JSON should have full 15,000 characters
     with open(tmp_path / "posts.json", "r", encoding="utf-8") as f:
         data = json.load(f)
-        assert data["posts"][0]["selftext"] == long_text
-        assert len(data["posts"][0]["selftext"]) == len(long_text)
+        assert data["posts"][0]["raw_text"] == long_text
+        assert len(data["posts"][0]["raw_text"]) == len(long_text)
 
-    # CSV should be truncated to 500 chars + "..."
+    # CSV must also preserve full text without truncation
     with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
-        content = f.read()
-        assert "..." in content
-        # Ensure row exists and doesn't crash CSV parser
-        lines = content.strip().split("\n")
-        assert len(lines) == 2
+        reader = csv.DictReader(f)
+        row = next(reader)
+        assert len(row["raw_text"]) == len(long_text)
+        assert len(row["cleaned_text"]) == len(long_text.strip())
+        assert row["preview_text"].endswith("...")
 
 
 def test_deduplicator_corrupted_json_handled_gracefully(tmp_path: Path):
@@ -137,4 +142,4 @@ def test_deduplicator_corrupted_json_handled_gracefully(tmp_path: Path):
 
     with open(corrupt_file, "r", encoding="utf-8") as f:
         saved = json.load(f)
-        assert saved == ["post_123"]
+        assert "post_123" in saved

@@ -1,7 +1,7 @@
-"""Pipeline Orchestrator — Main entry point for the V0 Reddit Research Data-Retrieval System.
+"""Pipeline Orchestrator — Main entry point for the V0 Reddit Evidence Collection System.
 
-Wires all components together into a single runnable pipeline:
-Config → Query Engine → Reddit Client → Collector → Deduplicator → Structurer → Output
+Wires all components together into a single runnable evidence collection pipeline:
+Config → Query Engine → Reddit Client → Collector → Deduplicator → Structurer → Quality Reporter
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ import argparse
 import logging
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -18,27 +19,32 @@ from src.collector import PostCollector
 from src.deduplicator import Deduplicator
 from src.groq_client import GroqClient
 from src.logger_setup import setup_logging
-from src.models import PostRecord
+from src.models import EvidenceRecord
 from src.query_engine import QueryEngine
 from src.reddit_client import RedditClient, RedditClientError
+from src.reporter import CollectionReporter
 from src.structurer import DataStructurer
 
 logger = logging.getLogger(__name__)
 
 
-def main(config_path: str = "config/queries.yaml") -> None:
-    """Full pipeline orchestration.
+def main(
+    config_path: str = "config/queries.yaml",
+    limit_override: int | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Full pipeline orchestration for V0 Evidence Collection.
 
-    1. Load and validate config
-    2. Set up logging
-    3. Initialize components
-    4. Generate search tasks
-    5. Execute searches, collect, deduplicate
-    6. Write output files
-    7. Save dedup index
-    8. Log run summary
+    Args:
+        config_path: Path to YAML configuration file.
+        limit_override: Optional limit on results per query for sample runs.
+        dry_run: If True, executes collection without writing datasets to disk.
+
+    Returns:
+        The generated collection report dictionary.
     """
     run_start = datetime.now(timezone.utc)
+    run_id = f"run_{run_start.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
 
     # --- 1. Load and validate config ---
     try:
@@ -53,11 +59,15 @@ def main(config_path: str = "config/queries.yaml") -> None:
         log_file=config.logging.log_file,
     )
 
-    logger.info("=" * 60)
-    logger.info("V0 Reddit Research Data-Retrieval Pipeline — Run Starting")
-    logger.info(f"Config: {config_path}")
-    logger.info(f"Reddit mode: {config.reddit.mode}")
-    logger.info("=" * 60)
+    logger.info("=" * 70)
+    logger.info("V0 Reddit Evidence Collection Pipeline — Run Starting")
+    logger.info(f"Run ID:        {run_id}")
+    logger.info(f"Config:        {config_path}")
+    logger.info(f"Reddit mode:   {config.reddit.mode}")
+    logger.info(f"Dry Run:       {dry_run}")
+    if limit_override:
+        logger.info(f"Limit Override: {limit_override} per query")
+    logger.info("=" * 70)
 
     # --- 3. Initialize components ---
     query_engine = QueryEngine(config)
@@ -68,17 +78,27 @@ def main(config_path: str = "config/queries.yaml") -> None:
         logger.error(f"Failed to initialize Reddit client: {e}")
         sys.exit(1)
 
-    collector = PostCollector(max_comments=5)
-
     dedup_index_path = f"{config.pipeline.output_dir}/seen_ids.json"
     deduplicator = Deduplicator(index_path=dedup_index_path)
+
+    # Starting ID continues sequence across runs to keep RD_xxxxxx unique and stable
+    starting_id = deduplicator.last_record_number + 1
+
+    collector = PostCollector(
+        max_comments=config.pipeline.max_comments_per_post,
+        starting_id=starting_id,
+        anonymize_authors=config.privacy.anonymize_authors,
+        run_id=run_id,
+    )
 
     structurer = DataStructurer(
         output_dir=config.pipeline.output_dir,
         output_format=config.pipeline.output_format,
     )
 
-    # --- 4. Optional Groq health check ---
+    reporter = CollectionReporter(output_dir=config.pipeline.output_dir)
+
+    # --- 4. Optional Groq health check (V1 preparation) ---
     if config.groq.enabled and config.groq.api_key:
         try:
             groq_client = GroqClient(
@@ -102,20 +122,26 @@ def main(config_path: str = "config/queries.yaml") -> None:
         logger.warning("Reddit connection check failed. Proceeding anyway — individual queries may still work.")
 
     # --- 6. Generate search tasks ---
-    tasks = query_engine.generate_tasks()
+    tasks = query_engine.generate_tasks(limit_override=limit_override)
     logger.info(f"Generated {len(tasks)} search tasks.")
 
     # --- 7. Execute pipeline ---
-    all_posts: list[PostRecord] = []
+    all_records: list[EvidenceRecord] = []
     total_duplicates = 0
     total_raw = 0
     tasks_completed = 0
     tasks_failed = 0
-    queries_used: set[str] = set()
+    queries_executed: set[str] = set()
 
     for i, (query, subreddit, params) in enumerate(tasks, 1):
         sub_display = f"r/{subreddit}" if subreddit else "r/all"
-        logger.info(f"[{i}/{len(tasks)}] Searching for '{query}' in {sub_display}...")
+        sub_tier = params.get("subreddit_tier", "primary")
+        query_limit = params.get("limit", 25)
+
+        logger.info(
+            f"[{i}/{len(tasks)}] Searching for '{query}' in {sub_display} "
+            f"[{sub_tier}] (limit={query_limit})..."
+        )
 
         try:
             # Search
@@ -124,24 +150,29 @@ def main(config_path: str = "config/queries.yaml") -> None:
                 subreddit=subreddit,
                 sort=params.get("sort", "relevance"),
                 time_filter=params.get("time_filter", "all"),
-                limit=params.get("limit", 25),
+                limit=query_limit,
+            )
+            total_raw += len(raw_posts)
+
+            # Collect & normalize into EvidenceRecords (posts and comments)
+            records = collector.collect_batch(
+                raw_posts,
+                search_query=query,
+                subreddit_tier=sub_tier,
+                include_comments=True,
             )
 
-            # Collect & normalize
-            records = collector.collect_batch(raw_posts, search_query=query)
-            total_raw += len(records)
-
-            # Deduplicate
+            # Deduplicate by (source, source_id) while accumulating multi-query matches
             unique, dup_count = deduplicator.filter(records)
             total_duplicates += dup_count
 
-            all_posts.extend(unique)
-            queries_used.add(query)
+            all_records.extend(unique)
+            queries_executed.add(query)
             tasks_completed += 1
 
             logger.info(
-                f"  → {len(unique)} new posts collected, {dup_count} duplicates skipped "
-                f"(from {len(raw_posts)} raw results)"
+                f"  → {len(unique)} new records collected, {dup_count} duplicates skipped "
+                f"(from {len(raw_posts)} raw posts)"
             )
 
         except Exception as e:
@@ -154,47 +185,74 @@ def main(config_path: str = "config/queries.yaml") -> None:
                 if delay > 0:
                     time.sleep(delay)
 
-    # --- 8. Write output ---
+    # --- 8. Write output (if not dry run) ---
     run_end = datetime.now(timezone.utc)
+    duration = (run_end - run_start).total_seconds()
+
     metadata: dict[str, Any] = {
+        "run_id": run_id,
         "generated_at": run_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "run_started_at": run_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "total_posts": len(all_posts),
-        "queries_used": len(queries_used),
+        "duration_seconds": round(duration, 2),
+        "total_records": len(all_records),
+        "queries_executed": len(queries_executed),
         "duplicates_skipped": total_duplicates,
         "tasks_completed": tasks_completed,
         "tasks_failed": tasks_failed,
         "reddit_mode": config.reddit.mode,
+        "is_dry_run": dry_run,
     }
 
-    write_result = structurer.write(all_posts, metadata)
+    if not dry_run:
+        structurer.write(all_records, metadata)
+        deduplicator.save()
+    else:
+        logger.info("[DRY RUN] Skipping file persistence to disk.")
 
-    # --- 9. Save dedup index ---
-    deduplicator.save()
+    # --- 9. Quality Reporting ---
+    report = reporter.generate_report(
+        run_id=run_id,
+        records=all_records,
+        queries_executed=len(queries_executed),
+        total_raw_results=total_raw,
+        duplicates_removed=total_duplicates,
+        tasks_completed=tasks_completed,
+        tasks_failed=tasks_failed,
+        duration_seconds=duration,
+        is_dry_run=dry_run,
+    )
 
-    # --- 10. Log run summary ---
-    dedup_stats = deduplicator.stats()
-    logger.info("=" * 60)
-    logger.info("Pipeline Run Complete!")
-    logger.info(f"  Tasks completed:    {tasks_completed}/{len(tasks)}")
-    logger.info(f"  Tasks failed:       {tasks_failed}")
-    logger.info(f"  Total raw posts:    {total_raw}")
-    logger.info(f"  Unique posts saved: {len(all_posts)}")
-    logger.info(f"  Duplicates skipped: {total_duplicates}")
-    logger.info(f"  Total seen (all runs): {dedup_stats['total_seen']}")
-    logger.info(f"  Files written:      {write_result['files_written']}")
-    logger.info(f"  Duration:           {(run_end - run_start).total_seconds():.1f}s")
-    logger.info("=" * 60)
+    if not dry_run:
+        reporter.save_report(report)
+
+    reporter.print_summary(report)
+    return report
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="V0 Reddit Research Data-Retrieval Pipeline"
+        description="V0 Reddit Research Evidence-Collection Pipeline"
     )
     parser.add_argument(
         "--config",
         default="config/queries.yaml",
         help="Path to YAML configuration file (default: config/queries.yaml)",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Override max results per query for sample runs (e.g. --limit 10)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run search, collection, and quality reporting without saving files to disk",
+    )
     args = parser.parse_args()
-    main(config_path=args.config)
+
+    main(
+        config_path=args.config,
+        limit_override=args.limit,
+        dry_run=args.dry_run,
+    )

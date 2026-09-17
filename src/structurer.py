@@ -1,7 +1,7 @@
-"""Data Structurer & Storage Layer for Reddit Research Data-Retrieval System.
+"""Data Structurer & Storage Layer for Reddit Research Evidence-Collection System.
 
-Serialises deduplicated PostRecord lists into JSON and/or CSV output files
-with metadata headers.
+Serializes deduplicated EvidenceRecord lists into JSON and CSV output files
+with ZERO text truncation, preserving full raw and cleaned evidence.
 """
 
 from __future__ import annotations
@@ -9,39 +9,51 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from src.models import PostRecord
+from src.models import EvidenceRecord
 
 logger = logging.getLogger(__name__)
 
-# CSV column order matching the spec
+# Complete evidence CSV column order
 CSV_COLUMNS = [
-    "post_id",
-    "title",
-    "selftext",
-    "author",
+    "record_id",
+    "source",
+    "source_type",
+    "content_type",
+    "source_id",
     "subreddit",
-    "created_utc",
+    "subreddit_tier",
+    "title",
+    "raw_text",
+    "cleaned_text",
+    "preview_text",
+    "author",
+    "created_at",
+    "retrieved_at",
+    "url",
+    "query_used",
+    "queries_matched",
+    "run_id",
+    "parent_id",
+    "parent_post_title",
+    "parent_post_text",
     "score",
     "num_comments",
-    "permalink",
-    "search_query",
-    "collected_at",
     "top_comments",
+    "ai_relevance",
+    "relevance_confidence",
+    "evidence_status",
 ]
 
-# Maximum selftext length in CSV output
-CSV_SELFTEXT_MAX_LEN = 500
-
-# Separator for joining top_comments list into a single CSV cell
+# Separators for multi-value list fields in CSV
+LIST_SEPARATOR = " ; "
 COMMENT_SEPARATOR = " ||| "
 
 
 class DataStructurer:
-    """Serialises PostRecord lists into JSON and/or CSV files."""
+    """Serializes EvidenceRecord lists into JSON and/or CSV files with zero truncation."""
 
     def __init__(self, output_dir: str, output_format: str = "json"):
         """
@@ -54,94 +66,66 @@ class DataStructurer:
         if self.output_format not in ("json", "csv", "both"):
             raise ValueError(f"Invalid output_format: '{self.output_format}'. Must be 'json', 'csv', or 'both'.")
 
-    def write(self, posts: list[PostRecord], metadata: dict[str, Any]) -> dict[str, Any]:
-        """Write all posts to the configured format(s).
+    def write(self, posts: list[EvidenceRecord], metadata: dict[str, Any]) -> dict[str, Any]:
+        """Write all evidence records to the configured format(s).
+
+        Preserves 100% of the raw and cleaned text without truncation.
 
         Args:
-            posts: List of deduplicated PostRecords.
-            metadata: Run metadata (generated_at, total_posts,
-                      queries_used, duplicates_skipped).
+            posts: List of EvidenceRecords to serialize.
+            metadata: Metadata dictionary to include with the dataset.
 
         Returns:
-            dict with keys 'files_written' (list of paths)
-                 and 'total_records' (int).
+            Dictionary with paths to the written files and record count.
         """
-        # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
-
         files_written: list[str] = []
 
         if self.output_format in ("json", "both"):
-            json_path = self._write_json(posts, metadata)
-            files_written.append(json_path)
+            json_file = self.output_dir / "posts.json"
+            self._write_json(posts, metadata, json_file)
+            files_written.append(str(json_file))
 
         if self.output_format in ("csv", "both"):
-            csv_path = self._write_csv(posts)
-            files_written.append(csv_path)
+            csv_file = self.output_dir / "posts.csv"
+            self._write_csv(posts, csv_file)
+            files_written.append(str(csv_file))
 
-        result = {
+        logger.info(f"DataStructurer wrote {len(posts)} records to {len(files_written)} file(s): {', '.join(files_written)}")
+        return {
             "files_written": files_written,
             "total_records": len(posts),
         }
 
-        logger.info(
-            f"DataStructurer wrote {len(posts)} records to {len(files_written)} file(s): "
-            f"{', '.join(files_written)}"
-        )
-        return result
-
-    def _write_json(self, posts: list[PostRecord], metadata: dict[str, Any]) -> str:
-        """Write data/output/posts.json with metadata header.
-
-        Returns:
-            Absolute path of the written JSON file.
-        """
-        output_path = self.output_dir / "posts.json"
-
-        output_data = {
+    def _write_json(self, posts: list[EvidenceRecord], metadata: dict[str, Any], path: Path) -> None:
+        """Write records and metadata to a JSON file."""
+        records_list = [p.to_dict() for p in posts]
+        payload = {
             "metadata": metadata,
-            "posts": [post.to_dict() for post in posts],
+            "posts": records_list,
+            "records": records_list,  # alias for clarity
         }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        logger.info(f"Wrote JSON output: {path} ({len(posts)} records)")
 
-        output_path.write_text(
-            json.dumps(output_data, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-
-        logger.info(f"Wrote JSON output: {output_path} ({len(posts)} posts)")
-        return str(output_path)
-
-    def _write_csv(self, posts: list[PostRecord]) -> str:
-        """Write data/output/posts.csv (flat, no nested comments).
-
-        - selftext is truncated to 500 characters.
-        - top_comments list is joined with ' ||| ' separator.
-
-        Returns:
-            Absolute path of the written CSV file.
-        """
-        output_path = self.output_dir / "posts.csv"
-
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+    def _write_csv(self, posts: list[EvidenceRecord], path: Path) -> None:
+        """Write records to a flat CSV file with zero text truncation."""
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=CSV_COLUMNS,
+                extrasaction="ignore",
+                quoting=csv.QUOTE_MINIMAL,
+            )
             writer.writeheader()
 
-            for post in posts:
-                row = post.to_dict()
-
-                # Truncate selftext for CSV
-                selftext = str(row.get("selftext", ""))
-                if len(selftext) > CSV_SELFTEXT_MAX_LEN:
-                    row["selftext"] = selftext[:CSV_SELFTEXT_MAX_LEN] + "..."
-
-                # Join top_comments list into a single string
-                comments = row.get("top_comments", [])
-                if isinstance(comments, list):
-                    row["top_comments"] = COMMENT_SEPARATOR.join(str(c) for c in comments)
-                else:
-                    row["top_comments"] = str(comments)
-
+            for p in posts:
+                row = p.to_dict()
+                if isinstance(row.get("queries_matched"), list):
+                    row["queries_matched"] = LIST_SEPARATOR.join(row["queries_matched"])
+                if isinstance(row.get("top_comments"), list):
+                    row["top_comments"] = COMMENT_SEPARATOR.join(row["top_comments"])
                 writer.writerow(row)
 
-        logger.info(f"Wrote CSV output: {output_path} ({len(posts)} posts)")
-        return str(output_path)
+        logger.info(f"Wrote CSV output: {path} ({len(posts)} records, zero truncation)")

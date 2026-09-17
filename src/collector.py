@@ -1,60 +1,114 @@
-"""Raw post collector that normalizes submissions into PostRecord instances."""
+"""Evidence collector that normalizes submissions and comments into EvidenceRecord instances.
+
+Preserves complete raw evidence, applies non-destructive cleaning, extracts
+contextual comments with parent references, and assigns stable research IDs (RD_000001).
+"""
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
-from src.models import PostRecord
+from src.cleaner import clean_text, generate_preview
+from src.models import EvidenceRecord
 
 logger = logging.getLogger(__name__)
 
+# Trivial/uninformative comments to filter out unless accompanied by context
+_TRIVIAL_COMMENTS = {
+    "same",
+    "same here",
+    "same here!",
+    "+1",
+    "following",
+    "following this",
+    "bump",
+    "me too",
+    "me too!",
+    "this",
+    "cfbr",
+    "same problem",
+    "same issue",
+    "remindme!",
+}
+
+
+def _anonymize_author(username: str) -> str:
+    """Generate a consistent pseudonym for an author username."""
+    if not username or username in ("[deleted]", "[removed]", "[unknown]"):
+        return "[deleted]"
+    h = hashlib.sha256(username.encode("utf-8")).hexdigest()[:8]
+    return f"anon_{h}"
+
 
 class PostCollector:
-    """Converts raw Reddit submissions (PRAW or RawPost) into normalized PostRecord instances."""
+    """Converts raw Reddit submissions and comments into normalized EvidenceRecord instances."""
 
-    def __init__(self, max_comments: int = 5):
+    def __init__(
+        self,
+        max_comments: int = 3,
+        starting_id: int = 1,
+        anonymize_authors: bool = False,
+        run_id: str = "",
+    ):
         """
         Args:
             max_comments: Number of top-level comments to collect per post.
+            starting_id: Starting integer sequence for research IDs (RD_xxxxxx).
+            anonymize_authors: If True, pseudonymizes usernames for research privacy.
+            run_id: Unique identifier for the collection run.
         """
         self.max_comments = max_comments
+        self._id_counter = starting_id
+        self.anonymize_authors = anonymize_authors
+        self.run_id = run_id
+
+    def _next_record_id(self) -> str:
+        """Generate a stable, human-readable research ID, e.g. RD_000001."""
+        rec_id = f"RD_{self._id_counter:06d}"
+        self._id_counter += 1
+        return rec_id
+
+    @property
+    def current_id_counter(self) -> int:
+        """Return the next ID counter value."""
+        return self._id_counter
 
     def _is_deleted_or_removed(self, submission: Any) -> bool:
         """Determine if a submission was deleted by user or removed by moderator."""
-        # 1. Direct flags
         if getattr(submission, "removed_by_category", None) is not None:
             return True
 
-        # 2. Selftext markers
         selftext = getattr(submission, "selftext", "") or ""
         if selftext.strip() in ("[deleted]", "[removed]"):
             return True
 
-        # 3. Title markers
         title = getattr(submission, "title", "") or ""
         if title.strip() in ("[deleted]", "[removed]"):
             return True
 
         return False
 
-    def _extract_author(self, submission: Any) -> str:
-        """Extract author username, defaulting to '[deleted]'."""
-        author_attr = getattr(submission, "author", None)
+    def _extract_author(self, submission_or_comment: Any) -> str:
+        """Extract author username, defaulting to '[deleted]', with optional anonymization."""
+        author_attr = getattr(submission_or_comment, "author", None)
         if author_attr is None:
             return "[deleted]"
 
         if hasattr(author_attr, "name"):
             name = str(author_attr.name).strip()
-            return name if name else "[deleted]"
+        else:
+            name = str(author_attr).strip()
 
-        name_str = str(author_attr).strip()
-        if not name_str or name_str in ("[deleted]", "[removed]"):
+        if not name or name in ("[deleted]", "[removed]", "None"):
             return "[deleted]"
 
-        # Strip /u/ if present
-        return name_str.replace("/u/", "").strip()
+        cleaned_name = name.replace("/u/", "").strip()
+        if self.anonymize_authors:
+            return _anonymize_author(cleaned_name)
+        return cleaned_name
 
     def _extract_subreddit(self, submission: Any) -> str:
         """Extract subreddit display name."""
@@ -90,8 +144,22 @@ class PostCollector:
             clean = "/" + clean
         return f"https://reddit.com{clean}"
 
-    def _extract_top_comments(self, submission: Any) -> list[str]:
-        """Extract up to max_comments top-level comment strings."""
+    def _is_trivial_comment(self, body: str) -> bool:
+        """Determine if a comment is uninformative (e.g. 'Same here') without substance."""
+        stripped = body.strip().lower().rstrip(".!")
+        if len(stripped) < 8:
+            return True
+        if stripped in _TRIVIAL_COMMENTS:
+            return True
+        return False
+
+    def _extract_contextual_comments(
+        self,
+        submission: Any,
+        parent_record: EvidenceRecord,
+        retrieved_at: str,
+    ) -> list[EvidenceRecord]:
+        """Extract top-level comments as standalone EvidenceRecords linked to the parent post."""
         if self.max_comments <= 0:
             return []
 
@@ -99,20 +167,18 @@ class PostCollector:
         if comments_attr is None:
             return []
 
-        # If PRAW CommentForest, safely replace_more with limit=0
         if hasattr(comments_attr, "replace_more"):
             try:
                 comments_attr.replace_more(limit=0)
             except Exception:
                 pass
 
-        collected: list[str] = []
+        comment_records: list[EvidenceRecord] = []
         try:
-            for comment in comments_attr:
-                if len(collected) >= self.max_comments:
+            for idx, comment in enumerate(comments_attr, 1):
+                if len(comment_records) >= self.max_comments:
                     break
 
-                # Skip MoreComments instances
                 if comment.__class__.__name__ == "MoreComments":
                     continue
 
@@ -120,19 +186,63 @@ class PostCollector:
                 if not body and isinstance(comment, str):
                     body = comment
 
-                body_str = str(body).strip()
-                if body_str and body_str not in ("[deleted]", "[removed]"):
-                    collected.append(body_str)
+                raw_body = str(body).strip()
+                if not raw_body or raw_body in ("[deleted]", "[removed]"):
+                    continue
+
+                # Filter trivial comments lacking context
+                if self._is_trivial_comment(raw_body):
+                    continue
+
+                c_id = str(getattr(comment, "id", f"c_{idx}")).strip()
+                c_source_id = c_id if c_id.startswith("t1_") else f"t1_{c_id}"
+                c_author = self._extract_author(comment)
+                c_created = self._format_timestamp(getattr(comment, "created_utc", 0))
+                c_permalink = self._format_permalink(str(getattr(comment, "permalink", parent_record.url)))
+                c_cleaned = clean_text(raw_body)
+                c_preview = generate_preview(c_cleaned)
+
+                rec = EvidenceRecord(
+                    record_id=self._next_record_id(),
+                    source="reddit",
+                    source_type="reddit",
+                    content_type="comment",
+                    source_id=c_source_id,
+                    subreddit=parent_record.subreddit,
+                    subreddit_tier=parent_record.subreddit_tier,
+                    title=f"Re: {parent_record.title}",
+                    raw_text=raw_body,
+                    cleaned_text=c_cleaned,
+                    preview_text=c_preview,
+                    author=c_author,
+                    created_at=c_created,
+                    retrieved_at=retrieved_at,
+                    url=c_permalink,
+                    query_used=parent_record.query_used,
+                    queries_matched=list(parent_record.queries_matched),
+                    run_id=self.run_id,
+                    parent_id=parent_record.source_id,
+                    parent_post_title=parent_record.title,
+                    parent_post_text=parent_record.preview_text or parent_record.cleaned_text[:300],
+                    score=int(getattr(comment, "score", 0)),
+                    num_comments=0,
+                )
+                comment_records.append(rec)
         except Exception as e:
-            logger.debug(f"Error extracting comments: {e}")
+            logger.debug(f"Error extracting comments for post {parent_record.source_id}: {e}")
 
-        return collected
+        return comment_records
 
-    def collect(self, submission: Any, search_query: str) -> PostRecord | None:
-        """Extract and normalize fields from a single submission.
+    def collect(
+        self,
+        submission: Any,
+        search_query: str,
+        subreddit_tier: str = "primary",
+    ) -> EvidenceRecord | None:
+        """Extract and normalize a single submission into an EvidenceRecord.
 
         Returns:
-            PostRecord if valid, or None if deleted or removed.
+            EvidenceRecord if valid, or None if deleted or removed.
         """
         if self._is_deleted_or_removed(submission):
             logger.debug(f"Skipping deleted/removed submission {getattr(submission, 'id', 'unknown')}")
@@ -142,50 +252,111 @@ class PostCollector:
         if not raw_id:
             return None
 
-        post_id = raw_id if raw_id.startswith("t3_") else f"t3_{raw_id}"
+        source_id = raw_id if raw_id.startswith("t3_") else f"t3_{raw_id}"
         title = str(getattr(submission, "title", "")).strip()
-        selftext = str(getattr(submission, "selftext", "") or "").strip()
+        raw_selftext = str(getattr(submission, "selftext", "") or "").strip()
+        cleaned_selftext = clean_text(raw_selftext)
+        preview_text = generate_preview(cleaned_selftext or title)
+
         author = self._extract_author(submission)
         subreddit = self._extract_subreddit(submission)
-        created_utc = self._format_timestamp(getattr(submission, "created_utc", 0))
+        created_at = self._format_timestamp(getattr(submission, "created_utc", 0))
+        retrieved_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         score = int(getattr(submission, "score", 0))
         num_comments = int(getattr(submission, "num_comments", 0))
-        permalink = self._format_permalink(str(getattr(submission, "permalink", "")))
-        top_comments = self._extract_top_comments(submission)
-        collected_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        url = self._format_permalink(str(getattr(submission, "permalink", "")))
 
-        return PostRecord(
-            post_id=post_id,
-            title=title,
-            selftext=selftext,
-            author=author,
+        # Also extract raw comment strings for backward-compatibility top_comments
+        top_comment_strings: list[str] = []
+        comments_attr = getattr(submission, "comments", None)
+        if comments_attr and isinstance(comments_attr, list):
+            for c in comments_attr[: self.max_comments]:
+                c_body = getattr(c, "body", str(c)).strip()
+                if c_body and c_body not in ("[deleted]", "[removed]"):
+                    top_comment_strings.append(c_body)
+
+        return EvidenceRecord(
+            record_id=self._next_record_id(),
+            source="reddit",
+            source_type="reddit",
+            content_type="post",
+            source_id=source_id,
             subreddit=subreddit,
-            created_utc=created_utc,
+            subreddit_tier=subreddit_tier,
+            title=title,
+            raw_text=raw_selftext,
+            cleaned_text=cleaned_selftext,
+            preview_text=preview_text,
+            author=author,
+            created_at=created_at,
+            retrieved_at=retrieved_at,
+            url=url,
+            query_used=search_query,
+            queries_matched=[search_query] if search_query else [],
+            run_id=self.run_id,
             score=score,
             num_comments=num_comments,
-            permalink=permalink,
-            search_query=search_query,
-            collected_at=collected_at,
-            top_comments=top_comments,
+            top_comments=top_comment_strings,
         )
 
-    def collect_batch(self, submissions: Iterable[Any], search_query: str) -> list[PostRecord]:
-        """Process an iterable of submissions into a list of valid PostRecords.
+    def collect_with_comments(
+        self,
+        submission: Any,
+        search_query: str,
+        subreddit_tier: str = "primary",
+    ) -> tuple[EvidenceRecord | None, list[EvidenceRecord]]:
+        """Extract a post and its associated contextual comment records.
 
-        Skips any deleted or removed posts and logs statistics.
+        Returns:
+            Tuple of (post_record, list_of_comment_records).
         """
-        records: list[PostRecord] = []
+        post_record = self.collect(submission, search_query=search_query, subreddit_tier=subreddit_tier)
+        if post_record is None:
+            return None, []
+
+        comment_records = self._extract_contextual_comments(
+            submission=submission,
+            parent_record=post_record,
+            retrieved_at=post_record.retrieved_at,
+        )
+        return post_record, comment_records
+
+    def collect_batch(
+        self,
+        submissions: Iterable[Any],
+        search_query: str,
+        subreddit_tier: str = "primary",
+        include_comments: bool = False,
+    ) -> list[EvidenceRecord]:
+        """Collect and normalize a batch of submissions, optionally collecting comments.
+
+        Returns:
+            Flattened list of all valid post and comment EvidenceRecords.
+        """
+        all_records: list[EvidenceRecord] = []
         skipped = 0
 
-        for s in submissions:
-            rec = self.collect(s, search_query=search_query)
-            if rec is not None:
-                records.append(rec)
+        for sub in submissions:
+            if include_comments and self.max_comments > 0:
+                post, comments = self.collect_with_comments(
+                    sub,
+                    search_query=search_query,
+                    subreddit_tier=subreddit_tier,
+                )
+                if post is not None:
+                    all_records.append(post)
+                    all_records.extend(comments)
+                else:
+                    skipped += 1
             else:
-                skipped += 1
+                post = self.collect(sub, search_query=search_query, subreddit_tier=subreddit_tier)
+                if post is not None:
+                    all_records.append(post)
+                else:
+                    skipped += 1
 
         logger.info(
-            f"Collected {len(records)} valid records (skipped {skipped} deleted/removed) "
-            f"for query='{search_query}'"
+            f"Collected {len(all_records)} evidence records "
+            f"(skipped {skipped} deleted/removed) for query='{search_query}'"
         )
-        return records
+        return all_records
