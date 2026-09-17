@@ -16,14 +16,14 @@ search:
 
 pipeline:
   deduplicate_by: "id"
-  output_format: "json"
+  output_format: "both"
   output_dir: "data/output"
   request_delay_seconds: 2.0
 
 groq:
   api_key: "${GROQ_API_KEY}"
   model: "llama-3.3-70b-versatile"
-  enabled: false
+  enabled: true
 
 logging:
   level: "INFO"

@@ -179,8 +179,8 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         pipeline_raw = {}
 
     out_fmt = str(pipeline_raw.get("output_format", "json")).lower()
-    if out_fmt not in ("json", "csv"):
-        raise ConfigError(f"Invalid 'pipeline.output_format': '{out_fmt}'. Must be 'json' or 'csv'.")
+    if out_fmt not in ("json", "csv", "both"):
+        raise ConfigError(f"Invalid 'pipeline.output_format': '{out_fmt}'. Must be 'json', 'csv', or 'both'.")
 
     pipeline_cfg = PipelineConfig(
         deduplicate_by=str(pipeline_raw.get("deduplicate_by", "id")),
