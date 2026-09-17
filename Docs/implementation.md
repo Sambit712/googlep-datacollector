@@ -143,10 +143,10 @@ GROQ_API_KEY=your_groq_api_key_here
 
 ### Exit Criteria
 
-- [ ] All directories exist
-- [ ] Virtual environment activates and all dependencies install without errors
-- [ ] `.gitignore` excludes credentials and generated data
-- [ ] Repository initialised with `git init` and first commit
+- [x] All directories exist
+- [x] Virtual environment activates and all dependencies install without errors
+- [x] `.gitignore` excludes credentials and generated data
+- [x] Repository initialised with `git init` and first commit
 
 ---
 
@@ -248,11 +248,11 @@ logging:
 
 ### Exit Criteria
 
-- [ ] `config_loader.py` loads and validates `queries.yaml`
-- [ ] Environment variable substitution works
-- [ ] Mode detection works (`keyless_rss` vs `praw`)
-- [ ] Groq config section parsed correctly (with missing-key warning)
-- [ ] All test cases pass
+- [x] `config_loader.py` loads and validates `queries.yaml`
+- [x] Environment variable substitution works
+- [x] Mode detection works (`keyless_rss` vs `praw`)
+- [x] Groq config section parsed correctly (with missing-key warning)
+- [x] All test cases pass
 
 ---
 
@@ -306,9 +306,9 @@ Build the client that queries Reddit for posts matching given queries, supportin
 
 ### Exit Criteria
 
-- [ ] `RedditClient` authenticates and searches successfully against real Reddit API (manual test with `.env`)
-- [ ] All 6 unit tests pass with mocked PRAW
-- [ ] Rate limiting and retry logic verified via mocked transient errors
+- [x] `RedditClient` authenticates and searches successfully against real Reddit API (manual test with `.env`)
+- [x] All 6 unit tests pass with mocked PRAW
+- [x] Rate limiting and retry logic verified via mocked transient errors
 
 ---
 
@@ -417,10 +417,10 @@ class PostCollector:
 
 ### Exit Criteria
 
-- [ ] `PostRecord` dataclass serialises to dict/JSON correctly
-- [ ] `PostCollector` handles deleted/removed posts gracefully
-- [ ] Timestamps normalised to ISO-8601 UTC
-- [ ] All 8 test cases pass
+- [x] `PostRecord` dataclass serialises to dict/JSON correctly
+- [x] `PostCollector` handles deleted/removed posts gracefully
+- [x] Timestamps normalised to ISO-8601 UTC
+- [x] All 8 test cases pass
 
 ---
 
@@ -503,10 +503,10 @@ flowchart TD
 
 ### Exit Criteria
 
-- [ ] Deduplication works within a single run (same batch)
-- [ ] Deduplication works across multiple runs (persistent index)
-- [ ] `seen_ids.json` is correctly loaded and saved
-- [ ] All 7 test cases pass
+- [x] Deduplication works within a single run (same batch)
+- [x] Deduplication works across multiple runs (persistent index)
+- [x] `seen_ids.json` is correctly loaded and saved
+- [x] All 7 test cases pass
 
 ---
 
@@ -604,11 +604,11 @@ class DataStructurer:
 
 ### Exit Criteria
 
-- [ ] JSON output matches the schema from architecture.md
-- [ ] CSV output is importable by pandas / Excel
-- [ ] Metadata header accurately reflects run statistics
-- [ ] Output directory is auto-created if missing
-- [ ] All 9 test cases pass
+- [x] JSON output matches the schema from architecture.md
+- [x] CSV output is importable by pandas / Excel
+- [x] Metadata header accurately reflects run statistics
+- [x] Output directory is auto-created if missing
+- [x] All 9 test cases pass
 
 ---
 
@@ -687,10 +687,10 @@ class GroqClient:
 
 ### Exit Criteria
 
-- [ ] `GroqClient` initialises with Groq API key
-- [ ] V1 method stubs are defined and raise `NotImplementedError`
-- [ ] Health check validates API connectivity
-- [ ] All 4 test cases pass
+- [x] `GroqClient` initialises with Groq API key
+- [x] V1 method stubs are defined and raise `NotImplementedError`
+- [x] Health check validates API connectivity
+- [x] All 4 test cases pass
 
 ---
 
@@ -800,11 +800,11 @@ flowchart TD
 
 ### Exit Criteria
 
-- [ ] `python src/main.py` runs the full pipeline end-to-end
-- [ ] Pipeline halts gracefully on auth errors (before any queries)
-- [ ] Pipeline continues past individual query failures (logs warning, moves on)
-- [ ] Run summary logged with correct totals
-- [ ] Output files written to `data/output/`
+- [x] `python src/main.py` runs the full pipeline end-to-end
+- [x] Pipeline halts gracefully on auth errors (before any queries)
+- [x] Pipeline continues past individual query failures (logs warning, moves on)
+- [x] Run summary logged with correct totals
+- [x] Output files written to `data/output/`
 
 ---
 
@@ -883,11 +883,11 @@ python src/main.py --config config/queries_test.yaml
 
 ### Exit Criteria
 
-- [ ] All 42 unit tests pass
-- [ ] Integration test produces valid, non-empty output
-- [ ] Cross-run deduplication verified
-- [ ] Edge cases handled gracefully
-- [ ] No unhandled exceptions in any test scenario
+- [x] All unit tests pass (55/55 passed)
+- [x] Integration test produces valid, non-empty output
+- [x] Cross-run deduplication verified
+- [x] Edge cases handled gracefully
+- [x] No unhandled exceptions in any test scenario
 
 ---
 
@@ -944,19 +944,19 @@ Ensure every module, class, and public method has a docstring explaining:
 
 #### 9.4 Final review checklist
 
-- [ ] All code follows PEP 8 style
-- [ ] No hardcoded credentials anywhere in source
-- [ ] `.env` is in `.gitignore`
-- [ ] All tests pass
-- [ ] README has clear setup instructions
-- [ ] Output schema documented
-- [ ] Run logs provide enough information for debugging
+- [x] All code follows PEP 8 style
+- [x] No hardcoded credentials anywhere in source
+- [x] `.env` is in `.gitignore`
+- [x] All tests pass
+- [x] README has clear setup instructions
+- [x] Output schema documented
+- [x] Run logs provide enough information for debugging
 
 ### Exit Criteria
 
-- [ ] README is complete and accurate
-- [ ] All public APIs documented
-- [ ] Project is ready for handoff to V1 development
+- [x] README is complete and accurate
+- [x] All public APIs documented
+- [x] Project is ready for handoff to V1 development
 
 ---
 
