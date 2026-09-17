@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -147,6 +148,11 @@ def main(config_path: str = "config/queries.yaml") -> None:
             tasks_failed += 1
             logger.warning(f"  → Task failed for '{query}' in {sub_display}: {e}")
             continue
+        finally:
+            if i < len(tasks):
+                delay = config.pipeline.request_delay_seconds
+                if delay > 0:
+                    time.sleep(delay)
 
     # --- 8. Write output ---
     run_end = datetime.now(timezone.utc)

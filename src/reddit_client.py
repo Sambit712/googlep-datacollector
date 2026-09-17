@@ -192,8 +192,12 @@ class KeylessRSSBackend(BaseRedditBackend):
             endpoint = f"https://www.reddit.com/search.rss?q={encoded_q}&sort={sort}&t={time_filter}"
             target_sub = "all"
 
+        user_agent = self.user_agent
+        if "Mozilla" not in user_agent:
+            user_agent = f"{user_agent} Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+
         headers = {
-            "User-Agent": self.user_agent,
+            "User-Agent": user_agent,
             "Accept": "application/atom+xml,application/xml,text/xml",
         }
 
@@ -207,8 +211,17 @@ class KeylessRSSBackend(BaseRedditBackend):
             try:
                 response = self.session.get(endpoint, headers=headers, timeout=self.timeout)
                 if response.status_code == 429:
-                    logger.warning(f"Rate limited (429) on RSS search query '{query}'. Backing off {backoff:.1f}s...")
-                    time.sleep(backoff)
+                    # Check for rate limit reset headers from Reddit
+                    reset_header = None
+                    if hasattr(response, "headers") and isinstance(response.headers, (dict, requests.structures.CaseInsensitiveDict)):
+                        reset_header = response.headers.get("x-ratelimit-reset") or response.headers.get("Retry-After")
+                    try:
+                        wait_sec = float(reset_header) + 1.0 if reset_header is not None else backoff
+                    except (ValueError, TypeError):
+                        wait_sec = backoff
+                    wait_sec = max(wait_sec, backoff)
+                    logger.warning(f"Rate limited (429) on RSS search query '{query}'. Backing off {wait_sec:.1f}s...")
+                    time.sleep(wait_sec)
                     backoff *= 2.0
                     continue
 
@@ -244,7 +257,10 @@ class KeylessRSSBackend(BaseRedditBackend):
         self._throttle()
         try:
             url = "https://www.reddit.com/r/googlephotos/search.rss?q=photo&restrict_sr=1&limit=1"
-            headers = {"User-Agent": self.user_agent}
+            user_agent = self.user_agent
+            if "Mozilla" not in user_agent:
+                user_agent = f"{user_agent} Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+            headers = {"User-Agent": user_agent}
             resp = self.session.get(url, headers=headers, timeout=self.timeout)
             return resp.status_code == 200
         except Exception as e:
