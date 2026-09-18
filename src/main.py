@@ -125,6 +125,55 @@ def main(
     tasks = query_engine.generate_tasks(limit_override=limit_override)
     logger.info(f"Generated {len(tasks)} search tasks.")
 
+    # --- 6b. Dry-Run Mode: Validate & show execution plan without collecting data ---
+    if dry_run:
+        product_queries = config.search.query_categories.get("product_specific", [])
+        behavior_queries = config.search.query_categories.get("behavior_specific", [])
+        primary_subs = config.search.subreddit_tiers.get("primary", config.search.subreddits)
+        discovery_subs = config.search.subreddit_tiers.get("discovery", [])
+
+        print("\n" + "=" * 70)
+        print(" [DRY RUN] Configuration & Execution Plan Validation")
+        print("=" * 70)
+        print(f" * Run ID:               {run_id}")
+        print(f" * Config Path:          {config_path}")
+        print(f" * Reddit Mode:          {config.reddit.mode}")
+        print(f" * Product Queries ({len(product_queries)}):")
+        for q in product_queries:
+            print(f"     - [product]  \"{q}\"")
+        print(f" * Behavior Queries ({len(behavior_queries)}):")
+        for q in behavior_queries:
+            print(f"     - [behavior] \"{q}\"")
+        print(f" * Primary Subreddits:   {', '.join('r/' + s for s in primary_subs)}")
+        print(f" * Discovery Subreddits: {', '.join('r/' + s for s in discovery_subs)}")
+        print(f" * Planned Tasks:        {len(tasks)} search task(s)")
+        for idx, (query, sub, params) in enumerate(tasks, 1):
+            sub_str = f"r/{sub}" if sub else "r/all"
+            print(f"     [{idx:02d}] '{query}' in {sub_str} (tier={params.get('subreddit_tier', 'primary')}, limit={params.get('limit')})")
+        print(f" * Output Directory:     {config.pipeline.output_dir}")
+        print(f" * Output Formats:       {config.pipeline.output_format}")
+        print(f" * Author Privacy:       {'Anonymized (author_xxxxxx)' if config.privacy.anonymize_authors else 'Public usernames'}")
+        print(f" * Comments Enabled:     True (max {config.pipeline.max_comments_per_post} per post with parent context)")
+        print("=" * 70)
+        print(" [DRY RUN] Configuration valid. No data was collected or written.")
+        print("=" * 70 + "\n")
+
+        run_end = datetime.now(timezone.utc)
+        duration = (run_end - run_start).total_seconds()
+        report = reporter.generate_report(
+            run_id=run_id,
+            records=[],
+            queries_executed=len(tasks),
+            total_raw_results=0,
+            duplicates_removed=0,
+            tasks_completed=len(tasks),
+            tasks_failed=0,
+            duration_seconds=duration,
+            is_dry_run=True,
+        )
+        reporter.print_summary(report)
+        return report
+
     # --- 7. Execute pipeline ---
     all_records: list[EvidenceRecord] = []
     total_duplicates = 0

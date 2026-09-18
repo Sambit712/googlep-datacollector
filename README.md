@@ -96,28 +96,30 @@ GROQ_API_KEY=your_groq_api_key_here
 
 ## Execution Modes
 
-### 1. Dry-Run Mode (Safe & Inexpensive Testing)
-Runs searches, extracts evidence, cleans text, and reports data quality without modifying disk files:
+### 1. Dry-Run Mode (Fast Configuration & Execution Plan Validation)
+Validates configuration, checks Reddit/Groq connectivity, and displays the planned query tasks without making live search requests or writing data:
 ```bash
-python -m src.main --dry-run
+python main.py --dry-run
 ```
 
-### 2. Sample Mode (Limit Results per Query)
-Runs a quick test with a maximum of 5 results per query:
+### 2. Sample Mode (Inexpensive Test Runs)
+Runs a quick test with a limited number of results per query:
 ```bash
-python -m src.main --limit 5
+python main.py --limit 10
 ```
 
 ### 3. Full Evidence Collection Run
-Executes full collection using default `config/queries.yaml`:
+Executes full collection across all configured query categories and subreddits using `config/queries.yaml`:
 ```bash
-python -m src.main
+python main.py
 ```
 
 ### 4. Custom Configuration File
 ```bash
-python -m src.main --config config/queries_test.yaml --limit 2
+python main.py --config config/queries_test.yaml --limit 2
 ```
+
+*(You can also use `python -m src.main`)*
 
 ---
 

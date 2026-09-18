@@ -86,6 +86,14 @@ class AppConfig:
     logging: LoggingConfig
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
 
+    @property
+    def queries(self) -> dict[str, list[str]]:
+        return self.search.query_categories
+
+    @property
+    def subreddits(self) -> dict[str, list[str]]:
+        return self.search.subreddit_tiers
+
 
 def _substitute_env_vars(raw_text: str) -> str:
     """Replace ${VAR_NAME} placeholders with values from os.environ."""

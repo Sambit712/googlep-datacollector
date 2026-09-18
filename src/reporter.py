@@ -64,7 +64,14 @@ class CollectionReporter:
 
         # Breakdowns
         by_subreddit = dict(Counter(r.subreddit for r in records if r.subreddit))
-        by_query = dict(Counter(r.query_used for r in records if r.query_used))
+        query_counter: Counter[str] = Counter()
+        for r in records:
+            if r.queries_matched:
+                for q in r.queries_matched:
+                    query_counter[q] += 1
+            elif r.query_used:
+                query_counter[r.query_used] += 1
+        by_query = dict(query_counter)
         by_tier = dict(Counter(r.subreddit_tier for r in records if r.subreddit_tier))
 
         report: dict[str, Any] = {

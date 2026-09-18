@@ -128,6 +128,8 @@ def test_evidence_record_schema_and_id():
         "title",
         "raw_text",
         "cleaned_text",
+        "preview_text",
+        "text_preview",
         "author",
         "created_at",
         "retrieved_at",
@@ -144,6 +146,8 @@ def test_evidence_record_schema_and_id():
     for k in required_keys:
         assert k in d, f"Missing required key: {k}"
 
+    assert rec.text_preview == rec.preview_text
+    assert d["text_preview"] == rec.preview_text
     assert d["ai_relevance"] is None
     assert d["relevance_confidence"] is None
     assert d["evidence_status"] == "unreviewed"
@@ -171,6 +175,8 @@ def test_collector_extracts_contextual_comments_and_filters_trivial():
     assert comment_rec.parent_id == "t3_sub_100"
     assert comment_rec.parent_post_title == post_rec.title
     assert "Google Photos Archive" in comment_rec.raw_text
+    assert comment_rec.comment_text == comment_rec.raw_text
+    assert comment_rec.to_dict()["comment_text"] == comment_rec.raw_text
 
 
 def test_multi_query_tracking_accumulation():
@@ -194,15 +200,19 @@ def test_multi_query_tracking_accumulation():
     assert len(unique) == 1
     assert dup_count == 0
     assert unique[0].queries_matched == ["can't find old photo"]
+    assert unique[0].to_dict()["query_used"] == "can't find old photo"
 
     # Second encounter with different query
     unique2, dup_count2 = dedup.filter([rec2])
     assert len(unique2) == 0
     assert dup_count2 == 1
 
-    # First record should now have BOTH queries!
+    # First record should now have BOTH queries and serialize query_used as a list!
     assert "can't find old photo" in unique[0].queries_matched
     assert "Google Photos screenshot search" in unique[0].queries_matched
+    serialized = unique[0].to_dict()
+    assert isinstance(serialized["query_used"], list)
+    assert serialized["query_used"] == ["can't find old photo", "Google Photos screenshot search"]
 
 
 def test_author_anonymization():

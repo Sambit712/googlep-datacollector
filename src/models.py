@@ -169,8 +169,35 @@ class EvidenceRecord:
         if val and val not in self.queries_matched:
             self.queries_matched.append(val)
 
+    @property
+    def text_preview(self) -> str:
+        return self.preview_text
+
+    @text_preview.setter
+    def text_preview(self, val: str) -> None:
+        self.preview_text = val
+
+    @property
+    def comment_text(self) -> str | None:
+        if self.content_type == "comment":
+            return self.raw_text
+        return None
+
+    @comment_text.setter
+    def comment_text(self, val: str) -> None:
+        self.raw_text = val
+        self.cleaned_text = clean_text(val)
+
     def to_dict(self) -> dict[str, Any]:
         """Convert record to a comprehensive dictionary containing both new schema and legacy keys."""
+        # Multi-query handling: if discovered by multiple queries, serialize as list
+        if len(self.queries_matched) > 1:
+            effective_query_used: str | list[str] = list(self.queries_matched)
+        elif self.queries_matched:
+            effective_query_used = self.queries_matched[0]
+        else:
+            effective_query_used = self.query_used
+
         return {
             "record_id": self.record_id,
             "source": self.source,
@@ -185,6 +212,7 @@ class EvidenceRecord:
             "selftext": self.raw_text,               # legacy key
             "cleaned_text": self.cleaned_text,
             "preview_text": self.preview_text,
+            "text_preview": self.preview_text,       # requested alias
             "author": self.author,
             "created_at": self.created_at,
             "created_utc": self.created_at,           # legacy key
@@ -192,13 +220,14 @@ class EvidenceRecord:
             "collected_at": self.retrieved_at,       # legacy key
             "url": self.url,
             "permalink": self.url,                   # legacy key
-            "query_used": self.query_used,
+            "query_used": effective_query_used,
             "search_query": self.query_used,         # legacy key
             "queries_matched": list(self.queries_matched),
             "run_id": self.run_id,
             "parent_id": self.parent_id,
             "parent_post_title": self.parent_post_title,
             "parent_post_text": self.parent_post_text,
+            "comment_text": self.raw_text if self.content_type == "comment" else None,
             "score": self.score,
             "num_comments": self.num_comments,
             "top_comments": list(self.top_comments),
@@ -211,16 +240,22 @@ class EvidenceRecord:
     def from_dict(cls, data: dict[str, Any]) -> EvidenceRecord:
         """Create an EvidenceRecord from a dictionary."""
         source_id = str(data.get("source_id") or data.get("post_id", ""))
-        raw_text = str(data.get("raw_text") or data.get("selftext", ""))
+        raw_text = str(data.get("raw_text") or data.get("selftext", "") or data.get("comment_text", ""))
         cleaned = str(data.get("cleaned_text") or clean_text(raw_text))
-        preview = str(data.get("preview_text") or generate_preview(cleaned))
+        preview = str(data.get("preview_text") or data.get("text_preview", "") or generate_preview(cleaned))
         created = str(data.get("created_at") or data.get("created_utc", ""))
         retrieved = str(data.get("retrieved_at") or data.get("collected_at", ""))
         url = str(data.get("url") or data.get("permalink", ""))
-        query = str(data.get("query_used") or data.get("search_query", ""))
-        queries_matched = list(data.get("queries_matched", []))
-        if query and query not in queries_matched:
-            queries_matched.append(query)
+
+        query_field = data.get("query_used") or data.get("search_query", "")
+        if isinstance(query_field, list):
+            query = query_field[0] if query_field else ""
+            queries_matched = list(query_field)
+        else:
+            query = str(query_field)
+            queries_matched = list(data.get("queries_matched", []))
+            if query and query not in queries_matched:
+                queries_matched.append(query)
 
         top_cmts = list(data.get("top_comments", data.get("comments", [])))
 

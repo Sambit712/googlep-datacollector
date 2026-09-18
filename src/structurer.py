@@ -29,6 +29,7 @@ CSV_COLUMNS = [
     "raw_text",
     "cleaned_text",
     "preview_text",
+    "text_preview",
     "author",
     "created_at",
     "retrieved_at",
@@ -39,6 +40,7 @@ CSV_COLUMNS = [
     "parent_id",
     "parent_post_title",
     "parent_post_text",
+    "comment_text",
     "score",
     "num_comments",
     "top_comments",
@@ -122,6 +124,8 @@ class DataStructurer:
 
             for p in posts:
                 row = p.to_dict()
+                if isinstance(row.get("query_used"), list):
+                    row["query_used"] = LIST_SEPARATOR.join(row["query_used"])
                 if isinstance(row.get("queries_matched"), list):
                     row["queries_matched"] = LIST_SEPARATOR.join(row["queries_matched"])
                 if isinstance(row.get("top_comments"), list):
