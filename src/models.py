@@ -41,7 +41,7 @@ class EvidenceRecord:
         top_comments: list[str] | None = None,
         ai_relevance: str | None = None,
         relevance_confidence: float | None = None,
-        evidence_status: str | None = "unreviewed",
+        evidence_status: str | None = None,
         # Legacy parameters for full backwards compatibility
         post_id: str | None = None,
         selftext: str | None = None,
@@ -190,13 +190,9 @@ class EvidenceRecord:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert record to a comprehensive dictionary containing both new schema and legacy keys."""
-        # Multi-query handling: if discovered by multiple queries, serialize as list
-        if len(self.queries_matched) > 1:
-            effective_query_used: str | list[str] = list(self.queries_matched)
-        elif self.queries_matched:
-            effective_query_used = self.queries_matched[0]
-        else:
-            effective_query_used = self.query_used
+        # Canonical multi-query field is queries_matched (list[str]).
+        # query_used is retained as a single string for backward compatibility.
+        primary_query = self.queries_matched[0] if self.queries_matched else (self.query_used or "")
 
         return {
             "record_id": self.record_id,
@@ -220,9 +216,9 @@ class EvidenceRecord:
             "collected_at": self.retrieved_at,       # legacy key
             "url": self.url,
             "permalink": self.url,                   # legacy key
-            "query_used": effective_query_used,
-            "search_query": self.query_used,         # legacy key
             "queries_matched": list(self.queries_matched),
+            "query_used": primary_query,             # backward compatibility
+            "search_query": primary_query,           # legacy key
             "run_id": self.run_id,
             "parent_id": self.parent_id,
             "parent_post_title": self.parent_post_title,
@@ -231,9 +227,9 @@ class EvidenceRecord:
             "score": self.score,
             "num_comments": self.num_comments,
             "top_comments": list(self.top_comments),
-            "ai_relevance": self.ai_relevance,
-            "relevance_confidence": self.relevance_confidence,
-            "evidence_status": self.evidence_status,
+            "ai_relevance": self.ai_relevance,       # null in V0
+            "relevance_confidence": self.relevance_confidence, # null in V0
+            "evidence_status": self.evidence_status, # null in V0
         }
 
     @classmethod
@@ -286,7 +282,7 @@ class EvidenceRecord:
             top_comments=top_cmts,
             ai_relevance=data.get("ai_relevance"),
             relevance_confidence=data.get("relevance_confidence"),
-            evidence_status=data.get("evidence_status", "unreviewed"),
+            evidence_status=data.get("evidence_status", None),
         )
 
 

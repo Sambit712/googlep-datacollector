@@ -68,8 +68,6 @@ def validate_pipeline_output(json_path: Path) -> dict:
 
 if __name__ == "__main__":
     out_file = Path("data/output/reddit_evidence.json")
-    if not out_file.exists():
-        out_file = Path("data/output/posts.json")
     result = validate_pipeline_output(out_file)
     print("VALIDATION RESULT: SUCCESS")
     print(json.dumps(result, indent=2, default=str))

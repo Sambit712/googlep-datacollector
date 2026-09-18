@@ -184,7 +184,7 @@ def test_csv_comments_joined(tmp_path: Path, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="csv")
     structurer.write(posts, sample_metadata)
 
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         row = next(reader)
     assert row["top_comments"] == "first ||| second ||| third"

@@ -151,7 +151,7 @@ def test_evidence_record_schema_and_id():
     assert d["text_preview"] == rec.preview_text
     assert d["ai_relevance"] is None
     assert d["relevance_confidence"] is None
-    assert d["evidence_status"] == "unreviewed"
+    assert d["evidence_status"] is None
 
 
 def test_collector_extracts_contextual_comments_and_filters_trivial():
@@ -208,12 +208,13 @@ def test_multi_query_tracking_accumulation():
     assert len(unique2) == 0
     assert dup_count2 == 1
 
-    # First record should now have BOTH queries and serialize query_used as a list!
+    # First record should now have BOTH queries in canonical queries_matched list
+    # and retain primary query_used string for backward compatibility
     assert "can't find old photo" in unique[0].queries_matched
     assert "Google Photos screenshot search" in unique[0].queries_matched
     serialized = unique[0].to_dict()
-    assert isinstance(serialized["query_used"], list)
-    assert serialized["query_used"] == ["can't find old photo", "Google Photos screenshot search"]
+    assert serialized["queries_matched"] == ["can't find old photo", "Google Photos screenshot search"]
+    assert serialized["query_used"] == "can't find old photo"
 
 
 def test_author_anonymization():
@@ -285,7 +286,7 @@ def test_collection_reporter_metrics(tmp_path: Path):
 
 
 def test_main_dry_run_mode(tmp_path: Path):
-    """Running main with dry_run=True must execute pipeline without writing posts.json."""
+    """Running main with dry_run=True must execute pipeline without writing reddit_evidence.json."""
     mock_reddit_client = MagicMock()
     mock_reddit_client.validate_connection.return_value = True
     mock_reddit_client.search.return_value = []
@@ -347,6 +348,9 @@ def test_reddit_evidence_output_generation_and_schema(tmp_path: Path):
     assert item["retrieved_at"] == "2026-09-18T10:00:00Z"
     assert item["ai_relevance"] is None
     assert item["relevance_confidence"] is None
+    assert item["evidence_status"] is None
+    assert item["queries_matched"] == ["Google Photos search", "can't find old photo"]
+    assert item["query_used"] == "Google Photos search"
 
     # 2. Verify reddit_evidence.csv exists and has correct columns
     csv_path = tmp_path / "reddit_evidence.csv"
@@ -362,6 +366,11 @@ def test_reddit_evidence_output_generation_and_schema(tmp_path: Path):
     assert r["content_type"] == "post"
     assert r["run_id"] == "run_test_123"
     assert r["retrieved_at"] == "2026-09-18T10:00:00Z"
+    assert r["ai_relevance"] == ""
+    assert r["relevance_confidence"] == ""
+    assert r["evidence_status"] == ""
+    assert r["queries_matched"] == "Google Photos search ; can't find old photo"
+    assert r["query_used"] == "Google Photos search"
 
 
 def test_parent_context_full_text_preservation():
@@ -391,4 +400,165 @@ def test_config_queries_yaml_v0_categories_and_subreddits():
     assert "primary" in cfg.search.subreddit_tiers
     assert "discovery" in cfg.search.subreddit_tiers
     assert "googlephotos" in cfg.search.subreddit_tiers["primary"]
+
+
+def test_csv_and_json_schemas_identical_and_fields_populated(tmp_path: Path):
+    """CSV and JSON schemas must align and all fields consistently populated with null V1 placeholders."""
+    from src.structurer import CSV_COLUMNS, DataStructurer
+
+    post_rec = EvidenceRecord(
+        record_id="RD_000001",
+        source="reddit",
+        source_type="reddit",
+        content_type="post",
+        source_id="t3_p1",
+        subreddit="googlephotos",
+        subreddit_tier="primary",
+        title="Can't find wedding photo",
+        raw_text="Full post text describing missing wedding photo",
+        cleaned_text="Full post text describing missing wedding photo",
+        preview_text="Full post text...",
+        author="user_schema",
+        created_at="2026-01-01T00:00:00Z",
+        retrieved_at="2026-09-18T10:00:00Z",
+        url="https://reddit.com/r/googlephotos/comments/p1/",
+        queries_matched=["Google Photos wedding photo", "can't find old photo"],
+        query_used="Google Photos wedding photo",
+        run_id="run_schema_test",
+        score=15,
+        num_comments=4,
+        top_comments=["Search by date", "Check archive folder"],
+    )
+
+    cmt_rec = EvidenceRecord(
+        record_id="RD_000002",
+        source="reddit",
+        source_type="reddit",
+        content_type="comment",
+        source_id="t1_c1",
+        subreddit="googlephotos",
+        subreddit_tier="primary",
+        title="Can't find wedding photo",
+        raw_text="Try searching for 'cake' or 'white dress'",
+        cleaned_text="Try searching for 'cake' or 'white dress'",
+        preview_text="Try searching for...",
+        author="helper_user",
+        created_at="2026-01-01T02:00:00Z",
+        retrieved_at="2026-09-18T10:00:00Z",
+        url="https://reddit.com/r/googlephotos/comments/p1/comment/c1/",
+        queries_matched=["Google Photos wedding photo"],
+        query_used="Google Photos wedding photo",
+        run_id="run_schema_test",
+        parent_id="t3_p1",
+        parent_post_title="Can't find wedding photo",
+        parent_post_text="Full post text describing missing wedding photo",
+        score=5,
+        num_comments=0,
+    )
+
+    structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
+    structurer.write([post_rec, cmt_rec], metadata={"run_id": "run_schema_test", "total_records": 2})
+
+    with open(tmp_path / "reddit_evidence.json", "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+    json_records = json_data["records"]
+
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
+        csv_reader = csv.DictReader(f)
+        csv_headers = csv_reader.fieldnames or []
+        csv_rows = list(csv_reader)
+
+    assert len(json_records) == 2
+    assert len(csv_rows) == 2
+    assert csv_headers == CSV_COLUMNS
+
+    # Ensure every single CSV column is present in JSON records
+    for col in CSV_COLUMNS:
+        for j_rec in json_records:
+            assert col in j_rec, f"Column {col} missing from JSON schema"
+
+    for j_rec, c_row in zip(json_records, csv_rows):
+        # Canonical multi-query is list in JSON, joined with ' ; ' in CSV
+        assert isinstance(j_rec["queries_matched"], list)
+        assert c_row["queries_matched"] == " ; ".join(j_rec["queries_matched"])
+        # query_used is string in both
+        assert isinstance(j_rec["query_used"], str)
+        assert isinstance(c_row["query_used"], str)
+        assert j_rec["query_used"] == c_row["query_used"]
+
+        # V1 placeholders strictly null in JSON and empty in CSV
+        assert j_rec["ai_relevance"] is None
+        assert j_rec["relevance_confidence"] is None
+        assert j_rec["evidence_status"] is None
+        assert c_row["ai_relevance"] == ""
+        assert c_row["relevance_confidence"] == ""
+        assert c_row["evidence_status"] == ""
+
+
+def test_collection_report_accurately_reflects_dataset(tmp_path: Path):
+    """collection_report.json summary and breakdowns must accurately match dataset."""
+    reporter = CollectionReporter(output_dir=str(tmp_path))
+
+    records = [
+        EvidenceRecord(
+            record_id="RD_000001",
+            content_type="post",
+            source_id="t3_1",
+            subreddit="googlephotos",
+            subreddit_tier="primary",
+            raw_text="Post body text",
+            url="https://reddit.com/r/googlephotos/1",
+            queries_matched=["query_one", "query_two"],
+            query_used="query_one",
+        ),
+        EvidenceRecord(
+            record_id="RD_000002",
+            content_type="post",
+            source_id="t3_2",
+            subreddit="googlephotos",
+            subreddit_tier="primary",
+            raw_text="",
+            cleaned_text="",
+            url="https://reddit.com/r/googlephotos/2",
+            queries_matched=["query_one"],
+            query_used="query_one",
+        ),
+        EvidenceRecord(
+            record_id="RD_000003",
+            content_type="comment",
+            source_id="t1_3",
+            subreddit="GooglePixel",
+            subreddit_tier="primary",
+            raw_text="Comment text",
+            url="https://reddit.com/r/GooglePixel/3",
+            queries_matched=["query_two"],
+            query_used="query_two",
+        ),
+    ]
+
+    rep = reporter.generate_report(
+        run_id="run_rep_acc",
+        records=records,
+        queries_executed=2,
+        total_raw_results=5,
+        duplicates_removed=2,
+        tasks_completed=2,
+        tasks_failed=0,
+        duration_seconds=12.5,
+        is_dry_run=False,
+    )
+    rep_path = reporter.save_report(rep)
+
+    with open(rep_path, "r", encoding="utf-8") as f:
+        saved = json.load(f)
+
+    assert saved["summary"]["unique_records"] == 3
+    assert saved["summary"]["posts"] == 2
+    assert saved["summary"]["comments"] == 1
+    assert saved["summary"]["duplicates_removed"] == 2
+    assert saved["data_quality"]["records_with_missing_text"] == 1
+    assert saved["data_quality"]["records_with_missing_urls"] == 0
+    assert saved["breakdown_by_subreddit"] == {"googlephotos": 2, "GooglePixel": 1}
+    assert saved["breakdown_by_query"] == {"query_one": 2, "query_two": 2}
+
 

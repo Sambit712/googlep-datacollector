@@ -200,7 +200,7 @@ logging:
 
 ## Record Schema (`EvidenceRecord`)
 
-Every record stored in `data/output/reddit_evidence.json` and `data/output/reddit_evidence.csv` (as well as legacy `posts.json` and `posts.csv`) adheres to the research schema:
+Every record stored in `data/output/reddit_evidence.json` and `data/output/reddit_evidence.csv` adheres to the research schema:
 
 | Field | Type | Description |
 |---|---|---|
@@ -219,17 +219,18 @@ Every record stored in `data/output/reddit_evidence.json` and `data/output/reddi
 | `created_at` | `str` | ISO-8601 UTC creation timestamp |
 | `retrieved_at` | `str` | ISO-8601 UTC collection timestamp |
 | `url` | `str` | Canonical URL to the post or comment |
-| `query_used` | `str` | Primary query that surfaced this record |
-| `queries_matched` | `list[str]` | All queries that matched this record across runs |
+| `queries_matched` | `list[str]` | Canonical list of all search queries that surfaced this record |
+| `query_used` | `str` | Initial search query (retained for backward compatibility) |
 | `run_id` | `str` | Unique collection run identifier |
 | `parent_id` | `str` | Parent submission ID for comments |
 | `parent_post_title` | `str` | Parent post title context for comments |
 | `parent_post_text` | `str` | Full parent post text context for comments (untruncated) |
 | `score` | `int` | Net upvote score |
 | `num_comments`| `int` | Total submission comment count |
-| `ai_relevance` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null`) |
-| `relevance_confidence` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null`) |
-| `evidence_status` | `str` | Initially `"unreviewed"` for V1 workflow |
+| `top_comments`| `list[str]` | Top comments list in JSON (joined with ` \|\|\| ` in CSV) |
+| `ai_relevance` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null` in V0) |
+| `relevance_confidence` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null` in V0) |
+| `evidence_status` | `null` | Reserved placeholder for V1 workflow (kept strictly `null` in V0) |
 
 ---
 

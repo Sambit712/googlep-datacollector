@@ -551,10 +551,10 @@ class DataStructurer:
         """
 
     def _write_json(self, posts, metadata) -> str:
-        """Write data/output/posts.json with metadata header."""
+        """Write data/output/reddit_evidence.json with metadata header."""
 
     def _write_csv(self, posts) -> str:
-        """Write data/output/posts.csv (flat, no nested comments)."""
+        """Write data/output/reddit_evidence.csv (flat, zero text truncation)."""
 ```
 
 #### 6.2 JSON output schema
@@ -563,44 +563,49 @@ class DataStructurer:
 {
   "metadata": {
     "generated_at": "<ISO-8601>",
-    "total_posts": 312,
-    "queries_used": 6,
+    "total_records": 312,
+    "queries_executed": 6,
     "duplicates_skipped": 47
   },
-  "posts": [ ... ]
+  "records": [ ... ]
 }
 ```
 
 #### 6.3 CSV output schema
 
-| Column         | Source                         | Notes                           |
-| -------------- | ------------------------------ | ------------------------------- |
-| `post_id`      | `PostRecord.post_id`           |                                 |
-| `title`        | `PostRecord.title`             | Escaped for CSV                 |
-| `selftext`     | `PostRecord.selftext`          | Truncated to 500 chars in CSV   |
-| `author`       | `PostRecord.author`            |                                 |
-| `subreddit`    | `PostRecord.subreddit`         |                                 |
-| `created_utc`  | `PostRecord.created_utc`       |                                 |
-| `score`        | `PostRecord.score`             |                                 |
-| `num_comments` | `PostRecord.num_comments`      |                                 |
-| `permalink`    | `PostRecord.permalink`         |                                 |
-| `search_query` | `PostRecord.search_query`      |                                 |
-| `collected_at` | `PostRecord.collected_at`      |                                 |
-| `top_comments` | `PostRecord.top_comments`      | Joined with `" ||| "` separator |
+| Column                 | Source                               | Notes                           |
+| ---------------------- | ------------------------------------ | ------------------------------- |
+| `record_id`            | `EvidenceRecord.record_id`           | Stable research ID (RD_xxxxxx)  |
+| `title`                | `EvidenceRecord.title`               | Escaped for CSV                 |
+| `raw_text`             | `EvidenceRecord.raw_text`            | Full untruncated raw text       |
+| `cleaned_text`         | `EvidenceRecord.cleaned_text`        | Full normalized text            |
+| `author`               | `EvidenceRecord.author`              | Pseudonym or username           |
+| `subreddit`            | `EvidenceRecord.subreddit`           |                                 |
+| `created_at`           | `EvidenceRecord.created_at`          | ISO-8601 UTC                    |
+| `score`                | `EvidenceRecord.score`               |                                 |
+| `num_comments`         | `EvidenceRecord.num_comments`        |                                 |
+| `url`                  | `EvidenceRecord.url`                 | Full permalink                  |
+| `queries_matched`      | `EvidenceRecord.queries_matched`     | Canonical list, joined with ";" |
+| `query_used`           | `EvidenceRecord.query_used`          | Backward compatibility string   |
+| `retrieved_at`         | `EvidenceRecord.retrieved_at`        | ISO-8601 UTC                    |
+| `top_comments`         | `EvidenceRecord.top_comments`        | Joined with `" ||| "` separator |
+| `ai_relevance`         | `EvidenceRecord.ai_relevance`        | Null in V0                      |
+| `relevance_confidence` | `EvidenceRecord.relevance_confidence`| Null in V0                      |
+| `evidence_status`      | `EvidenceRecord.evidence_status`     | Null in V0                      |
 
 #### 6.4 Write `tests/test_structurer.py`
 
-| Test case                              | Validates                                       |
-| -------------------------------------- | ----------------------------------------------- |
-| `test_write_json_creates_file`         | `posts.json` exists after write                 |
-| `test_json_has_metadata_header`        | Metadata fields present and correct             |
-| `test_json_posts_match_input`          | All input records serialised correctly          |
-| `test_write_csv_creates_file`          | `posts.csv` exists after write                  |
-| `test_csv_headers_match_schema`        | CSV column headers match expected schema        |
-| `test_csv_row_count_matches`           | Number of CSV rows matches number of posts      |
-| `test_write_both_formats`              | Both JSON and CSV files created                 |
-| `test_output_dir_created_if_missing`   | Output directory auto-created                   |
-| `test_empty_posts_produces_valid_output`| Zero posts → valid JSON/CSV with empty array   |
+| Test case                              | Validates                                           |
+| -------------------------------------- | --------------------------------------------------- |
+| `test_write_json_creates_file`         | `reddit_evidence.json` exists after write           |
+| `test_json_has_metadata_header`        | Metadata fields present and correct                 |
+| `test_json_posts_match_input`          | All input records serialised correctly              |
+| `test_write_csv_creates_file`          | `reddit_evidence.csv` exists after write            |
+| `test_csv_headers_match_schema`        | CSV column headers match expected schema            |
+| `test_csv_row_count_matches`           | Number of CSV rows matches number of posts          |
+| `test_write_both_formats`              | Both JSON and CSV files created                     |
+| `test_output_dir_created_if_missing`   | Output directory auto-created                       |
+| `test_empty_posts_produces_valid_output`| Zero posts → valid JSON/CSV with empty array       |
 
 ### Exit Criteria
 
@@ -854,15 +859,15 @@ python src/main.py --config config/queries_test.yaml
 
 **Validation checklist:**
 
-| Check                                    | How to verify                                          |
-| ---------------------------------------- | ------------------------------------------------------ |
-| Output file exists                       | `ls data/output/posts.json`                            |
-| JSON schema correct                      | `python -c "import json; json.load(open('data/output/posts.json'))"`|
-| All fields populated                     | Inspect first 3 records manually                       |
-| Permalinks resolve                       | Open 3 random permalinks in browser                    |
-| No duplicate post_ids                    | `jq '[.posts[].post_id] | unique | length' posts.json` |
-| Timestamps are valid ISO-8601            | Spot-check 3 records                                   |
-| Metadata totals match                    | `metadata.total_posts` == `len(posts)`                 |
+| Check                                    | How to verify                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| Output file exists                       | `ls data/output/reddit_evidence.json`                            |
+| JSON schema correct                      | `python -c "import json; json.load(open('data/output/reddit_evidence.json'))"`|
+| All fields populated                     | Inspect first 3 records manually                                 |
+| Permalinks resolve                       | Open 3 random permalinks in browser                              |
+| No duplicate source_ids                  | `jq '[.records[].source_id] | unique | length' reddit_evidence.json` |
+| Timestamps are valid ISO-8601            | Spot-check 3 records                                             |
+| Metadata totals match                    | `metadata.total_records` == `len(records)`                       |
 
 #### 8.3 Deduplication cross-run test
 
@@ -918,8 +923,8 @@ installed and ready for V1 analysis modules. Set `groq.enabled: true` in
 `queries.yaml` to activate the Groq health check.
 
 ## Output
-- `data/output/posts.json` — Structured dataset with metadata
-- `data/output/posts.csv` — Flat export for spreadsheets
+- `data/output/reddit_evidence.json` — Structured dataset with metadata
+- `data/output/reddit_evidence.csv` — Flat export for spreadsheets
 
 ## Tests
 pytest tests/ -v

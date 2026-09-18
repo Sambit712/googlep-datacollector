@@ -207,10 +207,10 @@ flowchart TD
 
 **Output formats supported:**
 
-| Format | File                          | Use case                            |
-| ------ | ----------------------------- | ----------------------------------- |
-| JSON   | `data/output/posts.json`      | Primary — preserves nested comments |
-| CSV    | `data/output/posts.csv`       | Flat view for spreadsheets / pandas |
+| Format | File                               | Use case                            |
+| ------ | ---------------------------------- | ----------------------------------- |
+| JSON   | `data/output/reddit_evidence.json` | Primary — preserves nested comments |
+| CSV    | `data/output/reddit_evidence.csv`  | Flat view for spreadsheets / pandas |
 
 **JSON structure:**
 
@@ -222,19 +222,21 @@ flowchart TD
     "queries_used": 6,
     "duplicates_skipped": 47
   },
-  "posts": [
+  "records": [
     {
-      "post_id": "t3_abc123",
+      "record_id": "RD_000001",
+      "source_id": "t3_abc123",
       "title": "Can't find a photo from my trip...",
-      "selftext": "I remember taking a photo at...",
+      "raw_text": "I remember taking a photo at...",
       "author": "user123",
       "subreddit": "googlephotos",
-      "created_utc": "2025-03-12T14:23:00Z",
+      "created_at": "2025-03-12T14:23:00Z",
       "score": 45,
       "num_comments": 12,
-      "permalink": "https://reddit.com/r/googlephotos/comments/abc123/...",
-      "search_query": "can't find old photo",
-      "collected_at": "2026-09-16T20:00:00Z",
+      "url": "https://reddit.com/r/googlephotos/comments/abc123/...",
+      "queries_matched": ["can't find old photo"],
+      "query_used": "can't find old photo",
+      "retrieved_at": "2026-09-16T20:00:00Z",
       "top_comments": [
         "Have you tried searching by location?",
         "Google Photos search is terrible for this..."
@@ -254,8 +256,9 @@ project-root/
 │   └── queries.yaml              # All configurable parameters
 ├── data/
 │   ├── output/
-│   │   ├── posts.json            # Structured output (JSON)
-│   │   └── posts.csv             # Structured output (CSV)
+│   │   ├── reddit_evidence.json  # Structured output (JSON)
+│   │   ├── reddit_evidence.csv   # Structured output (CSV)
+│   │   └── collection_report.json# Quality & metrics report
 │   └── seen_ids.json             # Deduplication index
 ├── docs/
 │   ├── problem-statement.txt     # Original problem statement
@@ -303,7 +306,7 @@ sequenceDiagram
         DD->>DD: Check seen_ids
         DD-->>STR: New (unique) records only
     end
-    STR->>STR: Write posts.json + posts.csv
+    STR->>STR: Write reddit_evidence.json + reddit_evidence.csv
     Main->>Main: Save updated seen_ids.json
     Main->>Main: Write run summary to log
 ```
@@ -397,7 +400,7 @@ The architecture is designed so V1 analysis can be layered on top without modify
 
 ```mermaid
 flowchart LR
-    V0["V0: Collection Pipeline"] --> DS["posts.json"]
+    V0["V0: Collection Pipeline"] --> DS["reddit_evidence.json"]
     DS --> GROQ["Groq API"]
     GROQ --> V1A["V1: Pattern Analyzer"]
     GROQ --> V1B["V1: Memory Classifier"]
@@ -435,9 +438,9 @@ response = client.chat.completions.create(
 
 ### V1 Extension Points
 
-- **V1 modules** read from `posts.json` as their input — no coupling to the collection pipeline.
+- **V1 modules** read from `reddit_evidence.json` as their input — no coupling to the collection pipeline.
 - **Groq** processes each post through prompt templates for classification, pattern extraction, and behaviour analysis.
-- New data sources (e.g., Twitter, forums) can be added by implementing a new API client that outputs the same `PostRecord` schema.
+- New data sources (e.g., Twitter, forums) can be added by implementing a new API client that outputs the same `EvidenceRecord` schema.
 - New output formats (e.g., SQLite, BigQuery export) can be added as new structurer backends.
 
 ---
@@ -460,7 +463,7 @@ pytest tests/ -v
 ### Manual Verification
 
 1. Run the pipeline with a small query set (2 queries, 10 results each)
-2. Inspect `posts.json` for correct schema and field population
+2. Inspect `reddit_evidence.json` for correct schema and field population
 3. Re-run with the same queries — verify zero new posts (all deduplicated)
 4. Add a new query — verify only genuinely new posts are appended
-5. Spot-check `permalink` URLs to confirm they link to the correct Reddit posts
+5. Spot-check `url` links to confirm they link to the correct Reddit posts

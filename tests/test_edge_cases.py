@@ -33,8 +33,8 @@ def test_empty_search_results_flow(tmp_path: Path):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
     result = structurer.write(unique, metadata={"total_posts": 0})
 
-    json_path = tmp_path / "posts.json"
-    csv_path = tmp_path / "posts.csv"
+    json_path = tmp_path / "reddit_evidence.json"
+    csv_path = tmp_path / "reddit_evidence.csv"
     assert json_path.exists()
     assert csv_path.exists()
 
@@ -73,7 +73,7 @@ def test_unicode_and_emoji_preservation(tmp_path: Path):
     structurer.write([record], metadata={"total_posts": 1})
 
     # Verify JSON retains Unicode
-    with open(tmp_path / "posts.json", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.json", "r", encoding="utf-8") as f:
         data = json.load(f)
         loaded_post = data["posts"][0]
         assert loaded_post["title"] == unicode_title
@@ -82,7 +82,7 @@ def test_unicode_and_emoji_preservation(tmp_path: Path):
         assert "📸" in loaded_post["title"]
 
     # Verify CSV retains Unicode
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
         csv_text = f.read()
         assert "📸" in csv_text
         assert "東京" in csv_text
@@ -112,13 +112,13 @@ def test_very_long_post_body_preservation(tmp_path: Path):
     structurer.write([post], metadata={"total_posts": 1})
 
     # JSON should have full 15,000 characters
-    with open(tmp_path / "posts.json", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.json", "r", encoding="utf-8") as f:
         data = json.load(f)
         assert data["posts"][0]["raw_text"] == long_text
         assert len(data["posts"][0]["raw_text"]) == len(long_text)
 
     # CSV must also preserve full text without truncation
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         row = next(reader)
         assert len(row["raw_text"]) == len(long_text)

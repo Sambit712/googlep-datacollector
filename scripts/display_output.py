@@ -1,18 +1,19 @@
-"""Utility script to display formatted output from data/output/posts.json, posts.csv, and collection_report.json."""
+"""Utility script to display formatted output from data/output/reddit_evidence.json, reddit_evidence.csv, and collection_report.json."""
 
 import csv
 import json
+import sys
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 def display():
     json_path = Path("data/output/reddit_evidence.json")
-    if not json_path.exists():
-        json_path = Path("data/output/posts.json")
-
     csv_path = Path("data/output/reddit_evidence.csv")
-    if not csv_path.exists():
-        csv_path = Path("data/output/posts.csv")
-
     report_path = Path("data/output/collection_report.json")
 
     if report_path.exists():
