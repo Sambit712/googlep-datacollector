@@ -5,8 +5,14 @@ import json
 from pathlib import Path
 
 def display():
-    json_path = Path("data/output/posts.json")
-    csv_path = Path("data/output/posts.csv")
+    json_path = Path("data/output/reddit_evidence.json")
+    if not json_path.exists():
+        json_path = Path("data/output/posts.json")
+
+    csv_path = Path("data/output/reddit_evidence.csv")
+    if not csv_path.exists():
+        csv_path = Path("data/output/posts.csv")
+
     report_path = Path("data/output/collection_report.json")
 
     if report_path.exists():

@@ -223,7 +223,7 @@ class PostCollector:
                     run_id=self.run_id,
                     parent_id=parent_record.source_id,
                     parent_post_title=parent_record.title,
-                    parent_post_text=parent_record.preview_text or parent_record.cleaned_text[:300],
+                    parent_post_text=parent_record.cleaned_text or parent_record.raw_text,
                     score=int(getattr(comment, "score", 0)),
                     num_comments=0,
                 )

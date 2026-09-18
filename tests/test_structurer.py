@@ -55,73 +55,81 @@ def test_write_json_creates_file(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="json")
     result = structurer.write(sample_posts, sample_metadata)
 
-    json_path = tmp_path / "posts.json"
-    assert json_path.is_file()
-    assert str(json_path) in result["files_written"]
+    assert (tmp_path / "reddit_evidence.json").is_file()
+    assert (tmp_path / "posts.json").is_file()
+    assert str(tmp_path / "reddit_evidence.json") in result["files_written"]
+    assert str(tmp_path / "posts.json") in result["files_written"]
 
 
 def test_json_has_metadata_header(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="json")
     structurer.write(sample_posts, sample_metadata)
 
-    with open(tmp_path / "posts.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
+    for fname in ("reddit_evidence.json", "posts.json"):
+        with open(tmp_path / fname, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    assert "metadata" in data
-    assert data["metadata"]["total_posts"] == 3
-    assert data["metadata"]["queries_used"] == 2
-    assert data["metadata"]["duplicates_skipped"] == 1
+        assert "metadata" in data
+        assert data["metadata"]["total_posts"] == 3
+        assert data["metadata"]["queries_used"] == 2
+        assert data["metadata"]["duplicates_skipped"] == 1
 
 
 def test_json_posts_match_input(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="json")
     structurer.write(sample_posts, sample_metadata)
 
-    with open(tmp_path / "posts.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
+    for fname in ("reddit_evidence.json", "posts.json"):
+        with open(tmp_path / fname, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    assert len(data["posts"]) == 3
-    assert data["posts"][0]["source_id"] == "t3_aaa"
-    assert data["posts"][1]["raw_text"] == "Short body"
-    assert data["posts"][2]["top_comments"] == ["only one"]
+        assert len(data["posts"]) == 3
+        assert data["posts"][0]["source_id"] == "t3_aaa"
+        assert data["posts"][1]["raw_text"] == "Short body"
+        assert data["posts"][2]["top_comments"] == ["only one"]
 
 
 def test_write_csv_creates_file(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="csv")
     result = structurer.write(sample_posts, sample_metadata)
 
-    csv_path = tmp_path / "posts.csv"
-    assert csv_path.is_file()
-    assert str(csv_path) in result["files_written"]
+    assert (tmp_path / "reddit_evidence.csv").is_file()
+    assert (tmp_path / "posts.csv").is_file()
+    assert str(tmp_path / "reddit_evidence.csv") in result["files_written"]
+    assert str(tmp_path / "posts.csv") in result["files_written"]
 
 
 def test_csv_headers_match_schema(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="csv")
     structurer.write(sample_posts, sample_metadata)
 
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        headers = next(reader)
-    assert headers == CSV_COLUMNS
+    for fname in ("reddit_evidence.csv", "posts.csv"):
+        with open(tmp_path / fname, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+        assert headers == CSV_COLUMNS
 
 
 def test_csv_row_count_matches(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="csv")
     structurer.write(sample_posts, sample_metadata)
 
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-    assert len(rows) == 3
+    for fname in ("reddit_evidence.csv", "posts.csv"):
+        with open(tmp_path / fname, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        assert len(rows) == 3
 
 
 def test_write_both_formats(tmp_path: Path, sample_posts, sample_metadata):
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
     result = structurer.write(sample_posts, sample_metadata)
 
+    assert (tmp_path / "reddit_evidence.json").is_file()
+    assert (tmp_path / "reddit_evidence.csv").is_file()
     assert (tmp_path / "posts.json").is_file()
     assert (tmp_path / "posts.csv").is_file()
-    assert len(result["files_written"]) == 2
+    assert len(result["files_written"]) == 4
     assert result["total_records"] == 3
 
 
@@ -131,6 +139,8 @@ def test_output_dir_created_if_missing(tmp_path: Path, sample_posts, sample_meta
     structurer.write(sample_posts, sample_metadata)
 
     assert nested_dir.is_dir()
+    assert (nested_dir / "reddit_evidence.json").is_file()
+    assert (nested_dir / "reddit_evidence.csv").is_file()
     assert (nested_dir / "posts.json").is_file()
     assert (nested_dir / "posts.csv").is_file()
 
@@ -142,12 +152,12 @@ def test_empty_posts_produces_valid_output(tmp_path: Path, sample_metadata):
     assert result["total_records"] == 0
 
     # JSON: valid with empty posts array
-    data = json.loads((tmp_path / "posts.json").read_text(encoding="utf-8"))
+    data = json.loads((tmp_path / "reddit_evidence.json").read_text(encoding="utf-8"))
     assert data["posts"] == []
     assert "metadata" in data
 
     # CSV: valid with headers only
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
     assert len(rows) == 0
@@ -160,7 +170,7 @@ def test_csv_zero_truncation_preserves_full_text(tmp_path: Path, sample_metadata
     structurer = DataStructurer(output_dir=str(tmp_path), output_format="csv")
     structurer.write(posts, sample_metadata)
 
-    with open(tmp_path / "posts.csv", "r", encoding="utf-8") as f:
+    with open(tmp_path / "reddit_evidence.csv", "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         row = next(reader)
     assert len(row["raw_text"]) == 600

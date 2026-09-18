@@ -32,6 +32,7 @@ def main(
     config_path: str = "config/queries.yaml",
     limit_override: int | None = None,
     dry_run: bool = False,
+    max_records: int | None = None,
 ) -> dict[str, Any]:
     """Full pipeline orchestration for V0 Evidence Collection.
 
@@ -39,6 +40,7 @@ def main(
         config_path: Path to YAML configuration file.
         limit_override: Optional limit on results per query for sample runs.
         dry_run: If True, executes collection without writing datasets to disk.
+        max_records: Optional maximum raw/unique record threshold to collect.
 
     Returns:
         The generated collection report dictionary.
@@ -220,13 +222,19 @@ def main(
             tasks_completed += 1
 
             logger.info(
-                f"  → {len(unique)} new records collected, {dup_count} duplicates skipped "
+                f"  -> {len(unique)} new records collected, {dup_count} duplicates skipped "
                 f"(from {len(raw_posts)} raw posts)"
             )
 
+            if max_records and (total_raw >= max_records or len(all_records) >= max_records):
+                logger.info(
+                    f"Target record threshold reached ({total_raw} raw / {len(all_records)} unique records). Finalizing collection."
+                )
+                break
+
         except Exception as e:
             tasks_failed += 1
-            logger.warning(f"  → Task failed for '{query}' in {sub_display}: {e}")
+            logger.warning(f"  -> Task failed for '{query}' in {sub_display}: {e}")
             continue
         finally:
             if i < len(tasks):
@@ -244,6 +252,7 @@ def main(
         "run_started_at": run_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "duration_seconds": round(duration, 2),
         "total_records": len(all_records),
+        "total_posts": len(all_records),
         "queries_executed": len(queries_executed),
         "duplicates_skipped": total_duplicates,
         "tasks_completed": tasks_completed,
@@ -298,10 +307,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Run search, collection, and quality reporting without saving files to disk",
     )
+    parser.add_argument(
+        "--max-records",
+        type=int,
+        default=None,
+        help="Stop collection early after reaching target raw record count (e.g. --max-records 500)",
+    )
     args = parser.parse_args()
 
     main(
         config_path=args.config,
         limit_override=args.limit,
         dry_run=args.dry_run,
+        max_records=args.max_records,
     )

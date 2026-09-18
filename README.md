@@ -48,7 +48,7 @@ Raw Post & Comment Collector (HTML Unescape, Text Normalization, RD_xxxxxx IDs)
          ↓
  Deduplicator (Source + Source_ID Unique Key, Multi-Query Accumulator)
          ↓
-Storage Layer (posts.json + posts.csv — Zero Text Truncation)
+Storage Layer (reddit_evidence.csv + reddit_evidence.json — Zero Text Truncation)
          ↓
 Collection Quality Reporter (collection_report.json)
 ```
@@ -132,6 +132,7 @@ reddit:
   user_agent: "${REDDIT_USER_AGENT}"
 
 search:
+  # Subreddits categorized by research tier (prioritized)
   subreddits:
     primary:
       - "googlephotos"
@@ -141,7 +142,9 @@ search:
     discovery:
       - "photography"
       - "techsupport"
+      - "AskReddit"
 
+  # Queries categorized by research strategy
   queries:
     product_specific:
       - "Google Photos search"
@@ -149,6 +152,12 @@ search:
       - "Google Photos old photo"
       - "Google Photos screenshot search"
       - "Google Photos search problem"
+      - "Google Photos search not working"
+      - "Google Photos search description"
+      - "Google Photos find specific photo"
+      - "Google Photos search face"
+      - "Google Photos search text"
+      - "Google Photos search album"
     behavior_specific:
       - "can't find old photo"
       - "looking for old photo"
@@ -158,6 +167,10 @@ search:
       - "find old screenshot"
       - "lost photo in camera roll"
       - "scrolling through photos to find"
+      - "trying to find a picture from years ago"
+      - "vague memory of a photo"
+      - "searching photo by description"
+      - "lost picture in library"
 
   sort: "relevance"                  # relevance | hot | top | new
   time_filter: "all"                 # all | year | month | week | day | hour
@@ -187,11 +200,11 @@ logging:
 
 ## Record Schema (`EvidenceRecord`)
 
-Every record stored in `data/output/posts.json` and `data/output/posts.csv` adheres to the research schema:
+Every record stored in `data/output/reddit_evidence.json` and `data/output/reddit_evidence.csv` (as well as legacy `posts.json` and `posts.csv`) adheres to the research schema:
 
 | Field | Type | Description |
 |---|---|---|
-| `record_id` | `str` | Stable research ID (e.g. `RD_000001`) |
+| `record_id` | `str` | Stable research ID (e.g. `RD_000001`, `RD_000002`) |
 | `source` | `str` | Data source name (`reddit`) |
 | `source_type` | `str` | Platform identifier (`reddit`) |
 | `content_type` | `str` | Record type (`post` or `comment`) |
@@ -211,11 +224,11 @@ Every record stored in `data/output/posts.json` and `data/output/posts.csv` adhe
 | `run_id` | `str` | Unique collection run identifier |
 | `parent_id` | `str` | Parent submission ID for comments |
 | `parent_post_title` | `str` | Parent post title context for comments |
-| `parent_post_text` | `str` | Parent post text preview for comments |
+| `parent_post_text` | `str` | Full parent post text context for comments (untruncated) |
 | `score` | `int` | Net upvote score |
 | `num_comments`| `int` | Total submission comment count |
-| `ai_relevance` | `null` | Reserved placeholder for V1 AI analysis |
-| `relevance_confidence` | `null` | Reserved placeholder for V1 AI analysis |
+| `ai_relevance` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null`) |
+| `relevance_confidence` | `null` | Reserved placeholder for V1 AI analysis (kept strictly `null`) |
 | `evidence_status` | `str` | Initially `"unreviewed"` for V1 workflow |
 
 ---

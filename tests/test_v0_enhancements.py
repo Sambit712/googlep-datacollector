@@ -11,6 +11,7 @@ Validates:
 - Privacy / author anonymization
 """
 
+import csv
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -297,3 +298,97 @@ def test_main_dry_run_mode(tmp_path: Path):
         )
         assert report["is_dry_run"] is True
         assert report["summary"]["records_successfully_saved"] == 0
+
+
+def test_reddit_evidence_output_generation_and_schema(tmp_path: Path):
+    """DataStructurer must generate reddit_evidence.csv, reddit_evidence.json, and preserve schema."""
+    from src.structurer import DataStructurer
+
+    rec = EvidenceRecord(
+        record_id="RD_000001",
+        source="reddit",
+        source_type="reddit",
+        content_type="post",
+        source_id="t3_evid1",
+        subreddit="googlephotos",
+        subreddit_tier="primary",
+        title="Can't find photo",
+        raw_text="Long text describing vague photo memory",
+        cleaned_text="Long text describing vague photo memory",
+        preview_text="Long text describing...",
+        author="user_evidence",
+        created_at="2026-01-01T12:00:00Z",
+        retrieved_at="2026-09-18T10:00:00Z",
+        url="https://reddit.com/r/googlephotos/comments/evid1/",
+        query_used="Google Photos search",
+        queries_matched=["Google Photos search", "can't find old photo"],
+        run_id="run_test_123",
+        ai_relevance=None,
+        relevance_confidence=None,
+    )
+
+    metadata = {"run_id": "run_test_123", "total_records": 1}
+    structurer = DataStructurer(output_dir=str(tmp_path), output_format="both")
+    result = structurer.write([rec], metadata)
+
+    # 1. Verify reddit_evidence.json exists and has correct schema & null AI fields
+    json_path = tmp_path / "reddit_evidence.json"
+    assert json_path.is_file()
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert "metadata" in data
+    assert "records" in data
+    item = data["records"][0]
+    assert item["record_id"] == "RD_000001"
+    assert item["source_type"] == "reddit"
+    assert item["content_type"] == "post"
+    assert item["run_id"] == "run_test_123"
+    assert item["retrieved_at"] == "2026-09-18T10:00:00Z"
+    assert item["ai_relevance"] is None
+    assert item["relevance_confidence"] is None
+
+    # 2. Verify reddit_evidence.csv exists and has correct columns
+    csv_path = tmp_path / "reddit_evidence.csv"
+    assert csv_path.is_file()
+    with open(csv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert len(rows) == 1
+    r = rows[0]
+    assert r["record_id"] == "RD_000001"
+    assert r["source_type"] == "reddit"
+    assert r["content_type"] == "post"
+    assert r["run_id"] == "run_test_123"
+    assert r["retrieved_at"] == "2026-09-18T10:00:00Z"
+
+
+def test_parent_context_full_text_preservation():
+    """Collector must preserve full parent post text without truncation."""
+    long_body = "Parent post content with crucial detail. " * 20
+    sub = MockSubmissionWithComments(selftext=long_body)
+    collector = PostCollector(max_comments=1)
+    records = collector.collect_batch([sub], search_query="test query", include_comments=True)
+
+    assert len(records) == 2
+    post_rec, cmt_rec = records[0], records[1]
+    assert cmt_rec.content_type == "comment"
+    assert cmt_rec.parent_post_text == post_rec.cleaned_text
+    assert len(cmt_rec.parent_post_text) == len(post_rec.cleaned_text)
+
+
+def test_config_queries_yaml_v0_categories_and_subreddits():
+    """config/queries.yaml must define product-specific and behavior-specific queries and tiered subreddits."""
+    from src.config_loader import load_config
+    cfg = load_config("config/queries.yaml")
+
+    assert "product_specific" in cfg.search.query_categories
+    assert "behavior_specific" in cfg.search.query_categories
+    assert len(cfg.search.query_categories["product_specific"]) >= 5
+    assert len(cfg.search.query_categories["behavior_specific"]) >= 5
+
+    assert "primary" in cfg.search.subreddit_tiers
+    assert "discovery" in cfg.search.subreddit_tiers
+    assert "googlephotos" in cfg.search.subreddit_tiers["primary"]
+

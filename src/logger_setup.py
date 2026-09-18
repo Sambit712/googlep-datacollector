@@ -44,6 +44,11 @@ def setup_logging(log_level: str = "INFO", log_file: str = "logs/run.log") -> lo
     fmt = logging.Formatter("%(asctime)s %(levelname)-5s %(message)s")
 
     # Console handler — always INFO+ for clean terminal output
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(fmt)

@@ -7,7 +7,7 @@ reddit:
   user_agent: "${REDDIT_USER_AGENT}"
 
 search:
-  # Subreddits categorized by research tier
+  # Subreddits categorized by research tier (prioritized)
   subreddits:
     primary:
       - "googlephotos"
@@ -17,8 +17,9 @@ search:
     discovery:
       - "photography"
       - "techsupport"
+      - "AskReddit"
 
-  # Queries categorized by strategy
+  # Queries categorized by research strategy
   queries:
     product_specific:
       - "Google Photos search"
@@ -26,6 +27,12 @@ search:
       - "Google Photos old photo"
       - "Google Photos screenshot search"
       - "Google Photos search problem"
+      - "Google Photos search not working"
+      - "Google Photos search description"
+      - "Google Photos find specific photo"
+      - "Google Photos search face"
+      - "Google Photos search text"
+      - "Google Photos search album"
     behavior_specific:
       - "can't find old photo"
       - "looking for old photo"
@@ -35,6 +42,10 @@ search:
       - "find old screenshot"
       - "lost photo in camera roll"
       - "scrolling through photos to find"
+      - "trying to find a picture from years ago"
+      - "vague memory of a photo"
+      - "searching photo by description"
+      - "lost picture in library"
 
   sort: "relevance"                  # relevance | hot | top | new
   time_filter: "all"                 # all | year | month | week | day | hour

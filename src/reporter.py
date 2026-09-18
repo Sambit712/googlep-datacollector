@@ -119,7 +119,7 @@ class CollectionReporter:
 
         lines = [
             "=" * 70,
-            f"V0 DATA RETRIEVER — COLLECTION QUALITY REPORT ({report['run_id']})",
+            f"V0 DATA RETRIEVER - COLLECTION QUALITY REPORT ({report['run_id']})",
             "=" * 70,
             f"  Queries executed:           {s['queries_executed']}",
             f"  Tasks completed:            {s['tasks_completed']} (failed: {s['tasks_failed']})",

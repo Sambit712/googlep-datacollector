@@ -84,14 +84,20 @@ class DataStructurer:
         files_written: list[str] = []
 
         if self.output_format in ("json", "both"):
-            json_file = self.output_dir / "posts.json"
+            json_file = self.output_dir / "reddit_evidence.json"
+            legacy_json = self.output_dir / "posts.json"
             self._write_json(posts, metadata, json_file)
+            self._write_json(posts, metadata, legacy_json)
             files_written.append(str(json_file))
+            files_written.append(str(legacy_json))
 
         if self.output_format in ("csv", "both"):
-            csv_file = self.output_dir / "posts.csv"
+            csv_file = self.output_dir / "reddit_evidence.csv"
+            legacy_csv = self.output_dir / "posts.csv"
             self._write_csv(posts, csv_file)
+            self._write_csv(posts, legacy_csv)
             files_written.append(str(csv_file))
+            files_written.append(str(legacy_csv))
 
         logger.info(f"DataStructurer wrote {len(posts)} records to {len(files_written)} file(s): {', '.join(files_written)}")
         return {

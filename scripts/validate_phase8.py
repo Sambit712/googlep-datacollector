@@ -28,8 +28,9 @@ def validate_pipeline_output(json_path: Path) -> dict:
     posts = data["posts"]
     
     # Metadata totals match
-    assert meta["total_posts"] == len(posts), (
-        f"metadata.total_posts ({meta['total_posts']}) != len(posts) ({len(posts)})"
+    total = meta.get("total_records", meta.get("total_posts", len(posts)))
+    assert total == len(posts), (
+        f"metadata total ({total}) != len(posts) ({len(posts)})"
     )
     
     # Check duplicate post_ids
@@ -66,7 +67,9 @@ def validate_pipeline_output(json_path: Path) -> dict:
 
 
 if __name__ == "__main__":
-    out_file = Path("data/output/posts.json")
+    out_file = Path("data/output/reddit_evidence.json")
+    if not out_file.exists():
+        out_file = Path("data/output/posts.json")
     result = validate_pipeline_output(out_file)
     print("VALIDATION RESULT: SUCCESS")
     print(json.dumps(result, indent=2, default=str))
