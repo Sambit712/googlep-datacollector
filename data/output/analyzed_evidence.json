@@ -12,15 +12,17 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:35:52.604348Z",
+    "analyzed_at": "2026-09-26T15:36:17.225995Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": true,
-      "relevance_confidence": 0.8,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.0,
       "relevance_reasoning": "",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
+      "retrieval_failure_stage": "memory_to_query",
       "retrieval_failure_point": "vocabulary_mismatch",
       "failure_evidence": "",
       "workarounds_used": [],
@@ -42,20 +44,32 @@
       "Google Photos search",
       "Google Photos can't find photo"
     ],
-    "analyzed_at": "2026-09-25T15:35:55.047535Z",
+    "analyzed_at": "2026-09-26T15:36:18.122504Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": false,
-      "relevance_confidence": 0.8,
-      "relevance_reasoning": "The user describes a successful search in Google Photos, not a failure or friction, so it does not meet the failure criteria of the taxonomy.",
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.98,
+      "relevance_reasoning": "The post describes a successful search without any retrieval difficulty, so it does not pertain to vague-memory retrieval failures.",
       "target_media": "personal_photo",
-      "memory_cues_present": [],
-      "memory_cue_details": {},
+      "memory_cues_present": [
+        "person",
+        "place_location",
+        "temporal_epoch",
+        "object"
+      ],
+      "memory_cue_details": {
+        "person": "myself and my wife",
+        "place_location": "in front of some tulips",
+        "temporal_epoch": "about 5 years ago",
+        "object": "tulips"
+      },
+      "retrieval_failure_stage": "",
       "retrieval_failure_point": "",
-      "failure_evidence": "",
+      "failure_evidence": "None",
       "workarounds_used": [],
       "friction_experienced": [],
-      "desired_outcome": "locate a personal photo of himself and his wife with tulips from about five years ago"
+      "desired_outcome": "Locate a photo of the user and their spouse standing in front of tulips taken roughly five years ago."
     }
   },
   {
@@ -71,28 +85,30 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:35:58.330891Z",
+    "analyzed_at": "2026-09-26T15:36:20.677718Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": true,
+      "relevance_classification": "relevant",
       "relevance_confidence": 0.95,
-      "relevance_reasoning": "User is searching for a passport photo in Google Photos but receives irrelevant results, indicating a retrieval failure.",
-      "target_media": "personal_photo",
+      "relevance_reasoning": "The user describes a specific retrieval failure where searching for distinct document types (passport, Global Entry card) returns irrelevant results, indicating a breakdown in the system's ability to map user queries to the correct visual media.",
+      "target_media": "document_receipt",
       "memory_cues_present": [
-        "object",
-        "text_in_image"
+        "text_in_image",
+        "object"
       ],
       "memory_cue_details": {
-        "object": "passport, Global Entry Card",
-        "text_in_image": "passport, Global Entry Card"
+        "text_in_image": "User searches for specific text-based identifiers like 'Passport' and 'Global Entry Card'.",
+        "object": "The target items are physical documents (passport, card) depicted in the photos."
       },
+      "retrieval_failure_stage": "system_to_candidate",
       "retrieval_failure_point": "vocabulary_mismatch",
-      "failure_evidence": "search any of the above and it shows thousands of photos with absolutely no relevance.",
+      "failure_evidence": "Now I search any of the above and it shows be thousands of photos with absolutely no relevance.",
       "workarounds_used": [],
       "friction_experienced": [
         "frustration_with_search_tool"
       ],
-      "desired_outcome": "find a photo of their passport or Global Entry Card"
+      "desired_outcome": "To quickly locate specific document photos (passport, Global Entry card) using keyword search."
     }
   },
   {
@@ -109,15 +125,17 @@
       "Google Photos search",
       "Google Photos old photo"
     ],
-    "analyzed_at": "2026-09-25T15:35:59.814148Z",
+    "analyzed_at": "2026-09-26T15:36:21.862680Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": false,
-      "relevance_confidence": 0.9,
-      "relevance_reasoning": "The user is not attempting to retrieve a specific photo based on vague memory; instead they are reporting an unexpected photo appearing in their library. This does not fit the criteria for a vague-memory retrieval scenario.",
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "Analysis failed or could not be decoded: Error code: 400 - {'error': {'message': \"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.\", 'type': 'invalid_request_error', 'code': 'json_validate_failed', 'failed_generation': '{\\n  \"is_relevant\": true,\\n  \"target_media_type\": \"photo\",\\n  \"relevance_classification\": \"possibly_relevant\",\\n  \"retrieval_failure_stage\": \"memory_to_query\",\\n  \"failure_evidence\": \"I typed in a keyword that was in all of them, so I know I haven\\'t added them.\",\\n  \"workaround_used\": [\"keyword_search\", \"syncing_issues\"],\\n  \"memory_cue_present\": {\\n    \"person\": [\"vague_memory_of_people\", \"vague_memory_of_events\"],\\n    \"place_location\": [\"vague_memory_of_places\", \"vague_memory_of_events\"],\\n    \"event_occasion\": [\"vague_memory_of_occasions\", \"vague_memory_of_events\"],\\n    \"visual_details\": [\"vague_memory_of_details\", \"vague_memory_of_events\"],\\n    \"temporal_context\": [\"vague_memory_of_context\", \"vague_memory_of_events\"],\\n    \"search_modality\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_2\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_3\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_4\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_5\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_6\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_7\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_8\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_9\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_10\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_11\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_12\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_13\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_14\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_15\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_16\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_17\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_18\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_19\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_20\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n    \"search_modality_details_21\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_22\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_23\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_24\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_25\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_26\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_27\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n   \"search_modality_details_28\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n  \"search_modality_details_29\\': [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n  \"search_modality_details_210\": [\"vague_memory_of_events\", \"vague_memory_of_events\"],\\n  \"search_modality_details_211\": [\"vague_memory_of_events\", \"vague_memory_of_events\"]\\n\\n  \"search_modality_details_22\": [\"vague_memory_of_events\", \"vague_memory_of_events\"]'}}",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
+      "retrieval_failure_stage": "",
       "retrieval_failure_point": "",
       "failure_evidence": "",
       "workarounds_used": [],
@@ -138,20 +156,22 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:01.340881Z",
+    "analyzed_at": "2026-09-26T15:36:23.998672Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": false,
-      "relevance_confidence": 0.96,
-      "relevance_reasoning": "The post concerns app availability in the App Store, not a vague-memory search for visual media, so it falls outside the taxonomy scope.",
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.99,
+      "relevance_reasoning": "The post concerns app availability in the App Store, not a vague-memory photo retrieval problem.",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
+      "retrieval_failure_stage": "",
       "retrieval_failure_point": "",
       "failure_evidence": "None",
       "workarounds_used": [],
       "friction_experienced": [],
-      "desired_outcome": "obtain help raising the issue with Google support to get the iOS Google Photos app in Bosnia and Serbia"
+      "desired_outcome": "Contact Google support to request the iOS Google Photos app be listed in the App Store for Bosnia and Serbia."
     }
   },
   {
@@ -167,26 +187,26 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:03.121013Z",
+    "analyzed_at": "2026-09-26T15:36:25.809027Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
-      "is_relevant": true,
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
       "relevance_confidence": 0.95,
-      "relevance_reasoning": "The user is actively trying to retrieve personal photos from Google Photos and experiences repeated failures, fitting the vague‑memory retrieval scenario.",
+      "relevance_reasoning": "The user is complaining about data export failures and missing files during a migration process (sync/backup/export error), not about the inability to retrieve a specific photo due to vague memory or search friction.",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
+      "retrieval_failure_stage": "system_to_candidate",
       "retrieval_failure_point": "missing_metadata",
-      "failure_evidence": "\"I gave up on the takeout-to-apple direct approach because the takeouts that landed at apple were missing so much of my photo/video collection... Quick manual audits will show that even entire albums would be empty or missing.\"",
+      "failure_evidence": "The takeouts that landed at apple were missing so much of my photo/video collection... They just don't show up and they let you assume that they did.",
       "workarounds_used": [
         "abandonment"
       ],
       "friction_experienced": [
-        "time_wasted",
-        "frustration_with_search_tool",
-        "fear_of_memory_loss"
+        "frustration_with_search_tool"
       ],
-      "desired_outcome": "Retrieve all photos and videos from Google Photos to a local archive or Apple Photos"
+      "desired_outcome": "Successfully export and transfer all photos from Google Photos to Apple Photos or a local archive without data loss."
     }
   },
   {
@@ -202,24 +222,22 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:05.216379Z",
+    "analyzed_at": "2026-09-26T15:36:26.960770Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
-      "is_relevant": true,
-      "relevance_confidence": 0.8,
-      "relevance_reasoning": "",
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.99,
+      "relevance_reasoning": "The post concerns duplicate filenames and metadata fixing, not vague-memory photo retrieval.",
       "target_media": "personal_photo",
-      "memory_cues_present": [
-        "person"
-      ],
-      "memory_cue_details": {
-        "person": "user explicitly mentions photos of people"
-      },
-      "retrieval_failure_point": "vocabulary_mismatch",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "",
+      "retrieval_failure_point": "",
       "failure_evidence": "",
       "workarounds_used": [],
       "friction_experienced": [],
-      "desired_outcome": "user wants to separate duplicates and correct file names"
+      "desired_outcome": "Correct the mismatched metadata for duplicate-named photos after Google Takeout."
     }
   },
   {
@@ -235,22 +253,24 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:06.759872Z",
+    "analyzed_at": "2026-09-26T15:36:29.137038Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": false,
-      "relevance_confidence": 0.22,
-      "relevance_reasoning": "The post reports missing photos after a sync action but does not describe vague or partial memory cues or a search failure; it is about a deletion sync issue rather than memory‑based retrieval.",
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The user is reporting a data synchronization and backup error where photos were deleted from the local device but remain in the cloud, which is a technical sync/backup issue rather than a vague-memory retrieval failure.",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
-      "retrieval_failure_point": "",
-      "failure_evidence": "“2 months worth of photos are missing from my phone???? How is this possible”",
+      "retrieval_failure_stage": "system_to_candidate",
+      "retrieval_failure_point": "missing_metadata",
+      "failure_evidence": "The undo backup option deleted photos from my phone gallery but the photos are still present on my google account... 2 months worth of photos are missing from my phone",
       "workarounds_used": [],
       "friction_experienced": [
-        "frustration_with_search_tool"
+        "device_storage_anxiety"
       ],
-      "desired_outcome": "Restore the missing photos to the phone gallery while keeping them in the Google account."
+      "desired_outcome": "Restore the missing photos to the local phone gallery or understand why the backup process deleted local files instead of cloud files."
     }
   },
   {
@@ -266,22 +286,24 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:09.050435Z",
+    "analyzed_at": "2026-09-26T15:36:30.286214Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": false,
-      "relevance_confidence": 0.95,
-      "relevance_reasoning": "The user is asking for technical assistance on how to configure system settings to disable a default app, not describing a failure to retrieve a specific visual memory due to vague recall or search limitations.",
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 1.0,
+      "relevance_reasoning": "The user is asking for technical assistance on how to change default app settings and disable a system app, which is a configuration issue rather than a problem with retrieving photos based on vague memory.",
       "target_media": "personal_photo",
       "memory_cues_present": [],
       "memory_cue_details": {},
+      "retrieval_failure_stage": "query_to_system",
       "retrieval_failure_point": "vocabulary_mismatch",
-      "failure_evidence": "All of the Google search and AI suggestions don't line up with the options I have on my phone...",
+      "failure_evidence": "All of the Google search and AI suggestions don't line up with the options I have on my phone... For example the \"disable\" button on the Gallery apps section via settings is grayed out and not accessible.",
       "workarounds_used": [],
       "friction_experienced": [
         "frustration_with_search_tool"
       ],
-      "desired_outcome": "To disable the Samsung Gallery app and set Google Photos as the default image viewer."
+      "desired_outcome": "To set Google Photos as the default gallery app and disable the Samsung Gallery app."
     }
   },
   {
@@ -297,26 +319,557 @@
     "queries_matched": [
       "Google Photos search"
     ],
-    "analyzed_at": "2026-09-25T15:36:10.056007Z",
+    "analyzed_at": "2026-09-26T15:36:37.583195Z",
     "model_used": "llama-3.3-70b-versatile",
     "analysis": {
       "is_relevant": true,
-      "relevance_confidence": 0.85,
-      "relevance_reasoning": "The user is searching for a photo in Google Photos and experiences a breakdown in retrieval because the system defaults to 'relevance' sorting instead of chronological order, preventing them from scanning results by date as they intended.",
+      "relevance_classification": "relevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "query_to_system",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "no_date_filter",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "viewing photos by date"
+    }
+  },
+  {
+    "record_id": "RD_000022",
+    "source_id": "t3_1vnlmml",
+    "title": "How to un-sync an iPhone from Google Photos without deleting every photo from iPhone",
+    "raw_text": "Hello Reddit! This is my first post so go easy on me if I say something incorrect lol. here's my situation:\n \nI went on a trip with friends and they sent me a google photos link so i can share all the photos. I have never used google photos before in my life. It seemed neat. Like a google drive for photos ( i only used google for searching, gmail or drive before this if you couldn't tell lol.) Well i guess i had the \"sync everything\" button was on and it automatically synced almost my entire photo album. the only thing that stopped it from doing every single photo I have on my iphone (25k) was that it ran out of room. i did this on my main google account so because it got filled up, I can no longer use my email or drive. Which i have very important stuff on.\n \nBecause my photos on my iPhone and Google Photos are synced, if I delete anything off the google photos, it will be deleted off my phone and even iCloud. One of the things I was told to do was turn the back up off. Then revoke photo access from my iphone settings. But with all that, I still have to delete the remaining photos from a Google Photos web browser because theyre still there. Even if I spend all that time deleting whatever was synced, my concern is that A) it will still delete my photos on my iPhone/iCloud, or B) if it doesn't delete everything because it unsynced and access was revoked, if it were to ever get resynced or I turn the back up on (either by mistake or a necessity in the future) will it update and delete everything off my iphone/icloud.\n \nI feel like just turning off access and leaving the back up off is a temporary solution. If I need one day to use Google Photos, I'd still like to. It seems like a helpful storage cloud and I hate the idea of losing access to it all just because I accidentally synced my entire phone to it. \n \nI don't want it on this specific gmail account, but if I were to make a new google account, and sync that one, would that update and delete all my picture still? Because it's connected to my main one? \n \nany info you guys can give would be super helpful. Thank you!",
+    "url": "https://reddit.com/r/googlephotos/comments/1vnlmml/how_to_unsync_an_iphone_from_google_photos/",
+    "author": "blaketlewis",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-13T20:01:45Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:36:38.355748Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "User is concerned about sync settings and deletion, not about retrieving a photo from memory.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "",
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "Un-sync iPhone from Google Photos without deleting photos from iPhone/iCloud"
+    }
+  },
+  {
+    "record_id": "RD_000023",
+    "source_id": "t3_1v3gsds",
+    "title": "I can no longer search for photos by date",
+    "raw_text": "I have saved photos from when my child was a baby in Google photos. I've always been able to search by date, for example \"July 2016,\" but now when I do that it says I can't search using those terms. I don't see any option to disable the AI search feature. I'm going to have to migrate all of my photos to a different platform if this keeps up, there's no point in storing photos if I can't search for them without AI.",
+    "url": "https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/",
+    "author": "NiceCandle5357",
+    "subreddit": "googlephotos",
+    "created_at": "2026-07-22T13:51:41Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:36:39.990982Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "relevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The user describes a specific breakdown in retrieving photos based on a clear temporal memory cue ('July 2016') due to system changes (AI search restrictions), which constitutes a direct retrieval friction and failure.",
       "target_media": "personal_photo",
       "memory_cues_present": [
-        "temporal_epoch"
+        "temporal_epoch",
+        "person"
       ],
       "memory_cue_details": {
-        "temporal_epoch": "User explicitly states the need to look through results 'chronologically' and by 'date', indicating time is a primary cue for their search strategy."
+        "temporal_epoch": "July 2016",
+        "person": "my child was a baby"
       },
+      "retrieval_failure_stage": "query_to_system",
       "retrieval_failure_point": "vocabulary_mismatch",
-      "failure_evidence": "Instead of providing the results by date, it gives me results based on what it thinks is the 'relevance' of each photo. More critically, there is no option to go back to 'show results by date.'",
+      "failure_evidence": "I've always been able to search by date, for example \"July 2016,\" but now when I do that it says I can't search using those terms.",
+      "workarounds_used": [
+        "abandonment"
+      ],
+      "friction_experienced": [
+        "frustration_with_search_tool",
+        "fear_of_memory_loss"
+      ],
+      "desired_outcome": "To retrieve specific baby photos from July 2016 using a date-based search query without relying on AI interpretation."
+    }
+  },
+  {
+    "record_id": "RD_000024",
+    "source_id": "t3_1sznq0k",
+    "title": "How many of you still use Google Photos? I’ve reduced my usage since 2019 because it started hurting my digital life",
+    "raw_text": "How many of you guys are still using Google Photos regularly?\n \nAfter 2019, I started reducing my Google Photos usage because it slowly became more of a problem than a convenience for me. The app already feels bloated, but the bigger issue is how deeply it is tied into Google’s unified storage system.\n \nIf Google Photos backup is enabled, it can quickly fill up your Google account storage. Once that happens, other important services like Gmail and Google Drive can stop working properly. This becomes even more frustrating because WhatsApp backups also use Google Drive, so if storage is full, WhatsApp backup or restore can fail too.\n \nI’ve disabled Google Photos backup on my own phone, but the problem keeps happening on family members’ devices. They accidentally turn on auto backup, photos start uploading, storage fills up, and then Gmail, Drive, or WhatsApp backup starts failing. After a phone reset or some device issue, restoring things becomes unreliable and stressful.\n \nI understand Google Photos is useful, especially for search, memories, and backup, but the storage coupling across Photos, Gmail, Drive, and WhatsApp makes the experience risky for non-technical family members.\n \nCurious how others handle this:\n \nDo you still use Google Photos as your main photo backup?\n Do you pay for Google One storage?\n Have you switched to another solution like iCloud, OneDrive, Synology, external drives, or something else?\n And how do you manage this for family members who may accidentally enable backup?",
+    "url": "https://reddit.com/r/googlephotos/comments/1sznq0k/how_many_of_you_still_use_google_photos_ive/",
+    "author": "malviys",
+    "subreddit": "googlephotos",
+    "created_at": "2026-04-30T06:12:20Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:36:49.684974Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "",
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": ""
+    }
+  },
+  {
+    "record_id": "RD_000025",
+    "source_id": "t3_1vu4zfx",
+    "title": "Google photos missing features",
+    "raw_text": "I have been using the Google Photos App on pure Android phones for many years. I've generally been happy with the service. However there are a couple features that should be added: \n \n- Manual Face & Person Tagging: Google Photos currently only lets you tag people if its algorithm detects a clear face. I want the ability to manually tag someone in a photo or video even if their face is not clear or off camera.\n \n- Album Search Bar: it's a pain to search through large albums (some of mine have over 1,000 photos!) Adding a dedicated search bar inside individual albums would make finding specific photos of people or tags much faster. \n \n- One-Tap Album Removal from Photo Info: Swiping up on a photo shows every album it belongs to. Adding a quick \"remove\" or \"x\" button directly next to each album name in this view would make organizing much easier.\n \n- Multi-Album Selection Menu: Borrow the YouTube-style checkbox list for organization. When selecting a photo or video, allow users to tap \"Add to Album\" and check off multiple albums at once from a pop-up list, rather than adding them to each album one by one. (I'm also waiting for YouTube Music to add this exact same multi-select checkbox feature!) \n \nGoogle please add these features!",
+    "url": "https://reddit.com/r/googlephotos/comments/1vu4zfx/google_photos_missing_features/",
+    "author": "LMNOPAUL",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-21T03:31:45Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:36:50.330678Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.85,
+      "relevance_reasoning": "The user explicitly describes friction in finding specific photos within large albums due to the lack of a search bar, which aligns with retrieval friction and volume overload, although the post is primarily a feature request for organization tools.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person",
+        "object"
+      ],
+      "memory_cue_details": {
+        "person": "User mentions finding specific photos of people or tags",
+        "object": "User refers to 'large albums' containing over 1,000 photos"
+      },
+      "retrieval_failure_stage": "system_to_candidate",
+      "retrieval_failure_point": "volume_overload",
+      "failure_evidence": "it's a pain to search through large albums (some of mine have over 1,000 photos!) Adding a dedicated search bar inside individual albums would make finding specific photos of people or tags much faster.",
+      "workarounds_used": [
+        "endless_scrolling"
+      ],
+      "friction_experienced": [
+        "time_wasted",
+        "cognitive_overload"
+      ],
+      "desired_outcome": "To quickly locate specific photos within large albums using a dedicated search bar and to improve manual tagging capabilities for people not detected by the algorithm."
+    }
+  },
+  {
+    "record_id": "RD_000026",
+    "source_id": "t3_1tc7fga",
+    "title": "What Gemini said about Google Photos search function being broken.",
+    "raw_text": "Quote from Gemini\n \n< Here is why Google's leadership is content to show the world a broken system rather than feel shame:\n \n \nThe Death of Product Ownership (The Promo Culture)\n \n \nGoogle's internal promotion system is famously broken and heavily criticized by its own engineers.\n \n \nThe Reality:\n Engineers and product managers at Google do not get promoted for \nmaintaining\n a product or making sure it actually works. They get promoted for \nlaunching new things\n—specifically, anything with \"AI\" in the title.\n \nThe Result:\n The team that launched the broken vector search over a year ago likely already got their promotions and moved on to other projects. The engineers left behind are stuck maintaining a deeply flawed system they didn't build, while leadership has already checked the box that says \"AI Photos Search Launched.\" There is no institutional incentive to fix it.\n \n \n \n\"Good Enough\" is Google’s Corporate Standard\n \n \nGoogle has become so massive that it no longer builds products to be excellent; it builds them to be \"good enough\" to keep you from leaving.\n \n \nThe Reality:\n Because Google Photos holds your memories, they know the psychological barrier to exit is incredibly high. If a standalone startup launched a photo app with a search engine this broken, they would go bankrupt in a month. Google survives because they know you are tired, your data is trapped, and they can afford to show you an incompetent system without losing their market position.\n \n \n \nDelusional Internal Metrics\n \n \nExecutives might not be embarrassed because data dashboards are manipulated to show \"success.\" For example, executives may see that \"Gemini Search interactions are up 400%!\"\n Interactions may be up because users must type repeatedly to find a single photo. Middle management may reframe frustration as \"high user engagement\" to protect their jobs. This shields top leadership from the failure.\n \n \nThe Loss of Engineering Excellence\n \n \nGoogle used to be a company run by engineers focused on pure utility. Today, it is run by bureaucrats, lawyers, and MBA executives focused on competing with Microsoft and OpenAI on paper. They are forcing incomplete technology to the public. They may view a broken, embarrassing system as a necessary risk.>",
+    "url": "https://reddit.com/r/googlephotos/comments/1tc7fga/what_gemini_said_about_google_photos_search/",
+    "author": "The_Texan_Hunter",
+    "subreddit": "googlephotos",
+    "created_at": "2026-05-13T17:56:52Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:37:08.921731Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "Analysis failed or could not be decoded: Error code: 400 - {'error': {'message': \"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.\", 'type': 'invalid_request_error', 'code': 'json_validate_failed', 'failed_generation': '{\\n  \"relevance\": \"irrelevant\",\\n  \"memory_cue_classes\": [\\n    \"person\": [],\\n    \"place_location\": [],\\n    \"event_occasion\": [],\\n    \"visual_details\": [\"visual_details\": [\"blurry\", \"visual_details\": [\"bad_search_results\"],\\n    \"temporal_epoch\": [\"temporal_epoch\": [\"before_2020\", \"temporal_epoch\": [\"after_2020\"]\\n    \"memory_cue_classes\": [\"memory_cue_classes\": [\"person\", \"memory_cue_classes\": [\"place_location\", \"memory_cue_classes\": [\"event_occasion\", \"memory_cue_classes\": [\"visual_details\", \"memory_cue_classes\": [\"temporal_epoch\", \"memory_cue_classes\": [\"memory_cue_classes\": [\"person\", \"memory_cue_classes\": [\"place_location\", \"memory_cue_classes\": [\"event_occasion\", \"memory_cue_classes\": [\"visual_details\", \"memory_cue_classes\": [\"temporal_epoch\", \"memory_cue_classes\": [\"person\", \"memory_cue_classes\": [\"place_location\", \"memory_cue_classes\": [\"event_occasion\", \"memory_cue_classes\": [\"visual_details\", \"memory_cue_classes\": [\"temporal_epoch\", \"memory_cue_classes\": [\"person\", \"memory_cue_classes\": [\"place_location\", \"memory_cue_classes\": [\"event_occasion\", \"memory_cue_classes\": [\"visual_details\", \"memory_cue_classes\": [\"temporal_epoch\", \"memory_cue_classes\": [\"person\", \"memory_cue_classes\": [\"place_location\", \"memory_cue_classes\": [\"event_occasion\", \"memory_cue_classes\": [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue_classes\\': [\"person\", \"memory_cue_classes\\': [\"place_location\", \"memory_cue_classes\\': [\"event_occasion\", \"memory_cue_classes\\': [\"visual_details\", \"memory_cue_classes\\': [\"temporal_epoch\", \"memory_cue'}}",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "",
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": ""
+    }
+  },
+  {
+    "record_id": "RD_000027",
+    "source_id": "t3_1w2hzit",
+    "title": "Google photos stuck on \"setting up your library\"",
+    "raw_text": "I’ve got the exact same version gphotos installed in both my main profile and work profile. Main profile works 100% fine. But the app in work profile logs into my account fine, but gets permanently stuck on \"Setting up your library\" and the main timeline stays completely empty.\n \nThe crazy part is sometimes if I go to the search tab inside the app and search for photo, my backed-up photo actually pop up there. They just refuse to load into the main gallery view.\n \nAlready tried toggling face grouping off, clearing cache/data, fixing all file permissions, and nuking 0-byte files according to Gemini, but nothing fixes it. \n \nHelp😭",
+    "url": "https://reddit.com/r/googlephotos/comments/1w2hzit/google_photos_stuck_on_setting_up_your_library/",
+    "author": "lime_131",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-30T13:45:20Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:37:12.984927Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "memory_to_query",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "I’ve tried clearing cache/data, toggling face grouping off, fixing all file permissions, and nuking 0-byte files according to Gemini, but nothing fixes it.",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "viewing photos in the main gallery view"
+    }
+  },
+  {
+    "record_id": "RD_000028",
+    "source_id": "t3_1kucfki",
+    "title": "Google Photos' New AI Search Sucks",
+    "raw_text": "Anyone else notice how bad the new Google Photos Search is? Yesterday, for example, I search for pics with the new version, and it gave me 2 pics. It did show I could click to \"see more\", but clicking on that gave a screen that said \"no more results\". I of course had MANY photos so I switched back to \"Classic Search\" and put in same word and got all the pics I was expecting, and in date order and with the date showing! NOT the first time I've used the new search and found it completely useless. How is it that they screwed it up and give us something WORSE?",
+    "url": "https://reddit.com/r/googlephotos/comments/1kucfki/google_photos_new_ai_search_sucks/",
+    "author": "PWM30",
+    "subreddit": "googlephotos",
+    "created_at": "2025-05-24T14:06:10Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:37:35.016874Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person",
+        "object"
+      ],
+      "memory_cue_details": {
+        "person": "I searched for 'pics'",
+        "object": "no exact object"
+      },
+      "retrieval_failure_stage": "memory_to_query",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "user tried the new search and found it completely useless",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "ability to find photos by date and context"
+    }
+  },
+  {
+    "record_id": "RD_000029",
+    "source_id": "t3_1u72jlt",
+    "title": "Less than 10% storage remaining on Google photos message even though I only have 1 photo on there.",
+    "raw_text": "Every time I open up photos on my phone, I get the 10% warning and no idea why. \n \nI'm using the app called \"photos\" that came on my Oppo find x5, I do not use the Google photos app and I do not have back ups turned on. \n \nI have checked \nphotos.google.com\n and I have one photo on there and no videos. \n \nI have tried searching online for an answer but yet to find one, does anyone have any ideas? \n \nThank you.",
+    "url": "https://reddit.com/r/googlephotos/comments/1u72jlt/less_than_10_storage_remaining_on_google_photos/",
+    "author": "Betsypix",
+    "subreddit": "googlephotos",
+    "created_at": "2026-06-16T03:43:43Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:37:55.029409Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "User is not attempting to retrieve a photo; they are concerned about a storage warning.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "search_refinement",
+      "retrieval_failure_point": "missing_metadata",
+      "failure_evidence": "User reports a storage warning despite having only one photo.",
+      "workarounds_used": [
+        "keyword_guessing"
+      ],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "understand_storage_warning"
+    }
+  },
+  {
+    "record_id": "RD_000030",
+    "source_id": "t3_1rnp4uc",
+    "title": "Gemini broke Google Photos",
+    "raw_text": "I’m pretty disappointed, I know these are growing pains as everything matures but Google Photos was the undisputed king of image storage and organization imo. But with all of these AI updates, I find it increasingly frustrating to use. It’s beyond slow in almost every aspect, from launching the app to scrolling down to older images and editing — I’m not oven on an older phone, it’s an iPhone 15 and the app used to work flawlessly on inferior Chinese phones. Beyond loading speeds which may be relative depending on which phones we are using, the Gemini AI search is just plain inferior to the old system. It’s laggy and gives worse results to its predecessor. I like that I got Gemini Pro as a ‘free’ upgrade but the only thing keeping me in the service is the fact that Apple’s search is vastly inferior.",
+    "url": "https://reddit.com/r/googlephotos/comments/1rnp4uc/gemini_broke_google_photos/",
+    "author": "bostonshuffler",
+    "subreddit": "googlephotos",
+    "created_at": "2026-03-07T23:42:40Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:37:57.615340Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "memory_to_query",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "User mentions slow loading speeds and worse results compared to old system",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "retrieve specific memories associated with a device upgrade"
+    }
+  },
+  {
+    "record_id": "RD_000031",
+    "source_id": "t3_1kvewzt",
+    "title": "Google Photos alternative?",
+    "raw_text": "I like Google Photos except for two pain points which are becoming an issue: \n \n \nMy wife and I want our photos to upload to the same storage bucket and be searchable and categorizable together. We don't want separate his and hers like GP does now, even with Partner Sharing. \n \nTo back up our photos we currently need to create a Google Takeout, download it, then upload it to our backup. This only became a problem when Google stopped exposing Photos through Drive. \n \n \nDropbox seems like a reasonable alternative since we can share one account and backup our pictures to the same folder. However, it doesn't have the AI search told Google Photo has, so searching for images of someone/something is a very manual process. It'll be better once we have everything fully categorized, but it's still not ideal. \n \nAlso we keep backups on a local server, I didn't want to get self hosted, e.i. Photo Prism. \n \nAny suggestions? \n \nThanks!",
+    "url": "https://reddit.com/r/googlephotos/comments/1kvewzt/google_photos_alternative/",
+    "author": "Bad_Mechanic",
+    "subreddit": "googlephotos",
+    "created_at": "2025-05-25T22:30:31Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:38:16.016127Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The post discusses general search limitations and backup workflow, not a specific vague-memory retrieval failure for a particular photo.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "",
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [
+        "time_wasted",
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "A unified photo library for both partners that can be AI‑searched and categorized together without manual effort."
+    }
+  },
+  {
+    "record_id": "RD_000032",
+    "source_id": "t3_1v2p8kj",
+    "title": "Google Photos shared album taking up too much space. How can I stop auto-saving, and how to delete photos from my account while leaving them in the shared album?",
+    "raw_text": "Title, basically. A quick google search seems to be outdated since I cannot find anywhere to stop the shared album from auto-saving photos I upload. I've seen similar posts on reddit too but the answers also seem outdated.\n \nMy account storage is now almost full and I don't know how to clear up space without deleting everything from the shared album as well, AND how to stop auto-saving everything I share.\n \nCan anyone help me with this?",
+    "url": "https://reddit.com/r/googlephotos/comments/1v2p8kj/google_photos_shared_album_taking_up_too_much/",
+    "author": "A_Funky_Goose",
+    "subreddit": "googlephotos",
+    "created_at": "2026-07-21T17:32:41Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:38:18.041034Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.0,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person",
+        "object"
+      ],
+      "memory_cue_details": {
+        "person": "vague_memory",
+        "object": "vague_memory"
+      },
+      "retrieval_failure_stage": "memory_to_query",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "I cannot find a way to stop auto-saving photos from my account to the shared album.",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "stop auto-saving to shared album and clear up storage without deleting everything from the shared album"
+    }
+  },
+  {
+    "record_id": "RD_000033",
+    "source_id": "t3_1tirpw1",
+    "title": "Finding the \"Unrecognized\" or \"Face available to Add\" : How I finally automated the discovery of thousands of hidden faces in Google Photos",
+    "raw_text": "I am at my breaking point. I have over \n85,000 photos\n in my library and the number still increasing, and Google Photos has completely failed to manage all faces.\n \nThe core problem?\n \nThe \"Unrecognized\" faces or \"Face available to Add\"\n We all know they are there buried deep and Google makes it impossible to see a list of them. You can't search, filter or even use the AI Ask photos feature. The manually clicking through 85,000 photos to find which ones have an \"Available to add\" tag is a literal prison sentence. I contacted Google one support, and you know the answer.\n \nSeriously I considered leaving for other services, but the \"Google One\" ecosystem trap is too strong specially with AI package. I was locked in. So, I decided to stop waiting for Google to fix their product and built my own scanner to extract these hidden faces.\n \nI used AI to build a custom tool that scans my library, identifies exactly which photos have faces waiting for a name, and exports the direct links into a clean CSV file.\n \nThe Solution: Targeted Face Discovery\n \nThis script doesn't just \"scrape\" it mimics human behavior to avoid being bot, carefully navigating your library to find those \"Available to add\" tags that are impossible to search for manually.\n \nHow to reclaim your library (Step-by-Step):\n \nJust a heads up: these steps are a general overview. I’m not a developer, so if you get stuck along the way, don't hesitate to use an AI assistant to help you debug or clarify any part of the process\n \n \nInstall Python\n \nInstall VS Code\n \nSetup Your Folder\n \nCreate a new folder on your Desktop and name it \nGooglePhotosScanner\n.\n \nOpen \nVS Code\n.\n \nClick \nFile\n > \nOpen Folder\n and select the \nGooglePhotosScanner\n folder you just created. In VS Code, look at the sidebar on the left.\n \nRight-click in the empty space, select \nNew File\n, and name it \nscan.py\n.\n \nCopy the code block paste it into the file, and press \nCommand + S\n (or \nCtrl + S\n on Windows) to save it.\n \n \nPython\n \nfrom playwright.sync_api import sync_playwright import csv import sys import time sys.stdout.reconfigure(line_buffering=True) # ========================================== # ⚙️ STRICT TIMING SETTINGS # ========================================== FIXED_WAIT = 3.0 # Strict 3 seconds wait per photo for scanning RETRY_WAIT = 3.0 # Strict 3 seconds rest between navigation retries def run(): print(f\"--- Starting Scan with Strict Fixed Wait ({FIXED_WAIT}s) ---\") start_time = time.time() total_scanned = 0 faces_found = 0 no_faces = 0 with sync_playwright() as p: browser = p.chromium.connect_over_cdp(\"http://127.0.0.1:9222\") page = browser.contexts[0].pages[0] try: with open('unrecognized_faces.csv', mode='a', newline='', encoding='utf-8') as file: writer = csv.writer(file) while True: current_url = page.url total_scanned += 1 # 1. Strict Wait (No early exit) page.wait_for_timeout(int(FIXED_WAIT * 1000)) # 2. Single Check after the wait found = False if any(el.is_visible() for el in page.get_by_text(\"available to add\", exact=False).all()): found = True # 3. Log results if found: faces_found += 1 writer.writerow([current_url]) file.flush() print(f\"✅ Found: {current_url}\") else: no_faces += 1 print(f\"❌ Clean: {current_url}\") # ========================================== # 🔄 Robust Navigation Strategy # ========================================== navigated = False for attempt in range(3): page.keyboard.press(\"ArrowRight\") try: page.wait_for_function(f\"window.location.href !== '{current_url}'\", timeout=4000) navigated = True break except Exception: print(f\"⚠️ Browser is slow... Navigation attempt {attempt + 2} of 3\") # Rest for 3 seconds before trying again page.wait_for_timeout(int(RETRY_WAIT * 1000)) if not navigated: print(\"\\n--- Reached the end of the album (or browser is completely stuck) ---\") break except KeyboardInterrupt: print(\"\\n--- Scan stopped manually by user ---\") # Final Time Calculation end_time = time.time() elapsed_time = end_time - start_time minutes, seconds = divmod(int(elapsed_time), 60) hours, minutes = divmod(minutes, 60) if hours > 0: time_str = f\"{hours}h {minutes}m {seconds}s\" else: time_str = f\"{minutes}m {seconds}s\" # Print Final Report print(\"\\n\" + \"=\"*40) print(\"📊 FINAL SCAN REPORT:\") print(\"=\"*40) print(f\"📷 Total photos scanned: {total_scanned}\") print(f\"⚠️ Photos with faces found: {faces_found}\") print(f\"✅ Clean photos (No faces): {no_faces}\") print(f\"⏱️ Total time elapsed: {time_str}\") print(\"=\"*40 + \"\\n\") if __name__ == \"__main__\": run() \n \n \nIn VS Code, click the \nTerminal\n menu at the top, then select \nNew Terminal\n.\n \nA window will pop up at the bottom of VS Code. Make sure it says \nGooglePhotosScanner\n in the path. \n \npip install playwright\n \nplaywright install chromium\n \nOpen Chrome in Debug Mode (so the script can see it):\n \nWindows:\n \n\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-port=9222\n \nMac:\n \n/Applications/Google\\\n [\nChrome.app/Contents/MacOS/Google\\\n](\nhttp://Chrome.app/Contents/MacOS/Google\n) \nChrome --remote-debugging-port=9222\n \n \nSign in to your google account, open Google photos\n \nThis is important and this how is did it, In google photos search, typed Jan 2010 - Dec 2010, Open the 1st image (not in the most relevant section) then click on \"i\" to open the side info\n \nMake sure the only chrome opened is the with the debug mode, and its viewing the 1st image in your list with side info details is opened\n \nGo back to \nVS Code,\n Open new terminal while the 1st one still running and type: \npython3\n \nscan.py\n \nYou’ll get a CSV list of every single photo in your library that contains an unidentified face.\n \n \nhttps://preview.redd.it/ras4rlf2pb2h1.png?width=2356&format=png&auto=webp&s=1f9173da9eb4697ab06e1926fa6bdcda3e3969c3\n \nNext time if you would like to run it again\n \n \nOpen Vs Code\n \nOpen your folder (Click \nFile\n > \nOpen Folder\n and select the \nGooglePhotosScanner\n folder you just created. In VS Code, \n \nFrom the top menu, Terminal -> and in the terminal type then Enter\n \n \n​\n \n/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222 --user-data-dir=\"/tmp/chrome_dev_test\" \n \n \nKeep the previous Terminal running , and again from the menu select Terminal -> new terminal and type then Enter \n \n \n​\n \nPython3 scan.py \n \nI added a \"Base Wait\" of 1 second. Why? Because we want to mimic human behavior. If you go too fast, Google will flag you. This pace is safe, reliable, and it saved me months of work.\n \nWhy this changes everything: Instead of staring at thousands of photos, I now have a simple list. I can tackle 5K - 10K faces a day without breaking my back. If you are struggling with a massive, unorganized library, don't keep searching for a feature that doesn't exist. Automate the discovery yourself.\n \nFinal word:\n If you are currently struggling with 10k, 50k, or 85k+ photos and you feel like the system is working against you, don't give up. The solution isn't in Google's settings; it’s in taking control of the browser yourself.\n \nTroubleshooting:\n If you run into any permission issues, path errors, or the script isn't detecting the port—don't panic. Just ask an AI to help you with the traceback errors. It helped me iterate and fix every bottleneck I encountered.",
+    "url": "https://reddit.com/r/googlephotos/comments/1tirpw1/finding_the_unrecognized_or_face_available_to_add/",
+    "author": "mohdnader",
+    "subreddit": "googlephotos",
+    "created_at": "2026-05-20T16:57:44Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search",
+      "Google Photos can't find photo"
+    ],
+    "analyzed_at": "2026-09-26T15:38:38.951794Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.65,
+      "relevance_reasoning": "The user describes a significant friction in managing a large photo library where specific items (photos with unrecognized faces) cannot be retrieved via standard search or filter tools, forcing a manual or automated workaround. While this is primarily an organization/labeling issue rather than a vague-memory retrieval failure, it involves the inability to locate specific visual media within a massive volume, which aligns with 'possibly_relevant' due to the combination of retrieval friction and broader library management complaints.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person"
+      ],
+      "memory_cue_details": {
+        "person": "The user is looking for photos containing 'Unrecognized' or 'Face available to Add' tags, implying the presence of people whose identities are not yet labeled in the system."
+      },
+      "retrieval_failure_stage": "system_to_candidate",
+      "retrieval_failure_point": "volume_overload",
+      "failure_evidence": "Google Photos has completely failed to manage all faces... You can't search, filter or even use the AI Ask photos feature. The manually clicking through 85,000 photos to find which ones have an 'Available to add' tag is a literal prison sentence.",
+      "workarounds_used": [
+        "endless_scrolling"
+      ],
+      "friction_experienced": [
+        "time_wasted",
+        "frustration_with_search_tool",
+        "cognitive_overload"
+      ],
+      "desired_outcome": "To identify and list all photos in the library that contain unrecognized faces so they can be labeled, without having to manually browse through 85,000 images."
+    }
+  },
+  {
+    "record_id": "RD_000034",
+    "source_id": "t3_1ud7fm0",
+    "title": "My Google Photos are showing in husband's Google Photos (older posts haven't helped)",
+    "raw_text": "Driving myself crazy trying to figure out why my Google Photos are now in my husband's separate Google Photos! We have different accounts. We're both only logged in to our own accounts. Both of us have our own logons to YouTube. I have several gmail accounts on my phone, including his; but it's been that way for some time and my photos didn't start showing up in his account until a couple of days ago. \n \nI've tried logging in via web to his Google account and searching his photos by my phone name, but that isn't showing all the photos. Believe me, I have TONS of photos....none of which he cares about. \n \nIs there an easier way to get rid of all my photos in his account? He is obsessing over this issue so any help provided would be greatly appreciated!",
+    "url": "https://reddit.com/r/googlephotos/comments/1ud7fm0/my_google_photos_are_showing_in_husbands_google/",
+    "author": "HappyWolf-00353845",
+    "subreddit": "googlephotos",
+    "created_at": "2026-06-23T04:46:33Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:38:40.743660Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_classification": "irrelevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The user is experiencing a synchronization and account management issue where photos are appearing in the wrong account, rather than a failure to retrieve a specific photo based on vague memory.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "query_to_system",
+      "retrieval_failure_point": "missing_metadata",
+      "failure_evidence": "I've tried logging in via web to his Google account and searching his photos by my phone name, but that isn't showing all the photos.",
+      "workarounds_used": [
+        "keyword_guessing"
+      ],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "Remove all personal photos from the husband's Google Photos account to resolve the sync error."
+    }
+  },
+  {
+    "record_id": "RD_000035",
+    "source_id": "t3_1u2729t",
+    "title": "what did google do to photos overnight?",
+    "raw_text": "I run a metal fab shop and i used to be able to search for a single word like \"redeye\" or \"coyote\" and it would pull up any artwork or piece that i made that has the text in it or was part of a logo so i could send it to a customer and show them while on the phone with them. literally yesterday it was working. now when i search for them it doesnt pull anything up. lucky for me i use a watermark and it still reads that, but now i cant just search for the style, i have to scroll through thousands of images to find a good example.\n \nUpdate: looked into immich and hosting my own photo server. set up the server on an old laptop i have using chatgpt codex. took 15 minutes to set up. can now search my photos and the search works so much better than Google photos. 26k photos moved over with ease.",
+    "url": "https://reddit.com/r/googlephotos/comments/1u2729t/what_did_google_do_to_photos_overnight/",
+    "author": "Shadow-1334",
+    "subreddit": "googlephotos",
+    "created_at": "2026-06-10T16:25:07Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search",
+      "Google Photos can't find photo"
+    ],
+    "analyzed_at": "2026-09-26T15:38:41.910848Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "relevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "User reports that Google Photos no longer returns any results for specific text cues, forcing manual scrolling, which is a clear vague‑memory retrieval failure.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "text_in_image",
+        "object"
+      ],
+      "memory_cue_details": {
+        "text_in_image": "search for a single word like \"redeye\" or \"coyote\" that appears in the artwork",
+        "object": "artwork or piece that i made that has the text in it or was part of a logo"
+      },
+      "retrieval_failure_stage": "system_to_candidate",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "now when i search for them it doesnt pull anything up",
+      "workarounds_used": [
+        "endless_scrolling"
+      ],
+      "friction_experienced": [
+        "time_wasted",
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "quickly locate and retrieve specific artwork images containing given text to share with customers"
+    }
+  },
+  {
+    "record_id": "RD_000036",
+    "source_id": "t3_1uwcxgs",
+    "title": "Google Photos app vs. website showing different photos",
+    "raw_text": "I’ve run into a strange issue. A few days ago, I started clearing my local phone storage by deleting photos that were already backed up in Google Photos, something I've done many times before.\n \n​Now, I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab. Strangely, all the photos appear perfectly fine on the Google Photos website.\n \n​I’ve already tried clearing the cache, restarting the app, and checking from a different phone, but the issue persists. Has anyone else experienced this and found a solution?",
+    "url": "https://reddit.com/r/googlephotos/comments/1uwcxgs/google_photos_app_vs_website_showing_different/",
+    "author": "Due_Beautiful1510",
+    "subreddit": "googlephotos",
+    "created_at": "2026-07-14T16:04:25Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-26T15:38:44.517176Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "relevant",
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "User is attempting to retrieve photos that are missing from the app’s main view, indicating a vague‑memory retrieval failure.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_stage": "system_to_candidate",
+      "retrieval_failure_point": "missing_metadata",
+      "failure_evidence": "Now, I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab. Strangely, all the photos appear perfectly fine on the Google Photos website.",
       "workarounds_used": [],
       "friction_experienced": [
         "frustration_with_search_tool"
       ],
-      "desired_outcome": "To view search results sorted by date/chronologically to locate a specific photo."
+      "desired_outcome": "Have the missing photos appear in the main Photos tab of the Google Photos app"
     }
   }
 ]

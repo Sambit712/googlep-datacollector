@@ -1403,11 +1403,11 @@ V1 Test Suites:
   Phase 11      — Evidence Loader:        8 tests
   Phase 12 & 17 — AI Analyzer:           12 tests
   Phase 13 & 17 — Aggregator & Patterns:  6 tests
-  Phase 14 & 17 — Insight Reporter:       6 tests
+  Phase 14 & 17 — Insight Reporter:       7 tests
   Phase 15      — CLI & Main Orchestrator: 10 tests
   Phase 16 & 17 — Traceability & Cognitive Invariants: 10 tests
 ─────────────────────────────────────────────────
-V1 Total:                                62 tests
+V1 Total:                                63 tests
 ─────────────────────────────────────────────────
-Grand Total:                            129 tests (100% Passing)
+Grand Total:                            130 tests (100% Passing)
 ```

@@ -17,39 +17,18 @@ root_dir = Path(__file__).resolve().parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from src.main import main
+from src.main import parse_cli_args, main
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="V0 Reddit Research Evidence-Collection Pipeline"
-    )
-    parser.add_argument(
-        "--config",
-        default="config/queries.yaml",
-        help="Path to YAML configuration file (default: config/queries.yaml)",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Override max results per query for sample runs (e.g. --limit 10)",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Validate configuration and show what would run without collecting data",
-    )
-    parser.add_argument(
-        "--max-records",
-        type=int,
-        default=None,
-        help="Stop collection early after reaching target raw record count (e.g. --max-records 500)",
-    )
-    args = parser.parse_args()
-
+    args = parse_cli_args()
     main(
         config_path=args.config,
         limit_override=args.limit,
         dry_run=args.dry_run,
         max_records=args.max_records,
+        mode=args.mode,
+        taxonomy_path=args.taxonomy,
+        input_path=args.input,
+        sample=args.sample,
+        output_dir=getattr(args, "output_dir", None),
     )

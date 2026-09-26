@@ -328,3 +328,24 @@ def test_print_summary_runs_cleanly(capsys, sample_summary_report, tmp_path):
     assert "PAT_001" in captured
     assert "RD_000001" in captured
     assert "Top Memory Cues:" in captured
+
+
+def test_write_markdown_report(tmp_path, sample_summary_report):
+    """Verify write_markdown_report formats executive markdown with cognitive failure stages and citations."""
+    reporter = InsightReporter(output_dir=tmp_path)
+    rep_path = reporter.write_insight_report(sample_summary_report)
+    report = reporter.load_insight_report(rep_path)
+
+    md_path = reporter.write_markdown_report(report)
+    assert md_path.exists()
+
+    content = md_path.read_text(encoding="utf-8")
+    assert "# Executive Research Insight Report" in content
+    assert "1. Central Research Question" in content
+    assert "3. Relevance Classification Breakdown" in content
+    assert "4. Cognitive Retrieval Failure Breakdown" in content
+    assert "5. Structure of Human Visual Memory" in content
+    assert "7. Synthesized Recurring Patterns & Evidence Citations" in content
+    assert "RD_000001" in content
+    assert "PAT_001" in content
+

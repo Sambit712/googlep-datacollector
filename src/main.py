@@ -455,6 +455,14 @@ def run_analysis_pipeline(
             v0_source_file=str(input_path),
         )
         report = reporter.load_insight_report(report_file)
+        # Write executive markdown report to output directory and reports/
+        reporter.write_markdown_report(report, output_dir=output_dir)
+        try:
+            if Path(output_dir).resolve() != Path("reports").resolve():
+                reporter.write_markdown_report(report, output_dir="reports")
+        except Exception as e:
+            logger.warning(f"Could not copy markdown report to reports/: {e}")
+
         reporter.print_summary(report)
         return report
     else:
