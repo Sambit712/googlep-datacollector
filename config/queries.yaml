@@ -17,7 +17,6 @@ search:
     discovery:
       - "photography"
       - "techsupport"
-      - "AskReddit"
 
   # Queries categorized by research strategy
   queries:
