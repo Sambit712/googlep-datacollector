@@ -1,0 +1,81 @@
+# Research Taxonomy Configuration for Google Photos Vague-Memory Retrieval (V1)
+version: "1.0"
+description: "Research taxonomy for Google Photos vague-memory retrieval (V1)"
+
+relevance_criteria:
+  - "User is searching for visual media (photo, video, screenshot, scan, document)"
+  - "User exhibits vague, partial, or imprecise memory of the item or its context"
+  - "User describes search failure, friction, breakdown, or manual workarounds"
+
+memory_cues:
+  categories:
+    - id: "person"
+      description: "People, faces, relationships, family members, or groups depicted"
+    - id: "place_location"
+      description: "Geographic places, landmarks, rooms, cities, venues, or travel spots"
+    - id: "event_occasion"
+      description: "Weddings, trips, birthdays, parties, holidays, concerts, graduations"
+    - id: "temporal_epoch"
+      description: "Approximate year, season, life stage (e.g. 'college years', 'old phone', 'high school')"
+    - id: "object"
+      description: "Physical items, cars, clothes, pets, food, devices, furniture"
+    - id: "visual_details"
+      description: "Colors, lighting, framing, composition, blurriness, angles, background colors"
+    - id: "text_in_image"
+      description: "Memes, screenshots of text, receipts, book pages, street signs, chats"
+    - id: "activity_action"
+      description: "Sports, dancing, eating, laughing, walking, fixing, traveling"
+    - id: "ambient_context"
+      description: "Weather, mood, emotional state, background music, atmosphere, companionship"
+
+retrieval_failure_points:
+  categories:
+    - id: "vocabulary_mismatch"
+      description: "User search query does not match AI or metadata labels in gallery"
+    - id: "temporal_fuzziness"
+      description: "User cannot recall exact date/month; timeline scrolling fails"
+    - id: "missing_metadata"
+      description: "No geotag, EXIF stripped, or device migration lost timestamps"
+    - id: "visual_semantic_gap"
+      description: "Concept is abstract or compositional (e.g., 'me looking silly', 'sunset vibe')"
+    - id: "screenshot_clutter"
+      description: "Target item drowned in thousands of untagged screenshots and memes"
+    - id: "volume_overload"
+      description: "Gallery too large (10k+ photos) to browse manually without fatigue"
+
+target_media_types:
+  - "personal_photo"
+  - "screenshot"
+  - "video_clip"
+  - "document_receipt"
+  - "meme_saved_image"
+  - "scanned_physical_photo"
+
+workaround_types:
+  categories:
+    - id: "endless_scrolling"
+      description: "Brute-force scrolling through timeline for hours"
+    - id: "external_social_backup"
+      description: "Searching Facebook, Instagram, Google Drive, or WhatsApp chat logs for sent copy"
+    - id: "peer_inquiry"
+      description: "Asking friends/family if they have a copy of the photo"
+    - id: "reverse_image_search"
+      description: "Using Google Lens or TinEye if a similar image is available"
+    - id: "keyword_guessing"
+      description: "Repeatedly typing adjacent keywords hoping the search system hits"
+    - id: "abandonment"
+      description: "Giving up and assuming the memory is lost forever"
+
+friction_types:
+  - "time_wasted"
+  - "frustration_with_search_tool"
+  - "fear_of_memory_loss"
+  - "cognitive_overload"
+  - "device_storage_anxiety"
+
+groq_analysis:
+  model: "llama-3.3-70b-versatile"
+  temperature: 0.1
+  max_retries: 3
+  timeout_seconds: 30
+  batch_size: 1

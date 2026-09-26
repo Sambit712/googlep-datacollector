@@ -1,0 +1,159 @@
+# V1 — AI-Powered Research Analysis Engine
+
+## Problem Statement
+
+V0 collects public Reddit conversations about users struggling to retrieve old photos, screenshots, videos, or other visual memories when they cannot precisely describe what they are looking for.
+
+However, raw conversations alone do not reveal the underlying product problem. We need to understand **how people remember visual information, what clues they retain, where retrieval breaks down, and what users do when normal search fails**.
+
+V1 should transform the V0 evidence into structured, evidence-backed research insights.
+
+The central research question is:
+
+> **Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?**
+
+V1 should identify:
+
+* Whether each piece of evidence is relevant to the research problem
+* What the user remembers: person, place, event, time, object, visual details, text, activity, etc.
+* What the user is trying to retrieve
+* Where the retrieval process breaks
+* What friction the user experiences
+* What workaround they use
+* What outcome they were trying to achieve
+* Which problems recur across multiple users
+
+The objective is **not to design the solution yet**. The objective is to convert unstructured user evidence into a reliable understanding of the problem.
+
+---
+
+## V0 → V1 Relationship
+
+V0 and V1 should function as two connected research layers.
+
+**V0 = Evidence Collection**
+
+> What are users saying?
+
+**V1 = Evidence Analysis**
+
+> What does that evidence tell us about the retrieval problem?
+
+The original V0 dataset must remain untouched.
+
+Every V1 analysis should retain the original V0 `record_id`, allowing:
+
+**Research Insight → V1 Analysis → V0 Record → Original Reddit Evidence → Source URL**
+
+This traceability is critical because every major insight should be supported by actual user evidence rather than unsupported AI assumptions.
+
+---
+
+## Expected V1 Outcome
+
+V1 should eventually allow us to move from:
+
+**Raw conversation**
+
+→ **Relevant evidence**
+
+→ **Memory cues**
+
+→ **Retrieval failure**
+
+→ **User workaround**
+
+→ **Recurring pattern**
+
+→ **Evidence-backed problem**
+
+This becomes the research foundation for the later product opportunity and MVP.
+
+---
+
+# Tech Stack
+
+Keep the existing V0 technology and extend it rather than introducing unnecessary infrastructure.
+
+### Core
+
+* **Python** — primary processing and orchestration layer
+* **Existing Reddit/V0 pipeline** — source of research evidence
+* **JSON** — canonical machine-readable input/output
+* **CSV** — convenient format for manual research review
+* **YAML** — configurable research taxonomy
+
+### AI Analysis
+
+Use the existing **Groq/LLM infrastructure** already present in the repository.
+
+The LLM should handle tasks such as:
+
+* relevance classification
+* memory-cue extraction
+* retrieval-failure classification
+* workaround extraction
+* friction and desired-outcome extraction
+* pattern identification
+
+Keep the model/provider configurable.
+
+### Data Processing
+
+Use **Pandas** or the repository's existing data-processing utilities for:
+
+* aggregation
+* counting patterns
+* comparing categories
+* generating research statistics
+* producing structured reports
+
+### Configuration
+
+Use:
+
+```text
+config/
+├── queries.yaml       # V0 collection
+└── taxonomy.yaml      # V1 research categories
+```
+
+The taxonomy should remain configurable so categories can evolve as research findings emerge.
+
+### Storage
+
+Continue using the existing file-based architecture:
+
+```text
+data/output/
+├── reddit_evidence.json       # V0 source evidence
+├── reddit_evidence.csv
+├── collection_report.json
+├── analyzed_evidence.json     # V1
+├── analyzed_evidence.csv
+└── insight_report.json        # V1 aggregated insights
+```
+
+No database is required at this stage.
+
+---
+
+## What V1 Should NOT Build Yet
+
+Do not introduce:
+
+* Vector databases
+* Embeddings
+* RAG
+* LangChain/LangGraph
+* Streamlit dashboards
+* Google Photos API integration
+* AI query expansion
+* Product recommendations
+* MVP functionality
+
+Those belong to later stages.
+
+### V1 principle
+
+**V0 collects the evidence. V1 interprets the evidence. V2 can use those insights to build and test the product solution.**

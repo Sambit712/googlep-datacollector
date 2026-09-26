@@ -1,0 +1,38 @@
+# Reduced config for integration and rapid testing
+reddit:
+  client_id: "${REDDIT_CLIENT_ID}"
+  client_secret: "${REDDIT_CLIENT_SECRET}"
+  user_agent: "${REDDIT_USER_AGENT}"
+
+search:
+  subreddits:
+    primary:
+      - "googlephotos"
+    discovery: []
+  queries:
+    product_specific:
+      - "Google Photos can't find photo"
+    behavior_specific:
+      - "looking for an old screenshot"
+  sort: "relevance"
+  time_filter: "all"
+  limit_per_query: 5
+
+pipeline:
+  deduplicate_by: "id"
+  output_format: "both"
+  output_dir: "data/output"
+  request_delay_seconds: 2.0
+  max_comments_per_post: 2
+
+privacy:
+  anonymize_authors: false
+
+groq:
+  api_key: "${GROQ_API_KEY}"
+  model: "llama-3.3-70b-versatile"
+  enabled: true
+
+logging:
+  level: "INFO"
+  log_file: "logs/run.log"

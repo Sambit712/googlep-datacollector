@@ -1,0 +1,35 @@
+## V0 Problem Statement
+
+Build a simple research data-retrieval system for the Google Photos vague-memory retrieval project. The system should find and collect publicly available Reddit conversations where people describe trying to locate an old photo, video, screenshot, document, or other visual memory but have difficulty finding it because they do not remember precise information such as the date, location, name, event, or exact content. The system should use a configurable set of search queries covering different ways users might describe these situations, retrieve the relevant Reddit posts and their publicly available context, and organize the collected information into a clean, structured dataset. Each record should retain the original conversation, source, date, and direct link so that every piece of research evidence can later be traced back to the original user conversation. The system should also avoid storing the same Reddit post multiple times when it appears under different searches. At this stage, the system should **not attempt to determine the root cause, analyze sentiment, generate product recommendations, or decide whether a conversation is truly relevant**. Its only purpose is to create a broad, reliable evidence pool of real user conversations that can be analyzed in the next stage.
+
+## What V0 Does
+
+In simple terms, V0 acts like a **research assistant that collects evidence**.
+
+You give it searches such as:
+
+> "can't find old photo"
+
+> "looking for an old screenshot"
+
+> "remember a photo but can't find it"
+
+> "can't remember when I took a photo"
+
+The system searches Reddit and gathers the conversations it finds.
+
+It then organizes them into something like:
+
+| User conversation                                     | What they are looking for | Source      |
+| ----------------------------------------------------- | ------------------------- | ----------- |
+| "I remember a café from my Goa trip..."               | Travel photo              | Reddit link |
+| "I have a screenshot somewhere..."                    | Screenshot                | Reddit link |
+| "Trying to find a photo from my friend's birthday..." | Event photo               | Reddit link |
+
+The important thing is that **V0 does not try to solve the problem yet**.
+
+It simply answers:
+
+> **"What are real people saying when they struggle to find something they remember having in their photo library?"**
+
+That collection becomes the raw evidence for **V1**, where we can use AI to analyze the conversations and identify patterns such as what users remember, what they forget, how they search, and where retrieval breaks down.
