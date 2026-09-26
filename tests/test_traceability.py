@@ -424,3 +424,45 @@ def test_live_generated_artifacts_traceability():
     is_valid, errors = verify_traceability_chain(report, analyzed, v0)
     assert is_valid, f"Traceability errors in generated artifacts: {errors}"
 
+
+def test_cognitive_taxonomy_conformance():
+    """Verify that AnalyzedEvidenceRecord schema and live records adhere to the 5 failure stages and tri-state relevance."""
+    from src.config_loader import load_taxonomy
+
+    taxonomy = load_taxonomy("config/taxonomy.yaml")
+    valid_stages = set(taxonomy.get_failure_stage_ids())
+    valid_relevance_classes = set(taxonomy.get_relevance_class_ids())
+
+    assert len(valid_stages) == 5
+    assert len(valid_relevance_classes) == 3
+
+    # Test sample record
+    rec = AnalyzedEvidenceRecord(
+        record_id="RD_000001",
+        source_id="t3_test",
+        is_relevant=True,
+        relevance_classification="relevant",
+        retrieval_failure_stage="memory_to_query",
+        memory_cues_present=["relationship", "person"],
+    )
+    rec_dict = rec.to_dict()
+    analysis = rec_dict["analysis"]
+
+    assert analysis["relevance_classification"] in valid_relevance_classes
+    assert analysis["retrieval_failure_stage"] in valid_stages
+    assert "relationship" in analysis["memory_cues_present"]
+
+    # If live analyzed evidence exists, verify all records
+    analyzed_file = Path("data/output/analyzed_evidence.json")
+    if analyzed_file.exists():
+        with open(analyzed_file, "r", encoding="utf-8") as f:
+            analyzed = json.load(f)
+        for r in analyzed:
+            an = r.get("analysis", r)
+            rel_class = an.get("relevance_classification")
+            stage = an.get("retrieval_failure_stage")
+            if rel_class:
+                assert rel_class in valid_relevance_classes, f"Invalid relevance_classification: {rel_class}"
+            if stage:
+                assert stage in valid_stages, f"Invalid retrieval_failure_stage: {stage}"
+

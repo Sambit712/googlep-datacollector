@@ -229,6 +229,8 @@ def test_write_analyzed_evidence_csv(tmp_path, sample_analyzed_records):
     # Verify ZERO text truncation
     assert row1["raw_text"] == sample_analyzed_records[0].raw_text
     assert row1["is_relevant"] == "True"
+    assert row1["relevance_classification"] == "relevant"
+    assert row1["retrieval_failure_stage"] == "memory_to_query"
     assert "person; place_location" in row1["memory_cues_present"]
     assert "endless_scrolling" in row1["workarounds_used"]
     assert row1["retrieval_failure_point"] == "volume_overload"

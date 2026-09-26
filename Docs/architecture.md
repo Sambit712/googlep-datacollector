@@ -288,26 +288,60 @@ relevance_criteria:
   - "User exhibits vague, partial, or imprecise memory of the item"
   - "User describes search failure, friction, or manual workarounds"
 
+relevance_criteria:
+  classes:
+    - id: "relevant"
+      description: "Direct vague-memory retrieval failure or friction with recalled episodic fragments"
+    - id: "possibly_relevant"
+      description: "Retrieval issue implied, ambiguous, or combined with broader album organization complaints"
+    - id: "irrelevant"
+      description: "App crashes, sync/backup errors, subscription/billing, or non-retrieval complaints"
+
 memory_cues:
   categories:
     - id: "person"
-      description: "People, faces, relationships, or groups depicted"
+      description: "People, faces, or groups depicted in the photo"
     - id: "place_location"
-      description: "Geographic places, landmarks, rooms, or travel spots"
+      description: "Geographic places, landmarks, rooms, or travel spots (e.g. 'Goa', 'beach', 'café')"
     - id: "event_occasion"
       description: "Weddings, trips, birthdays, parties, holidays, concerts"
     - id: "temporal_epoch"
-      description: "Approximate year, season, life stage (e.g. 'college years', 'old phone')"
+      description: "Approximate year, season, life stage (e.g. 'during college', 'sometime in 2022')"
     - id: "object"
-      description: "Physical items, cars, clothes, pets, food, devices"
+      description: "Physical items, cars, clothes, pets, food, devices, medicine"
     - id: "visual_details"
-      description: "Colors, lighting, framing, composition, blurriness, angles"
+      description: "Colors, lighting, framing, composition, blurriness (e.g. 'red shirt', 'sunset')"
     - id: "text_in_image"
-      description: "Memes, screenshots of text, receipts, book pages, signs"
+      description: "Signboards, receipts, documents, medicine names, restaurant menus"
     - id: "activity_action"
-      description: "Sports, dancing, eating, laughing, walking, fixing"
+      description: "Sports, dancing, eating, travelling, studying, attending an event"
+    - id: "relationship"
+      description: "Social and interpersonal ties (e.g. 'my friend', 'my mother', 'old roommate')"
     - id: "ambient_context"
-      description: "Weather, mood, emotional state, background music, companionship"
+      description: "Weather, mood, emotional state, background atmosphere"
+
+retrieval_failure_stages:
+  stages:
+    - id: "memory_to_query"
+      name: "Memory → Query"
+      research_question: "Can users translate their memory into a searchable representation?"
+      description: "User remembers photo details but cannot convert memory into searchable terms"
+    - id: "query_to_system"
+      name: "Query → System"
+      research_question: "Does the system understand the user's natural description?"
+      description: "User provides reasonable natural description but system misinterprets intent"
+    - id: "system_to_candidate"
+      name: "System → Candidate"
+      research_question: "Can the system narrow the search space effectively?"
+      description: "System returns too many, too few, or completely unrelated candidates"
+    - id: "candidate_to_recognition"
+      name: "Candidate → Recognition"
+      research_question: "Does the result presentation help users identify the remembered item?"
+      description: "User struggles to distinguish the target item among candidates in gallery"
+    - id: "search_refinement"
+      name: "Search Refinement"
+      research_question: "Can users iteratively steer retrieval when the initial attempt fails?"
+      description: "Initial search fails and user lacks cues/controls to steer search"
 
 retrieval_failure_points:
   categories:
@@ -390,21 +424,23 @@ groq_analysis:
 | **Module**       | `src/analyzer.py` (powered by `src/groq_client.py`)                    |
 
 **Extraction & Classification Tasks:**
-1. **Relevance Filter**:
+1. **Relevance Filter (Tri-State)**:
    - `is_relevant: bool`
+   - `relevance_classification: str` (`relevant`, `possibly_relevant`, or `irrelevant`)
    - `relevance_confidence: float` (0.0 to 1.0)
-   - `relevance_reasoning: str`
-2. **Memory Cue Extraction**:
-   - `memory_cues: list[str]` (mapped to taxonomy IDs: `person`, `place_location`, `event_occasion`, etc.)
-   - `memory_cue_details: dict` (extracts specific quotes: e.g. `{"place_location": "beach in San Diego", "temporal_epoch": "summer before college"}`)
-3. **Target Media Classification**:
-   - `target_media: str` (`personal_photo`, `screenshot`, `video_clip`, etc.)
-4. **Retrieval Failure Point**:
-   - `failure_point: str` (taxonomy ID, e.g. `temporal_fuzziness`, `vocabulary_mismatch`)
+   - `relevance_reasoning: str` (explaining why the item represents a retrieval breakdown or why it was rejected)
+2. **Memory Cue Extraction (Structure of Human Visual Memory)**:
+   - `memory_cues: list[str]` (mapped to taxonomy IDs: `person`, `place_location`, `event_occasion`, `temporal_epoch`, `object`, `visual_details`, `text_in_image`, `activity_action`, `relationship`, `ambient_context`)
+   - `memory_cue_details: dict` (extracts specific quotes: e.g. `{"place_location": "beach café", "temporal_epoch": "during college", "relationship": "my friend", "visual_details": "red shirt"}`)
+3. **Retrieval Failure Stage (5-Stage Cognitive Breakdown)**:
+   - `retrieval_failure_stage: str` (`memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, or `search_refinement`)
+   - `failure_point: str` (operational taxonomy ID, e.g. `temporal_fuzziness`, `vocabulary_mismatch`, `volume_overload`)
    - `failure_evidence: str` (quote from user conversation)
+4. **Target Media Classification**:
+   - `target_media: str` (`personal_photo`, `screenshot`, `video_clip`, `document_receipt`, `meme_saved_image`, `scanned_physical_photo`)
 5. **Friction & Workaround Extraction**:
-   - `workarounds: list[str]` (e.g. `endless_scrolling`, `peer_inquiry`, `abandonment`)
-   - `friction: list[str]` (e.g. `time_wasted`, `fear_of_memory_loss`)
+   - `workarounds: list[str]` (e.g. `endless_scrolling`, `peer_inquiry`, `keyword_guessing`, `abandonment`)
+   - `friction: list[str]` (e.g. `time_wasted`, `fear_of_memory_loss`, `frustration_with_search_tool`)
 6. **Desired Outcome**:
    - `desired_outcome: str` (what the user was trying to achieve, e.g., "show a funny picture to coworker", "print album for grandmother")
 
@@ -420,13 +456,16 @@ groq_analysis:
 | **Module**       | `src/aggregator.py`                                                  |
 
 **Responsibilities (using Pandas):**
-- Filter to relevant evidence subset (`is_relevant == True`).
+- Filter to relevant evidence subset (`is_relevant == True` or `relevance_classification in ("relevant", "possibly_relevant")`).
 - Compute frequency distributions for:
-  - Top memory cues retained by users
+  - Tri-state relevance breakdown (`relevant`, `possibly_relevant`, `irrelevant`)
+  - 5-Stage Cognitive Retrieval Breakdown (`memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, `search_refinement`)
+  - Top memory cues retained by users (including `relationship` and visual nuances)
   - Primary retrieval failure points
   - Most common user workarounds
   - Media types with highest search failure rates
 - Multi-dimensional cross-tabulations:
+  - `retrieval_failure_stage` vs. `memory_cues`
   - `memory_cues` vs. `failure_point`
   - `target_media` vs. `workaround`
 - Recurring Problem Pattern Identification:
@@ -447,7 +486,7 @@ groq_analysis:
 **Responsibilities:**
 - Export `analyzed_evidence.json` (canonical machine-readable full dataset with both V0 fields and V1 analysis fields).
 - Export `analyzed_evidence.csv` (flattened tabular view for manual spreadsheet inspection, with zero text truncation).
-- Generate `insight_report.json` (executive summary, quantitative distributions, recurring patterns, and traceable user evidence citations).
+- Generate `insight_report.json` (executive summary, quantitative distributions across the 5 failure stages, recurring patterns, and traceable user evidence citations).
 
 ---
 
@@ -469,16 +508,19 @@ groq_analysis:
   "queries_matched": ["can't find old photo"],
   "analysis": {
     "is_relevant": true,
+    "relevance_classification": "relevant",
     "relevance_confidence": 0.95,
-    "relevance_reasoning": "User describes clear failure retrieving a personal photo using partial episodic memory.",
+    "relevance_reasoning": "User describes clear failure retrieving a personal photo using partial episodic memory fragments.",
     "target_media": "personal_photo",
-    "memory_cues_present": ["person", "place_location", "activity_action", "temporal_epoch"],
+    "memory_cues_present": ["person", "place_location", "activity_action", "temporal_epoch", "relationship"],
     "memory_cue_details": {
       "person": "college roommate",
-      "place_location": "beach",
+      "relationship": "college roommate / close friend",
+      "place_location": "beach café bonfire",
       "activity_action": "bonfire",
-      "temporal_epoch": "2018 / college"
+      "temporal_epoch": "2018 / college years"
     },
+    "retrieval_failure_stage": "system_to_candidate",
     "retrieval_failure_point": "volume_overload",
     "failure_evidence": "scrolling through 20,000 photos took 2 hours and I couldn't find it",
     "workarounds_used": ["endless_scrolling"],
@@ -497,16 +539,26 @@ groq_analysis:
     "v0_source_file": "data/output/reddit_evidence.json",
     "total_records_ingested": 312,
     "relevant_evidence_count": 248,
+    "possibly_relevant_count": 34,
+    "irrelevant_count": 30,
     "relevance_rate": 0.795,
     "groq_model_used": "llama-3.3-70b-versatile"
   },
-  "research_question": "Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?",
+  "research_question": "Why do users fail to retrieve a photo when they remember meaningful details about it but cannot precisely describe or search for it?",
   "distributions": {
+    "retrieval_failure_stages": {
+      "memory_to_query": 54,
+      "query_to_system": 62,
+      "system_to_candidate": 78,
+      "candidate_to_recognition": 36,
+      "search_refinement": 18
+    },
     "top_memory_cues": {
       "temporal_epoch": 182,
       "person": 145,
       "place_location": 128,
       "activity_action": 94,
+      "relationship": 88,
       "object": 73,
       "text_in_image": 52
     },
@@ -521,6 +573,7 @@ groq_analysis:
       "endless_scrolling": 142,
       "peer_inquiry": 46,
       "external_social_backup": 38,
+      "keyword_guessing": 30,
       "abandonment": 22
     }
   },
@@ -764,9 +817,29 @@ flowchart TD
     V0R -->|Direct Link| URL
 ```
 
-### 10.2 Multi-Task AI Prompting Architecture
+### 10.2 Cognitive-System Retrieval Breakdown Framework
 
-The V1 Analyzer sends a single structured prompt per evidence record to Groq (`llama-3.3-70b-versatile`) requesting a JSON response conforming to `taxonomy.yaml`.
+Every piece of relevant user evidence maps to the breakdown points between human episodic memory and algorithmic photo search:
+
+```mermaid
+flowchart TD
+    MEM["1. How User Remembers\n(Episodic Memory Fragments:\nperson, place, time, relationship, visual details)"]
+    DESC["2. How User Describes\n(Natural Language Query Verbalization)"]
+    INT["3. How System Interprets\n(Intent & Semantic Mapping)"]
+    RET["4. How System Retrieves\n(Candidate Set Narrowing)"]
+    REC["5. How User Recognizes\n(Visual Scanning & Confirmation)"]
+    REF["6. How User Refines\n(Iterative Search Steering)"]
+
+    MEM -->|Break 1: memory_to_query\n'Cannot translate memory into search words'| DESC
+    DESC -->|Break 2: query_to_system\n'System fails to understand natural description'| INT
+    INT -->|Break 3: system_to_candidate\n'Returns 100s of unrelated photos / volume overload'| RET
+    RET -->|Break 4: candidate_to_recognition\n'User cannot spot target in gallery clutter'| REC
+    REC -->|Break 5: search_refinement\n'No feedback cues; endless scrolling / abandonment'| REF
+```
+
+### 10.3 Multi-Task AI Prompting Architecture
+
+The V1 Analyzer sends a single structured prompt per evidence record to Groq (`llama-3.3-70b-versatile` or auto-fallback) requesting a JSON response conforming to `taxonomy.yaml`.
 
 ```text
 [System]
@@ -775,7 +848,7 @@ Analyze the following user post based strictly on the provided research taxonomy
 Do not hallucinate details not stated in the evidence.
 
 [Taxonomy Definition]
-{memory_cues, retrieval_failure_points, workaround_types, friction_types}
+{relevance_criteria, memory_cues, retrieval_failure_stages, retrieval_failure_points, workaround_types, friction_types}
 
 [User Conversation Evidence]
 Title: {title}
@@ -786,7 +859,7 @@ Comments: {top_comments}
 Return valid JSON matching the AnalyzedEvidenceRecord schema.
 ```
 
-### 10.3 Path to V2
+### 10.4 Path to V2
 
 ```text
 V0: Evidence Collection  ──▶  "What are users saying?" (Raw Reddit Data)

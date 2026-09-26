@@ -4,9 +4,36 @@
 
 This project is a **research data-retrieval system** built for the **Google Photos vague-memory retrieval** initiative. The goal is to collect real-world evidence of users struggling to find old photos, videos, screenshots, or documents in their libraries due to imprecise or incomplete memories.
 
-## Problem
+## Problem & Cognitive-System Gap
 
-People often remember having a photo or visual memory but cannot locate it because they lack precise details — such as the exact date, location, person's name, event, or content. Understanding how users describe these situations is key to improving photo-retrieval experiences.
+People often remember a photograph through **fragments of context rather than precise searchable metadata**.
+
+For example, a user may remember:
+> *"There was a picture from my Goa trip, probably at a small café, and my friend was wearing a red shirt."*
+
+The user retains multiple meaningful episodic attributes:
+* Approximate location (e.g., Goa, beach, café)
+* Person & relationship (e.g., "my friend", "my mother", "college roommate")
+* Event (e.g., vacation trip, wedding, birthday)
+* Visual appearance (e.g., red shirt, sunset, night scene)
+* Activity (e.g., travelling, eating, celebration)
+* Approximate time / epoch (e.g., summer 2022, during college)
+
+However, these memories do not map directly to the metadata fields or interaction models available in conventional photo-search experiences. This creates a critical breakdown chain:
+
+```text
+How the user remembers the photo (human episodic memory fragments)
+                ↓
+How the user describes the photo (verbalization into search query)
+                ↓
+How the system interprets the description (natural language & intent matching)
+                ↓
+How the system retrieves candidates (narrowing the candidate library)
+                ↓
+How the user recognizes the correct photo (visual scanning & confirmation)
+```
+
+The system must investigate **where this chain breaks and why**.
 
 ## What the System Does (V0 — Evidence Collection)
 
@@ -44,7 +71,7 @@ V1 transforms the raw V0 evidence into structured, evidence-backed research insi
 
 ### The Central Research Question
 
-> **"Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?"**
+> **"Why do users fail to retrieve a photo when they remember meaningful details about it but cannot precisely describe or search for it?"**
 
 ### V0 → V1 Relationship: Two Connected Research Layers
 
@@ -69,14 +96,33 @@ Traceability is critical: every insight, metric, and failure mode must be direct
 
 For every piece of evidence in the V0 dataset, V1 determines:
 
-1. **Relevance Classification**: Whether the post is genuinely relevant to the vague-memory retrieval problem.
-2. **Memory Cues Retained**: What the user actually remembers (e.g., person, place, event, time/epoch, object, visual details, text in image, activity, ambient context).
-3. **Target Media**: What the user is trying to retrieve (photo, screenshot, video, scanned document, receipt, meme, etc.).
-4. **Retrieval Failure Point**: Where the retrieval process breaks (e.g., vocabulary mismatch, temporal fuzziness, missing metadata, visual semantic gap, overwhelming gallery volume).
-5. **Friction Experienced**: Frustration, time wasted, cognitive overload, anxiety over lost memories.
-6. **User Workarounds**: What users resort to when search fails (e.g., endless manual scrolling, asking friends/family, reverse image search, external social media backups, keyword guessing).
-7. **Desired Outcome**: What the user was ultimately attempting to accomplish.
-8. **Recurring Patterns**: Which problems, cue gaps, and failure points recur across multiple users and demographics.
+1. **Relevance Classification (Tri-State)**:
+   - Classifies evidence as: **Relevant**, **Possibly Relevant**, or **Irrelevant**.
+   - Filters out non-retrieval complaints (e.g., *"Google Photos keeps crashing"* is classified as **Irrelevant**; whereas *"I know I took this picture during my trip but I can't remember when, and I can't find it"* is directly **Relevant**).
+2. **Memory Cue Extraction (Structure of Human Visual Memory)**:
+   - Focuses on understanding the cognitive structure of human visual memory relevant to retrieval, rather than keyword extraction.
+   - Categories extracted:
+     - **Person**: Who appears in or is associated with the photo.
+     - **Place**: Location context (e.g., Goa, beach, restaurant, college, home).
+     - **Time**: Temporal epoch / lifecycle context (e.g., last year, during college, around Diwali, sometime in 2022, before moving).
+     - **Event**: Occasion (e.g., vacation trip, birthday, wedding, concert, college event).
+     - **Object**: Physical objects (e.g., car, document, medicine, food, product).
+     - **Visual Details**: Perceptual features (e.g., red shirt, sunset, blue building, group photo, night lighting).
+     - **Textual Details**: Information remembered from visible text in images (e.g., signboard, receipt, document, medicine name, restaurant name).
+     - **Activity**: Actions / verbs (e.g., eating, travelling, studying, attending an event).
+     - **Relationship**: Social bonds (e.g., "my friend", "my mother", "my old roommate").
+3. **Retrieval Failure Classification (The 5-Stage Cognitive Breakdown)**:
+   - Maps every relevant failure to the exact stage where retrieval breaks:
+     - **Stage 1: Memory → Query** (`memory_to_query`): User remembers the photo but cannot convert that memory into useful search terms (*"I know what the picture looked like but I don't know what words to search"*). Research question: *Can users translate their memory into a searchable representation?*
+     - **Stage 2: Query → System** (`query_to_system`): User provides a reasonable description, but the system fails to understand the natural contextual description (semantic gap, vocabulary mismatch). Research question: *Does the system understand the user's natural description?*
+     - **Stage 3: System → Candidate** (`system_to_candidate`): System understands the query but cannot narrow the candidate space effectively (returns hundreds of unrelated images or zero results; volume overload). Research question: *Can the system narrow the search space effectively?*
+     - **Stage 4: Candidate → Recognition** (`candidate_to_recognition`): Candidates are presented, but user struggles to recognize or distinguish the correct photo (flat chronological galleries, thumbnail overload, visual fatigue). Research question: *Does the result presentation help users identify the remembered item?*
+     - **Stage 5: Search Refinement** (`search_refinement`): Initial search fails and the user lacks feedback or interaction controls to steer the search, resulting in abandonment or endless scrolling. Research question: *Can users iteratively steer retrieval when the initial attempt fails?*
+4. **Target Media**: What the user is trying to retrieve (personal photo, screenshot, video clip, scanned document, receipt, meme, etc.).
+5. **Friction Experienced**: Frustration, time wasted, cognitive overload, anxiety over lost memories, device storage anxiety.
+6. **User Workarounds**: Coping behaviors (endless manual scrolling, asking friends/family, reverse image search, external social media backups, keyword guessing, abandonment).
+7. **Desired Outcome**: What the user was ultimately attempting to accomplish (e.g., show photo to friend, reminisce, find a receipt for return).
+8. **Recurring Patterns**: Which breakdown stages, cue gaps, and failure points recur across users.
 
 ### Expected V1 Progression
 

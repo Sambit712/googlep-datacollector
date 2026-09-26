@@ -43,8 +43,8 @@ class PatternAggregator:
         # Standardize required columns if DataFrame is empty
         required_cols = [
             "record_id", "source_id", "title", "raw_text", "url", "author", "subreddit",
-            "is_relevant", "relevance_confidence", "target_media",
-            "memory_cues_present", "retrieval_failure_point", "failure_evidence",
+            "is_relevant", "relevance_classification", "relevance_confidence", "target_media",
+            "memory_cues_present", "retrieval_failure_stage", "retrieval_failure_point", "failure_evidence",
             "workarounds_used", "friction_experienced", "desired_outcome"
         ]
         for col in required_cols:
@@ -67,6 +67,30 @@ class PatternAggregator:
             f"PatternAggregator initialized with {self.total_records} total records "
             f"({self.relevant_records} relevant, rate: {self.relevance_rate * 100:.1f}%)"
         )
+
+    def compute_relevance_distribution(self) -> dict[str, int]:
+        """Compute frequency distribution of tri-state relevance classifications."""
+        if self.df_all.empty or "relevance_classification" not in self.df_all.columns:
+            return {}
+
+        classes = self.df_all["relevance_classification"].dropna()
+        classes = classes[classes.astype(str).str.strip() != ""]
+        if classes.empty:
+            return {}
+        counts = classes.value_counts().to_dict()
+        return {str(k): int(v) for k, v in counts.items()}
+
+    def compute_failure_stage_distribution(self) -> dict[str, int]:
+        """Compute frequency distribution of the 5-stage retrieval failure breakdown."""
+        if self.df_relevant.empty or "retrieval_failure_stage" not in self.df_relevant.columns:
+            return {}
+
+        stages = self.df_relevant["retrieval_failure_stage"].dropna()
+        stages = stages[stages.astype(str).str.strip() != ""]
+        if stages.empty:
+            return {}
+        counts = stages.value_counts().to_dict()
+        return {str(k): int(v) for k, v in counts.items()}
 
     def compute_memory_cue_distribution(self) -> dict[str, int]:
         """Compute frequency distribution of memory cues retained by users."""
@@ -134,6 +158,8 @@ class PatternAggregator:
     def compute_cross_tabulations(self) -> dict[str, Any]:
         """Compute multi-dimensional cross-tabulations between research categories."""
         cross_tabs: dict[str, Any] = {
+            "failure_stages_vs_failure_points": {},
+            "memory_cues_vs_failure_stages": {},
             "memory_cues_vs_failure_points": {},
             "target_media_vs_workarounds": {},
         }
@@ -141,7 +167,34 @@ class PatternAggregator:
         if self.df_relevant.empty:
             return cross_tabs
 
-        # 1. memory_cues vs retrieval_failure_point
+        # 1. failure_stages vs failure_points
+        try:
+            df_stages = self.df_relevant[["retrieval_failure_stage", "retrieval_failure_point"]].dropna()
+            df_stages = df_stages[(df_stages["retrieval_failure_stage"] != "") & (df_stages["retrieval_failure_point"] != "")]
+            if not df_stages.empty:
+                crosstab_stages = pd.crosstab(df_stages["retrieval_failure_stage"], df_stages["retrieval_failure_point"])
+                cross_tabs["failure_stages_vs_failure_points"] = {
+                    str(stg): {str(fp): int(count) for fp, count in row.items() if count > 0}
+                    for stg, row in crosstab_stages.iterrows()
+                }
+        except Exception as e:
+            logger.warning(f"Failed to compute failure_stages_vs_failure_points cross-tab: {e}")
+
+        # 2. memory_cues vs failure_stages
+        try:
+            df_cue_stages = self.df_relevant[["memory_cues_present", "retrieval_failure_stage"]].explode("memory_cues_present")
+            df_cue_stages = df_cue_stages.dropna()
+            df_cue_stages = df_cue_stages[(df_cue_stages["memory_cues_present"] != "") & (df_cue_stages["retrieval_failure_stage"] != "")]
+            if not df_cue_stages.empty:
+                crosstab_cue_stages = pd.crosstab(df_cue_stages["memory_cues_present"], df_cue_stages["retrieval_failure_stage"])
+                cross_tabs["memory_cues_vs_failure_stages"] = {
+                    str(cue): {str(stg): int(count) for stg, count in row.items() if count > 0}
+                    for cue, row in crosstab_cue_stages.iterrows()
+                }
+        except Exception as e:
+            logger.warning(f"Failed to compute memory_cues_vs_failure_stages cross-tab: {e}")
+
+        # 3. memory_cues vs retrieval_failure_point
         try:
             df_cues = self.df_relevant[["memory_cues_present", "retrieval_failure_point"]].explode("memory_cues_present")
             df_cues = df_cues.dropna()
@@ -155,7 +208,7 @@ class PatternAggregator:
         except Exception as e:
             logger.warning(f"Failed to compute memory_cues_vs_failure_points cross-tab: {e}")
 
-        # 2. target_media vs workarounds_used
+        # 4. target_media vs workarounds_used
         try:
             df_work = self.df_relevant[["target_media", "workarounds_used"]].explode("workarounds_used")
             df_work = df_work.dropna()
@@ -275,6 +328,8 @@ class PatternAggregator:
     def generate_summary(self) -> dict[str, Any]:
         """Generate comprehensive aggregated research report dictionary."""
         distributions = {
+            "relevance_classes": self.compute_relevance_distribution(),
+            "retrieval_failure_stages": self.compute_failure_stage_distribution(),
             "top_memory_cues": self.compute_memory_cue_distribution(),
             "retrieval_failure_points": self.compute_failure_point_distribution(),
             "top_workarounds": self.compute_workaround_distribution(),

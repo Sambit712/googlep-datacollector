@@ -3,6 +3,7 @@
 > **Reference Documents:**
 > - [context.md](file:///c:/Users/kumar/Desktop/New%20folder%20(4)/Docs/context.md) — Project context, V0/V1 research layers & scope
 > - [architecture.md](file:///c:/Users/kumar/Desktop/New%20folder%20(4)/Docs/architecture.md) — System architecture, component design & traceability
+> - [problemstatementv1.txt](file:///c:/Users/kumar/Desktop/New%20folder%20(4)/Docs/problemstatementv1.txt) — V1 Cognitive-system retrieval failure problem statement & memory structure
 > - [problemstatementp2.txt](file:///c:/Users/kumar/Desktop/New%20folder%20(4)/Docs/problemstatementp2.txt) — V1 AI-powered research analysis engine specifications
 
 ---
@@ -34,6 +35,7 @@ gantt
     V1 Structurer & Insight Reporter (P14)   :done, p14, after p13, 1d
     Pipeline Orchestration & CLI (P15)       :done, p15, after p14, 1d
     V1 Verification & Traceability (P16)     :done, p16, after p15, 2d
+    Cognitive Taxonomy Alignment (P17)       :done, p17, after p16, 1d
 ```
 
 | Phase | Name | Layer | Status | Duration | Dependencies |
@@ -54,7 +56,8 @@ gantt
 | 14 | V1 Structurer & Insight Reporter | V1 | Complete | 1 day | Phase 13 |
 | 15 | Pipeline Orchestration & CLI Integration | V1 | Complete | 1 day | Phases 10–14 |
 | 16 | V1 Testing, Traceability & Validation | V1 | Complete | 2 days | Phase 15 |
-| **Total** | | | | **~23 days** | |
+| 17 | Cognitive Taxonomy & 5-Stage Breakdown Alignment | V1 | Complete | 1 day | Phase 16 |
+| **Total** | | | | **~24 days** | |
 
 
 ---
@@ -985,9 +988,25 @@ Externalize the research taxonomy into `config/taxonomy.yaml` and extend `src/co
 
 #### 10.1 Create `config/taxonomy.yaml`
 Declare:
-- `relevance_criteria`: Guidelines for identifying vague-memory retrieval conversations.
-- `memory_cues`: Taxonomic categories (`person`, `place_location`, `event_occasion`, `temporal_epoch`, `object`, `visual_details`, `text_in_image`, `activity_action`, `ambient_context`).
-- `retrieval_failure_points`: Breakdown points (`vocabulary_mismatch`, `temporal_fuzziness`, `missing_metadata`, `visual_semantic_gap`, `screenshot_clutter`, `volume_overload`).
+- `relevance_criteria`: Tri-state classification rubric (`relevant`, `possibly_relevant`, `irrelevant`) to distinguish genuine vague-memory retrieval difficulties from irrelevant complaints (e.g., app crashes, sync/backup errors, billing).
+- `memory_cues`: Cognitive structure of human visual memory cues:
+  - `person`: People, faces, or groups depicted in the photo.
+  - `place_location`: Geographic places, landmarks, rooms, or travel spots (e.g., Goa, beach, restaurant, college, home).
+  - `event_occasion`: Occasions (e.g., vacation trip, birthday, wedding, concert, college event).
+  - `temporal_epoch`: Approximate year, season, life stage (e.g., last year, during college, around Diwali, sometime in 2022).
+  - `object`: Physical items, cars, clothes, pets, food, devices, medicine.
+  - `visual_details`: Perceptual features (e.g., red shirt, sunset, blue building, group photo, night lighting).
+  - `text_in_image`: Text remembered from visible images (e.g., signboard, receipt, document, medicine name, restaurant name).
+  - `activity_action`: Actions / verbs (e.g., eating, travelling, studying, attending an event).
+  - `relationship`: Social bonds and interpersonal ties (e.g., "my friend", "my mother", "old roommate").
+  - `ambient_context`: Weather, mood, emotional state, background atmosphere.
+- `retrieval_failure_stages`: The 5-stage cognitive-system failure breakdown mapping where retrieval breaks:
+  - `memory_to_query`: Can users translate their memory into a searchable representation? (User remembers photo details but cannot verbalize into searchable keywords).
+  - `query_to_system`: Does the system understand the user's natural description? (User provides natural description, system misinterprets intent).
+  - `system_to_candidate`: Can the system narrow the search space effectively? (System returns too many unrelated images or zero results).
+  - `candidate_to_recognition`: Does the result presentation help users identify the remembered item? (Flat gallery overload, visual fatigue).
+  - `search_refinement`: Can users iteratively steer retrieval when the initial attempt fails? (Lack of feedback controls or guidance to refine search).
+- `retrieval_failure_points`: Granular breakdown points (`vocabulary_mismatch`, `temporal_fuzziness`, `missing_metadata`, `visual_semantic_gap`, `screenshot_clutter`, `volume_overload`).
 - `target_media_types`: Media classes (`personal_photo`, `screenshot`, `video_clip`, `document_receipt`, `meme_saved_image`, `scanned_physical_photo`).
 - `workaround_types`: Coping behaviors (`endless_scrolling`, `external_social_backup`, `peer_inquiry`, `reverse_image_search`, `keyword_guessing`, `abandonment`).
 - `friction_types`: Emotional and cognitive friction (`time_wasted`, `frustration_with_search_tool`, `fear_of_memory_loss`, `cognitive_overload`, `device_storage_anxiety`).
@@ -1040,12 +1059,14 @@ class AnalyzedEvidenceRecord:
     retrieved_at: str
     queries_matched: list[str]
     is_relevant: bool
+    relevance_classification: str       # "relevant" | "possibly_relevant" | "irrelevant"
     relevance_confidence: float
     relevance_reasoning: str
     target_media: str
-    memory_cues_present: list[str]
-    memory_cue_details: dict[str, str]
-    retrieval_failure_point: str
+    memory_cues_present: list[str]      # e.g., ["person", "place_location", "relationship"]
+    memory_cue_details: dict[str, str]  # Keyed by cue category
+    retrieval_failure_stage: str        # e.g., "memory_to_query", "query_to_system", etc.
+    retrieval_failure_point: str        # Granular rubric ID from taxonomy
     failure_evidence: str
     workarounds_used: list[str]
     friction_experienced: list[str]
@@ -1096,8 +1117,12 @@ Implement the AI prompt orchestrator that sends evidence to Groq (`llama-3.3-70b
 - Enforce JSON response mode (`response_format={"type": "json_object"}`).
 
 #### 12.2 Implement `AIAnalyzer` in `src/analyzer.py`
-- Build multi-task system and user prompts injecting `taxonomy.yaml` categories and evidence text.
-- Parse JSON response: extract relevance, memory cues, target media, failure mode, workarounds, friction, and desired outcome.
+- Build multi-task system and user prompts injecting `taxonomy.yaml` categories, the 5 cognitive failure stages, tri-state relevance rubrics, and evidence text.
+- Parse JSON response:
+  - Extract tri-state relevance classification (`relevant`, `possibly_relevant`, `irrelevant`), confidence, and reasoning (filtering out unrelated crash/backup complaints).
+  - Extract cognitive visual memory cues present (`person`, `place_location`, `event_occasion`, `temporal_epoch`, `object`, `visual_details`, `text_in_image`, `activity_action`, `relationship`, `ambient_context`) and specific quoted memory details.
+  - Classify retrieval failure across the 5 breakdown stages (`memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, `search_refinement`) and assign the primary granular failure point.
+  - Extract target media, workarounds used, friction experienced, and desired outcome.
 - Validate that extracted categories exist in taxonomy; map synonyms or fallback to `other`.
 - Attach original `record_id` and construct `AnalyzedEvidenceRecord`.
 
@@ -1130,18 +1155,22 @@ Build `src/aggregator.py` using Pandas to compute quantitative distributions, cr
 
 #### 13.1 Implement `PatternAggregator` in `src/aggregator.py`
 - Convert list of `AnalyzedEvidenceRecord` dicts to a pandas `DataFrame`.
-- Filter for relevant records (`is_relevant == True`).
+- Compute overall tri-state relevance distribution (`relevant`, `possibly_relevant`, `irrelevant`).
+- Filter for relevant records (`is_relevant == True` or `relevance_classification in ["relevant", "possibly_relevant"]`).
 - Compute univariate frequency counts:
-  - Top memory cues (exploding list of cues)
+  - Retrieval failure stages breakdown across the 5 cognitive stages (`memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, `search_refinement`)
+  - Top memory cues (exploding list of cues, including `relationship`, `place_location`, etc.)
   - Primary retrieval failure points
   - Common workarounds
   - Target media distribution
   - Friction breakdown
 - Compute bivariate cross-tabulations:
+  - `retrieval_failure_stage` vs. `retrieval_failure_point`
+  - `memory_cues` vs. `retrieval_failure_stage`
   - `memory_cues` vs. `retrieval_failure_point`
   - `target_media` vs. `workaround`
 - Synthesize Recurring Problem Patterns:
-  - Cluster co-occurring memory cue types and failure points.
+  - Cluster co-occurring failure stages, memory cue types, and failure points.
   - Calculate pattern prevalence (count and % of relevant evidence).
   - Collect supporting evidence citations (`record_id`, URL, quote).
 
@@ -1172,8 +1201,8 @@ Implement `src/insight_reporter.py` to serialize analyzed records to `analyzed_e
 ### Tasks
 
 #### 14.1 Implement `InsightReporter` in `src/insight_reporter.py`
-- `write_analyzed_evidence(records, output_dir)`: Writes `analyzed_evidence.json` (nested) and `analyzed_evidence.csv` (flat view with zero text truncation).
-- `write_insight_report(aggregations, patterns, metadata, output_dir)`: Formats and writes `insight_report.json` with executive summary, research question context, distributions, and recurring patterns.
+- `write_analyzed_evidence(records, output_dir)`: Writes `analyzed_evidence.json` (nested with `relevance_classification`, `retrieval_failure_stage`, `relationship` cues) and `analyzed_evidence.csv` (flat view with zero text truncation).
+- `write_insight_report(aggregations, patterns, metadata, output_dir)`: Formats and writes `insight_report.json` with executive summary, central research question context, 5-stage cognitive failure breakdown, tri-state relevance distributions, and recurring patterns with direct user quotes and permalink citations.
 
 #### 14.2 Write `tests/test_insight_reporter.py`
 - Validate JSON schema conformance for `analyzed_evidence.json` and `insight_report.json`.
@@ -1244,6 +1273,7 @@ pytest tests/ -v
 - Verifies that every `record_id` in `insight_report.json` cites a valid record in `analyzed_evidence.json`.
 - Verifies that every record in `analyzed_evidence.json` matches a record in `reddit_evidence.json` with an active Reddit URL.
 - Computes SHA-256 of `reddit_evidence.json` before and after analysis to prove zero mutation.
+- Verifies that all analyzed records adhere to the 5-stage retrieval failure taxonomy and tri-state relevance rubric.
 
 #### 16.3 Small-Scale Live Validation
 ```bash
@@ -1257,6 +1287,43 @@ python src/main.py --mode analyze --sample 5
 - [x] Traceability chain verified end-to-end.
 - [x] Zero mutation of V0 files verified.
 - [x] Sample run completes without errors.
+
+---
+
+## Phase 17 — Cognitive Taxonomy & 5-Stage Breakdown Alignment
+
+### Objective
+Incorporate the V1 cognitive-system retrieval failure breakdown framework (`problemstatementv1.txt`), tri-state relevance criteria, and the human visual memory structure (including relationship cues) across the codebase and test suites.
+
+### Tasks
+
+#### 17.1 Taxonomy Layer Updates (`config/taxonomy.yaml` & `src/config_loader.py`)
+- [x] Declare `relevance_classes` (`relevant`, `possibly_relevant`, `irrelevant`) with non-retrieval filtering.
+- [x] Add `relationship` memory cue category (*"my friend"*, *"my mother"*, *"old roommate"*).
+- [x] Declare `retrieval_failure_stages` (`memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, `search_refinement`).
+- [x] Extend `TaxonomyConfig` and `load_taxonomy()` to validate and query failure stages and relevance classes.
+
+#### 17.2 Data Models Updates (`src/models.py`)
+- [x] Add `relevance_classification` and `retrieval_failure_stage` to `AnalyzedEvidenceRecord`.
+- [x] Update `to_dict()`, `from_dict()`, and `from_evidence_record()` with full backwards compatibility.
+
+#### 17.3 AI Analyzer Updates (`src/analyzer.py`)
+- [x] Update LLM prompt to instruct Groq LLaMA-3.3-70B on tri-state relevance and the 5 cognitive breakdown stages.
+- [x] Update JSON validation to normalize `relevance_classification` and `retrieval_failure_stage`.
+
+#### 17.4 Aggregation & Reporting Updates (`src/aggregator.py` & `src/insight_reporter.py`)
+- [x] Add `compute_relevance_distribution()` and `compute_failure_stage_distribution()` in `PatternAggregator`.
+- [x] Add cross-tabulations for `failure_stages_vs_failure_points` and `memory_cues_vs_failure_stages`.
+- [x] Include failure stages and tri-state relevance in `insight_report.json` and `analyzed_evidence.csv` headers.
+
+#### 17.5 Testing & Invariant Verification
+- [x] Update and expand unit tests across `tests/test_taxonomy_config.py`, `tests/test_analyzer.py`, `tests/test_aggregator.py`, `tests/test_insight_reporter.py`, and `tests/test_traceability.py`.
+- [x] Run full test suite (`pytest tests/`) $\rightarrow$ 129/129 passed.
+
+### Exit Criteria
+- [x] All 5 failure stages and tri-state relevance criteria active in codebase.
+- [x] All 129 unit and integration tests passing.
+- [x] Traceability invariants and zero-mutation guarantees preserved.
 
 ---
 
@@ -1281,11 +1348,11 @@ python src/main.py --mode analyze --sample 5
 | File | Created In | Modified In | Layer |
 | ---- | ---------- | ----------- | ----- |
 | `config/queries.yaml` | Phase 2 | — | V0 |
-| `config/taxonomy.yaml` | Phase 10 | — | V1 |
+| `config/taxonomy.yaml` | Phase 10 | Phase 17 | V1 |
 | `src/__init__.py` | Phase 1 | — | Core |
-| `src/config_loader.py` | Phase 2 | Phase 10 | V0 + V1 |
+| `src/config_loader.py` | Phase 2 | Phase 10, 17 | V0 + V1 |
 | `src/reddit_client.py` | Phase 3 | — | V0 |
-| `src/models.py` | Phase 4 | Phase 11 | V0 + V1 |
+| `src/models.py` | Phase 4 | Phase 11, 17 | V0 + V1 |
 | `src/collector.py` | Phase 4 | — | V0 |
 | `src/cleaner.py` | Phase 4 | — | V0 |
 | `src/deduplicator.py` | Phase 5 | — | V0 |
@@ -1295,9 +1362,9 @@ python src/main.py --mode analyze --sample 5
 | `src/query_engine.py` | Phase 7 | — | V0 |
 | `src/logger_setup.py` | Phase 7 | — | Core |
 | `src/evidence_loader.py` | Phase 11 | — | V1 |
-| `src/analyzer.py` | Phase 12 | — | V1 |
-| `src/aggregator.py` | Phase 13 | — | V1 |
-| `src/insight_reporter.py` | Phase 14 | — | V1 |
+| `src/analyzer.py` | Phase 12 | Phase 17 | V1 |
+| `src/aggregator.py` | Phase 13 | Phase 17 | V1 |
+| `src/insight_reporter.py` | Phase 14 | Phase 17 | V1 |
 | `src/main.py` | Phase 7 | Phase 15 | V0 + V1 |
 | `tests/test_config_loader.py` | Phase 2 | — | V0 |
 | `tests/test_reddit_client.py` | Phase 3 | — | V0 |
@@ -1305,14 +1372,14 @@ python src/main.py --mode analyze --sample 5
 | `tests/test_deduplicator.py` | Phase 5 | — | V0 |
 | `tests/test_structurer.py` | Phase 6 | — | V0 |
 | `tests/test_groq_client.py` | Phase 6.5 | Phase 12 | V0 + V1 |
-| `tests/test_taxonomy_config.py`| Phase 10 | — | V1 |
+| `tests/test_taxonomy_config.py`| Phase 10 | Phase 17 | V1 |
 | `tests/test_evidence_loader.py`| Phase 11 | — | V1 |
-| `tests/test_analyzer.py` | Phase 12 | — | V1 |
-| `tests/test_aggregator.py` | Phase 13 | — | V1 |
-| `tests/test_insight_reporter.py`| Phase 14 | — | V1 |
+| `tests/test_analyzer.py` | Phase 12 | Phase 17 | V1 |
+| `tests/test_aggregator.py` | Phase 13 | Phase 17 | V1 |
+| `tests/test_insight_reporter.py`| Phase 14 | Phase 17 | V1 |
 | `tests/test_main_cli.py` | Phase 15 | — | V1 |
-| `tests/test_traceability.py` | Phase 16 | — | V1 |
-| `README.md` | Phase 1 | Phase 9, 16 | Core |
+| `tests/test_traceability.py` | Phase 16 | Phase 17 | V1 |
+| `README.md` | Phase 1 | Phase 9, 16, 17 | Core |
 | `requirements.txt` | Phase 1 | Phase 13 | Core |
 
 ---
@@ -1331,16 +1398,16 @@ V0 Test Suites:
 ─────────────────────────────────────────────────
 V0 Total:                                67 tests
 
-V1 Planned Test Suites:
-  Phase 10  — Taxonomy Config:            4 tests
-  Phase 11  — Evidence Loader:            4 tests
-  Phase 12  — AI Analyzer:                6 tests
-  Phase 13  — Aggregator & Patterns:      6 tests
-  Phase 14  — Insight Reporter:           4 tests
-  Phase 15  — CLI & Main Orchestrator:    4 tests
-  Phase 16  — Traceability & Invariants:  4 tests
+V1 Test Suites:
+  Phase 10 & 17 — Taxonomy Config:       10 tests
+  Phase 11      — Evidence Loader:        8 tests
+  Phase 12 & 17 — AI Analyzer:           12 tests
+  Phase 13 & 17 — Aggregator & Patterns:  6 tests
+  Phase 14 & 17 — Insight Reporter:       6 tests
+  Phase 15      — CLI & Main Orchestrator: 10 tests
+  Phase 16 & 17 — Traceability & Cognitive Invariants: 10 tests
 ─────────────────────────────────────────────────
-V1 Total:                                32 tests
+V1 Total:                                62 tests
 ─────────────────────────────────────────────────
-Grand Total:                             99 tests
+Grand Total:                            129 tests (100% Passing)
 ```

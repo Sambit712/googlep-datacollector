@@ -306,11 +306,13 @@ class AnalyzedEvidenceRecord:
     retrieved_at: str = ""
     queries_matched: list[str] = field(default_factory=list)
     is_relevant: bool = False
+    relevance_classification: str = "relevant"
     relevance_confidence: float = 0.0
     relevance_reasoning: str = ""
     target_media: str = ""
     memory_cues_present: list[str] = field(default_factory=list)
     memory_cue_details: dict[str, str] = field(default_factory=dict)
+    retrieval_failure_stage: str = "memory_to_query"
     retrieval_failure_point: str = ""
     failure_evidence: str = ""
     workarounds_used: list[str] = field(default_factory=list)
@@ -329,11 +331,13 @@ class AnalyzedEvidenceRecord:
         """
         analysis_data = {
             "is_relevant": self.is_relevant,
+            "relevance_classification": self.relevance_classification,
             "relevance_confidence": self.relevance_confidence,
             "relevance_reasoning": self.relevance_reasoning,
             "target_media": self.target_media,
             "memory_cues_present": list(self.memory_cues_present),
             "memory_cue_details": dict(self.memory_cue_details),
+            "retrieval_failure_stage": self.retrieval_failure_stage,
             "retrieval_failure_point": self.retrieval_failure_point,
             "failure_evidence": self.failure_evidence,
             "workarounds_used": list(self.workarounds_used),
@@ -386,6 +390,14 @@ class AnalyzedEvidenceRecord:
         if not isinstance(analysis, dict):
             analysis = {}
 
+        is_rel = bool(analysis.get("is_relevant", data.get("is_relevant", False)))
+        rel_class = str(
+            analysis.get("relevance_classification", data.get("relevance_classification", "relevant" if is_rel else "irrelevant"))
+        )
+        fail_stage = str(
+            analysis.get("retrieval_failure_stage", data.get("retrieval_failure_stage", "memory_to_query" if is_rel else ""))
+        )
+
         return cls(
             record_id=str(data.get("record_id", "")),
             source_id=str(data.get("source_id") or data.get("post_id", "")),
@@ -397,12 +409,14 @@ class AnalyzedEvidenceRecord:
             created_at=str(data.get("created_at") or data.get("created_utc", "")),
             retrieved_at=str(data.get("retrieved_at") or data.get("collected_at", "")),
             queries_matched=list(data.get("queries_matched", [])),
-            is_relevant=bool(analysis.get("is_relevant", data.get("is_relevant", False))),
+            is_relevant=is_rel,
+            relevance_classification=rel_class,
             relevance_confidence=float(analysis.get("relevance_confidence", data.get("relevance_confidence", 0.0))),
             relevance_reasoning=str(analysis.get("relevance_reasoning", data.get("relevance_reasoning", ""))),
             target_media=str(analysis.get("target_media", data.get("target_media", ""))),
             memory_cues_present=list(analysis.get("memory_cues_present", data.get("memory_cues_present", []))),
             memory_cue_details=dict(analysis.get("memory_cue_details", data.get("memory_cue_details", {}))),
+            retrieval_failure_stage=fail_stage,
             retrieval_failure_point=str(analysis.get("retrieval_failure_point", data.get("retrieval_failure_point", ""))),
             failure_evidence=str(analysis.get("failure_evidence", data.get("failure_evidence", ""))),
             workarounds_used=list(analysis.get("workarounds_used", data.get("workarounds_used", []))),
@@ -421,6 +435,10 @@ class AnalyzedEvidenceRecord:
         analyzed_at: str = "",
     ) -> AnalyzedEvidenceRecord:
         """Construct an AnalyzedEvidenceRecord directly from a V0 EvidenceRecord and an analysis dict."""
+        is_rel = bool(analysis.get("is_relevant", False))
+        rel_class = str(analysis.get("relevance_classification", "relevant" if is_rel else "irrelevant"))
+        fail_stage = str(analysis.get("retrieval_failure_stage", "memory_to_query" if is_rel else ""))
+
         return cls(
             record_id=evidence.record_id,
             source_id=evidence.source_id,
@@ -432,12 +450,14 @@ class AnalyzedEvidenceRecord:
             created_at=evidence.created_at,
             retrieved_at=evidence.retrieved_at,
             queries_matched=list(evidence.queries_matched),
-            is_relevant=bool(analysis.get("is_relevant", False)),
+            is_relevant=is_rel,
+            relevance_classification=rel_class,
             relevance_confidence=float(analysis.get("relevance_confidence", 0.0)),
             relevance_reasoning=str(analysis.get("relevance_reasoning", "")),
             target_media=str(analysis.get("target_media", "")),
             memory_cues_present=list(analysis.get("memory_cues_present", [])),
             memory_cue_details=dict(analysis.get("memory_cue_details", {})),
+            retrieval_failure_stage=fail_stage,
             retrieval_failure_point=str(analysis.get("retrieval_failure_point", "")),
             failure_evidence=str(analysis.get("failure_evidence", "")),
             workarounds_used=list(analysis.get("workarounds_used", [])),

@@ -1,7 +1,7 @@
 # Google Photos Vague-Memory Research Engine (V0 Collector + V1 AI Analyzer)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests Passing](https://img.shields.io/badge/tests-127%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-129%20passed-brightgreen.svg)](tests/)
 [![Architecture](https://img.shields.io/badge/architecture-V0%20%2B%20V1%20End--to--End-purple.svg)](Docs/architecture.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -14,7 +14,7 @@ An end-to-end computational research pipeline investigating why visual photo ret
 | Research Layer | Scope & Responsibilities | Status | Output Artifacts |
 |---|---|---|---|
 | **V0: Evidence Collection Layer** | Multi-subreddit public Reddit collection, dual query strategies, raw text preservation (zero truncation), deduplication, stable `RD_xxxxxx` IDs. | **Complete** (381 records collected across 7 communities) | [`data/output/reddit_evidence.json`](reports/collection_report.json)<br>[`reports/collection_report.json`](reports/collection_report.json) |
-| **V1: AI Research Analysis Engine** | ImmutabilityGuard loader, Groq LLM multi-task extraction (`llama-3.3-70b-versatile`), taxonomy classification, Pandas aggregation, and recurring pattern synthesis with unbroken citation traceability. | **Complete** (127 passing automated tests) | [`reports/insight_report.md`](reports/insight_report.md)<br>[`reports/insight_report.json`](reports/insight_report.json)<br>[`reports/analyzed_evidence.json`](reports/analyzed_evidence.json) |
+| **V1: AI Research Analysis Engine** | ImmutabilityGuard loader, Groq LLM multi-task extraction (`llama-3.3-70b-versatile`), cognitive failure stage taxonomy, Pandas aggregation, and recurring pattern synthesis with unbroken citation traceability. | **Complete** (129 passing automated tests) | [`reports/insight_report.md`](reports/insight_report.md)<br>[`reports/insight_report.json`](reports/insight_report.json)<br>[`reports/analyzed_evidence.json`](reports/analyzed_evidence.json) |
 
 ---
 
@@ -49,12 +49,13 @@ An end-to-end computational research pipeline investigating why visual photo ret
                  Research Taxonomy Configuration (config/taxonomy.yaml)
                                             ↓
              Groq AI Multi-Task Analyzer (Llama-3.3-70b with exponential fallback)
-               ├── 1. Relevance Classification (is_relevant, confidence, reasoning)
+               ├── 1. Relevance Classification (tri-state: relevant, possibly_relevant, irrelevant)
                ├── 2. Target Media Identification (personal_photo, screenshot, doc)
-               ├── 3. Memory Cue Extraction (object, person, text, epoch, location)
-               ├── 4. Retrieval Breakdown Point (vocabulary_mismatch, missing_metadata)
-               ├── 5. User Workaround Extraction (chronological_scroll, abandonment)
-               └── 6. User Friction Experienced (frustration, time_wasted, panic)
+               ├── 3. Memory Cue Extraction (person, relationship, place, time, visual, text, activity)
+               ├── 4. Retrieval Breakdown Stage (memory_to_query, query_to_system, etc.)
+               ├── 5. Retrieval Failure Point (vocabulary_mismatch, volume_overload)
+               ├── 6. User Workaround Extraction (endless_scrolling, peer_inquiry, abandonment)
+               └── 7. User Friction Experienced (frustration, time_wasted, cognitive_overload)
                                             ↓
              Pattern Aggregator (Pandas frequency distributions & cross-tabulations)
                                             ↓
@@ -95,13 +96,15 @@ Full executive report available at: [**`reports/insight_report.md`**](reports/in
 
 ## Research Taxonomy (`config/taxonomy.yaml`)
 
-The analysis engine categorizes human memory recall and system failure along five dimensions:
+The analysis engine categorizes human memory recall and system failure along key dimensions:
 
-1. **Memory Cues**: `person`, `object`, `activity`, `spatial_location`, `temporal_epoch`, `visual_style`, `emotional_state`, `text_in_image`.
-2. **Retrieval Failure Points**: `vocabulary_mismatch`, `missing_metadata`, `temporal_amnesia`, `search_algorithm_rigidity`, `media_clutter`, `indexing_delay`.
-3. **Workarounds**: `chronological_scroll`, `keyword_guessing`, `external_timeline`, `third_party_tools`, `crowd_sourcing`, `abandonment`.
-4. **Friction Types**: `frustration_with_search_tool`, `time_wasted`, `fear_of_memory_loss`, `privacy_concern`, `loss_of_trust`.
-5. **Target Media**: `personal_photo`, `screenshot`, `document`, `meme`, `downloaded_image`, `video`.
+1. **Relevance Classes (Tri-State)**: `relevant`, `possibly_relevant`, `irrelevant` (filtering non-retrieval complaints like crashes, backup/sync errors, billing).
+2. **Memory Cues (Visual Memory Structure)**: `person`, `relationship` (*"my friend"*, *"my mother"*, *"old roommate"*), `place_location`, `event_occasion`, `temporal_epoch`, `object`, `visual_details`, `text_in_image`, `activity_action`, `ambient_context`.
+3. **Retrieval Failure Stages (5-Stage Cognitive Breakdown)**: `memory_to_query`, `query_to_system`, `system_to_candidate`, `candidate_to_recognition`, `search_refinement`.
+4. **Retrieval Failure Points**: `vocabulary_mismatch`, `temporal_fuzziness`, `missing_metadata`, `visual_semantic_gap`, `screenshot_clutter`, `volume_overload`.
+5. **Workarounds**: `endless_scrolling`, `external_social_backup`, `peer_inquiry`, `reverse_image_search`, `keyword_guessing`, `abandonment`.
+6. **Friction Types**: `time_wasted`, `frustration_with_search_tool`, `fear_of_memory_loss`, `cognitive_overload`, `device_storage_anxiety`.
+7. **Target Media**: `personal_photo`, `screenshot`, `video_clip`, `document_receipt`, `meme_saved_image`, `scanned_physical_photo`.
 
 ---
 
@@ -190,9 +193,9 @@ python main.py --dry-run
 
 ---
 
-## Automated Test Suite (127 Tests)
+## Automated Test Suite (129 Tests)
 
-The repository includes a comprehensive automated test suite with **127 passing tests** verifying both V0 and V1 modules:
+The repository includes a comprehensive automated test suite with **129 passing tests** verifying both V0 and V1 modules:
 
 ```bash
 pytest tests/ -v
@@ -201,12 +204,12 @@ pytest tests/ -v
 ### Test Suite Structure
 | Test Module | Tests | Verifies |
 |---|---|---|
-| `tests/test_traceability.py` | 9 | **End-to-End Traceability**: Unbroken citation chain from `insight_report.json` back to source Reddit URLs and V0 data immutability. |
-| `tests/test_analyzer.py` | 11 | **Groq AI Analyzer**: Prompt construction, JSON schema extraction, model fallback, rate limit retries. |
+| `tests/test_traceability.py` | 10 | **End-to-End Traceability & Cognitive Invariants**: Unbroken citation chain from `insight_report.json` back to source Reddit URLs, 5-stage taxonomy conformance, and V0 data immutability. |
+| `tests/test_analyzer.py` | 12 | **Groq AI Analyzer**: Prompt construction, JSON schema extraction, tri-state relevance classification, 5-stage breakdown mapping, relationship cue extraction. |
 | `tests/test_aggregator.py` | 6 | **Statistical Aggregator**: Frequency distributions, cross-tabulations, pattern citation synthesis. |
 | `tests/test_insight_reporter.py` | 6 | **Insight Reporter**: Serialization of canonical JSON, flat CSV, and markdown executive reports. |
 | `tests/test_evidence_loader.py` | 8 | **ImmutabilityGuard**: Read-only ingestion, SHA-256 fingerprint verification, schema validation. |
-| `tests/test_taxonomy_config.py` | 10 | **Taxonomy Loader**: Schema integrity, category mappings, and fallback handling. |
+| `tests/test_taxonomy_config.py` | 10 | **Taxonomy Loader**: Schema integrity, category mappings, 5-stage taxonomy validation, fallback handling. |
 | `tests/test_main_cli.py` | 10 | **Unified CLI**: Argument parsing, pipeline orchestration for `collect`, `analyze`, and `both`. |
 | `tests/test_v0_enhancements.py` | 12 | **V0 Enhancements**: Multi-query tracking, contextual comments, full text preservation. |
 | `tests/test_collector.py` | 10 | **Collector**: Post/comment parsing, timestamp normalization, deletion filters. |
@@ -216,7 +219,7 @@ pytest tests/ -v
 | `tests/test_config_loader.py` | 10 | **Config Loader**: Environment substitution, validation rules. |
 | `tests/test_edge_cases.py` | 4 | **Edge Cases**: Unicode, emoji preservation, very long post text. |
 | `tests/test_groq_client.py` | 4 | **Groq Client**: API initialization and health checks. |
-| **Total** | **127** | **100% Passing** |
+| **Total** | **129** | **100% Passing** |
 
 ---
 

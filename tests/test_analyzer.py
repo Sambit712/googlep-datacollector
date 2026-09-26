@@ -245,6 +245,55 @@ def test_analyze_batch_with_progress_callback(taxonomy: TaxonomyConfig, sample_e
     assert callback_calls[1] == (2, 2, "RD_000042")
 
 
+def test_analyzer_tri_state_relevance_and_failure_stages(taxonomy: TaxonomyConfig, sample_evidence: EvidenceRecord):
+    """Verify analyzer correctly handles tri-state relevance, failure stages, and relationship cues."""
+    mock_client = MagicMock(spec=GroqClient)
+    mock_client.model = "llama-3.3-70b-versatile"
+    mock_client.complete_chat.return_value = json.dumps({
+        "is_relevant": True,
+        "relevance_classification": "relevant",
+        "relevance_confidence": 0.92,
+        "relevance_reasoning": "User has vivid episodic memory but cannot formulate query.",
+        "target_media": "personal_photo",
+        "memory_cues_present": ["relationship", "place_location", "visual_details"],
+        "memory_cue_details": {"relationship": "my friend", "place_location": "Goa café", "visual_details": "red shirt"},
+        "retrieval_failure_stage": "memory_to_query",
+        "retrieval_failure_point": "vocabulary_mismatch",
+        "failure_evidence": "I don't know what words to search",
+        "workarounds_used": ["keyword_guessing"],
+        "friction_experienced": ["cognitive_overload"],
+        "desired_outcome": "Show photo to friend",
+    })
+
+    analyzer = AIAnalyzer(groq_client=mock_client, taxonomy=taxonomy)
+    record = analyzer.analyze_record(sample_evidence)
+
+    assert record.is_relevant is True
+    assert record.relevance_classification == "relevant"
+    assert record.retrieval_failure_stage == "memory_to_query"
+    assert "relationship" in record.memory_cues_present
+    assert record.memory_cue_details["relationship"] == "my friend"
+
+    # Test "possibly_relevant"
+    norm_poss = analyzer.validate_and_normalize_analysis({
+        "relevance_classification": "possibly_relevant",
+        "retrieval_failure_stage": "candidate_to_recognition",
+        "retrieval_failure_point": "volume_overload",
+    })
+    assert norm_poss["is_relevant"] is True
+    assert norm_poss["relevance_classification"] == "possibly_relevant"
+    assert norm_poss["retrieval_failure_stage"] == "candidate_to_recognition"
+
+    # Test "irrelevant" (e.g. app crash)
+    norm_irr = analyzer.validate_and_normalize_analysis({
+        "relevance_classification": "irrelevant",
+        "relevance_reasoning": "Google photos crashing on startup is not a retrieval problem.",
+    })
+    assert norm_irr["is_relevant"] is False
+    assert norm_irr["relevance_classification"] == "irrelevant"
+    assert norm_irr["retrieval_failure_stage"] == ""
+
+
 @patch("time.sleep")
 def test_groq_client_complete_chat_retry_success(mock_sleep):
     """Verify complete_chat retries transient errors and succeeds."""

@@ -47,11 +47,13 @@ class AIAnalyzer:
         """
         # Format taxonomy definitions for system prompt
         cues_desc = "\n".join(f"  - '{c.id}': {c.description}" for c in self.taxonomy.memory_cues)
+        stages_desc = "\n".join(f"  - '{s.id}': {s.description}" for s in self.taxonomy.retrieval_failure_stages)
         failures_desc = "\n".join(f"  - '{c.id}': {c.description}" for c in self.taxonomy.retrieval_failure_points)
         workarounds_desc = "\n".join(f"  - '{c.id}': {c.description}" for c in self.taxonomy.workaround_types)
         media_desc = ", ".join(f"'{m}'" for m in self.taxonomy.target_media_types)
         friction_desc = ", ".join(f"'{f}'" for f in self.taxonomy.friction_types)
         relevance_desc = "\n".join(f"  * {r}" for r in self.taxonomy.relevance_criteria)
+        rel_classes_desc = "\n".join(f"  - '{r.id}': {r.description}" for r in self.taxonomy.relevance_classes)
 
         system_prompt = f"""You are a senior qualitative UX researcher studying how people remember visual memories and why photo retrieval breaks down in photo libraries (e.g. Google Photos, Apple Photos, gallery apps).
 
@@ -60,28 +62,35 @@ Do not hallucinate details not directly stated or clearly implied by the evidenc
 
 ### RESEARCH TAXONOMY DEFINITIONS
 
-1. Relevance Criteria:
+1. Relevance Criteria & Classes:
 {relevance_desc}
+Classification Rubric:
+{rel_classes_desc}
+*Important*: Unrelated issues like crashes, sync/backup errors, or billing must be classified as 'irrelevant'. Only vague-memory photo retrieval problems should be classified as 'relevant' or 'possibly_relevant'.
 
-2. Memory Cues (what partial clues the user remembers):
+2. Memory Cues (structure of human visual memory clues):
 {cues_desc}
 
-3. Retrieval Failure Points (where photo retrieval broke down):
+3. Retrieval Failure Stages (the 5-stage cognitive-system breakdown):
+{stages_desc}
+
+4. Retrieval Failure Points (granular failure mechanism):
 {failures_desc}
 
-4. Target Media Types (pick one primary):
+5. Target Media Types (pick one primary):
   [{media_desc}]
 
-5. Workaround Types (what user did when search failed):
+6. Workaround Types (what user did when search failed):
 {workarounds_desc}
 
-6. Friction Types (experienced pain points):
+7. Friction Types (experienced pain points):
   [{friction_desc}]
 
 ### OUTPUT REQUIREMENTS
 You MUST respond with a valid JSON object matching the following structure:
 {{
   "is_relevant": <true|false>,
+  "relevance_classification": "<relevant|possibly_relevant|irrelevant>",
   "relevance_confidence": <float between 0.0 and 1.0>,
   "relevance_reasoning": "<1-2 sentence explanation of why this post is or is not relevant to vague-memory retrieval>",
   "target_media": "<one of target media types above>",
@@ -89,6 +98,7 @@ You MUST respond with a valid JSON object matching the following structure:
   "memory_cue_details": {{
     "<memory_cue_id>": "<brief excerpt or clue described by user>"
   }},
+  "retrieval_failure_stage": "<one of failure stage ids above: memory_to_query, query_to_system, system_to_candidate, candidate_to_recognition, search_refinement>",
   "retrieval_failure_point": "<one of failure point ids above>",
   "failure_evidence": "<exact quote or brief summary of where search failed>",
   "workarounds_used": ["<list of matching workaround ids>"],
@@ -169,8 +179,17 @@ Produce the structured JSON analysis adhering strictly to the taxonomy categorie
         Returns:
             Normalized dictionary conforming to AnalyzedEvidenceRecord schema.
         """
-        # Relevance
-        is_relevant = bool(raw.get("is_relevant", False))
+        # Relevance classification (tri-state) & is_relevant
+        valid_relevance_classes = set(self.taxonomy.get_relevance_class_ids()) or {"relevant", "possibly_relevant", "irrelevant"}
+        raw_rel_class = str(raw.get("relevance_classification", "")).strip().lower()
+        if raw_rel_class in valid_relevance_classes:
+            relevance_classification = raw_rel_class
+        else:
+            is_rel_bool = bool(raw.get("is_relevant", False))
+            relevance_classification = "relevant" if is_rel_bool else "irrelevant"
+
+        is_relevant = relevance_classification in ("relevant", "possibly_relevant")
+
         try:
             confidence = float(raw.get("relevance_confidence", 0.0))
             confidence = max(0.0, min(1.0, confidence))
@@ -205,6 +224,18 @@ Produce the structured JSON analysis adhering strictly to the taxonomy categorie
             if k not in memory_cues_present:
                 memory_cues_present.append(k)
 
+        # Retrieval Failure Stage (5-stage cognitive breakdown)
+        valid_stage_ids = set(self.taxonomy.get_failure_stage_ids()) or {
+            "memory_to_query", "query_to_system", "system_to_candidate", "candidate_to_recognition", "search_refinement"
+        }
+        stage_raw = str(raw.get("retrieval_failure_stage", "")).strip()
+        if stage_raw in valid_stage_ids:
+            retrieval_failure_stage = stage_raw
+        elif is_relevant:
+            retrieval_failure_stage = "memory_to_query"
+        else:
+            retrieval_failure_stage = ""
+
         # Retrieval Failure Point
         valid_failure_ids = set(self.taxonomy.get_failure_point_ids())
         failure_raw = str(raw.get("retrieval_failure_point", "")).strip()
@@ -232,11 +263,13 @@ Produce the structured JSON analysis adhering strictly to the taxonomy categorie
 
         return {
             "is_relevant": is_relevant,
+            "relevance_classification": relevance_classification,
             "relevance_confidence": confidence,
             "relevance_reasoning": reasoning,
             "target_media": target_media,
             "memory_cues_present": memory_cues_present,
             "memory_cue_details": memory_cue_details,
+            "retrieval_failure_stage": retrieval_failure_stage,
             "retrieval_failure_point": retrieval_failure_point,
             "failure_evidence": failure_evidence,
             "workarounds_used": workarounds_used,
@@ -275,11 +308,13 @@ Produce the structured JSON analysis adhering strictly to the taxonomy categorie
             )
             normalized_analysis = {
                 "is_relevant": False,
+                "relevance_classification": "irrelevant",
                 "relevance_confidence": 0.0,
                 "relevance_reasoning": f"Analysis failed or could not be decoded: {e}",
                 "target_media": "personal_photo",
                 "memory_cues_present": [],
                 "memory_cue_details": {},
+                "retrieval_failure_stage": "",
                 "retrieval_failure_point": "",
                 "failure_evidence": "",
                 "workarounds_used": [],

@@ -16,13 +16,18 @@ def test_load_valid_default_taxonomy():
     assert taxonomy.version == "1.0"
     assert "vague-memory" in taxonomy.description.lower()
 
-    # Relevance criteria
+    # Relevance criteria and classes
     assert len(taxonomy.relevance_criteria) >= 3
     assert any("visual media" in r.lower() for r in taxonomy.relevance_criteria)
+    relevance_classes = taxonomy.get_relevance_class_ids()
+    assert "relevant" in relevance_classes
+    assert "possibly_relevant" in relevance_classes
+    assert "irrelevant" in relevance_classes
 
     # Memory cues
     cue_ids = taxonomy.get_memory_cue_ids()
     assert "person" in cue_ids
+    assert "relationship" in cue_ids
     assert "place_location" in cue_ids
     assert "event_occasion" in cue_ids
     assert "temporal_epoch" in cue_ids
@@ -31,6 +36,17 @@ def test_load_valid_default_taxonomy():
     assert "text_in_image" in cue_ids
     assert "activity_action" in cue_ids
     assert "ambient_context" in cue_ids
+
+    # Retrieval failure stages (5-stage cognitive breakdown)
+    stage_ids = taxonomy.get_failure_stage_ids()
+    assert len(stage_ids) == 5
+    assert "memory_to_query" in stage_ids
+    assert "query_to_system" in stage_ids
+    assert "system_to_candidate" in stage_ids
+    assert "candidate_to_recognition" in stage_ids
+    assert "search_refinement" in stage_ids
+    assert taxonomy.is_valid_failure_stage("memory_to_query")
+    assert not taxonomy.is_valid_failure_stage("nonexistent_stage")
 
     # Failure points
     failure_ids = taxonomy.get_failure_point_ids()

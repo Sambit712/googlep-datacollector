@@ -93,12 +93,16 @@ def test_aggregator_empty_records():
     assert aggregator.relevant_records == 0
     assert aggregator.relevance_rate == 0.0
 
+    assert aggregator.compute_relevance_distribution() == {}
+    assert aggregator.compute_failure_stage_distribution() == {}
     assert aggregator.compute_memory_cue_distribution() == {}
     assert aggregator.compute_failure_point_distribution() == {}
     assert aggregator.compute_workaround_distribution() == {}
     assert aggregator.compute_media_type_distribution() == {}
     assert aggregator.compute_friction_distribution() == {}
     assert aggregator.compute_cross_tabulations() == {
+        "failure_stages_vs_failure_points": {},
+        "memory_cues_vs_failure_stages": {},
         "memory_cues_vs_failure_points": {},
         "target_media_vs_workarounds": {},
     }
@@ -208,6 +212,8 @@ def test_aggregator_summary_generation(mock_analyzed_records: list[AnalyzedEvide
     assert summary["statistics"]["relevance_rate"] == 0.75
 
     assert "distributions" in summary
+    assert "relevance_classes" in summary["distributions"]
+    assert "retrieval_failure_stages" in summary["distributions"]
     assert "top_memory_cues" in summary["distributions"]
     assert "retrieval_failure_points" in summary["distributions"]
 

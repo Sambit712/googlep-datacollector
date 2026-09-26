@@ -7,26 +7,49 @@ relevance_criteria:
   - "User exhibits vague, partial, or imprecise memory of the item or its context"
   - "User describes search failure, friction, breakdown, or manual workarounds"
 
+relevance_classes:
+  - id: "relevant"
+    description: "Direct vague-memory retrieval failure or friction with recalled episodic fragments"
+  - id: "possibly_relevant"
+    description: "Retrieval issue implied, ambiguous, or combined with broader album organization complaints"
+  - id: "irrelevant"
+    description: "App crashes, sync/backup errors, subscription/billing, or non-retrieval complaints"
+
 memory_cues:
   categories:
     - id: "person"
-      description: "People, faces, relationships, family members, or groups depicted"
+      description: "People, faces, or groups depicted in the photo"
     - id: "place_location"
-      description: "Geographic places, landmarks, rooms, cities, venues, or travel spots"
+      description: "Geographic places, landmarks, rooms, cities, venues, or travel spots (e.g. 'Goa', 'beach', 'café')"
     - id: "event_occasion"
       description: "Weddings, trips, birthdays, parties, holidays, concerts, graduations"
     - id: "temporal_epoch"
-      description: "Approximate year, season, life stage (e.g. 'college years', 'old phone', 'high school')"
+      description: "Approximate year, season, life stage (e.g. 'during college', 'sometime in 2022', 'before moving')"
     - id: "object"
-      description: "Physical items, cars, clothes, pets, food, devices, furniture"
+      description: "Physical items, cars, clothes, pets, food, devices, medicine"
     - id: "visual_details"
-      description: "Colors, lighting, framing, composition, blurriness, angles, background colors"
+      description: "Colors, lighting, framing, composition, blurriness (e.g. 'red shirt', 'sunset', 'night lighting')"
     - id: "text_in_image"
-      description: "Memes, screenshots of text, receipts, book pages, street signs, chats"
+      description: "Memes, screenshots of text, receipts, documents, medicine names, restaurant signs"
     - id: "activity_action"
-      description: "Sports, dancing, eating, laughing, walking, fixing, traveling"
+      description: "Sports, dancing, eating, travelling, studying, attending an event"
+    - id: "relationship"
+      description: "Social and interpersonal ties (e.g. 'my friend', 'my mother', 'old roommate')"
     - id: "ambient_context"
-      description: "Weather, mood, emotional state, background music, atmosphere, companionship"
+      description: "Weather, mood, emotional state, background atmosphere, companionship"
+
+retrieval_failure_stages:
+  categories:
+    - id: "memory_to_query"
+      description: "Memory → Query: User remembers photo details but cannot convert memory into searchable terms"
+    - id: "query_to_system"
+      description: "Query → System: User provides reasonable natural description but system misinterprets intent"
+    - id: "system_to_candidate"
+      description: "System → Candidate: System returns too many, too few, or completely unrelated candidates"
+    - id: "candidate_to_recognition"
+      description: "Candidate → Recognition: User struggles to distinguish the target item among candidates in gallery"
+    - id: "search_refinement"
+      description: "Search Refinement: Initial search fails and user lacks cues/controls to iteratively steer search"
 
 retrieval_failure_points:
   categories:

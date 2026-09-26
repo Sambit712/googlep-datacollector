@@ -110,6 +110,21 @@ class GroqAnalysisConfig:
     batch_size: int = 1
 
 
+DEFAULT_FAILURE_STAGES = [
+    TaxonomyCategory("memory_to_query", "Memory → Query: User remembers photo details but cannot convert memory into searchable terms"),
+    TaxonomyCategory("query_to_system", "Query → System: User provides reasonable natural description but system misinterprets intent"),
+    TaxonomyCategory("system_to_candidate", "System → Candidate: System returns too many, too few, or completely unrelated candidates"),
+    TaxonomyCategory("candidate_to_recognition", "Candidate → Recognition: User struggles to distinguish the target item among candidates in gallery"),
+    TaxonomyCategory("search_refinement", "Search Refinement: Initial search fails and user lacks cues/controls to iteratively steer search"),
+]
+
+DEFAULT_RELEVANCE_CLASSES = [
+    TaxonomyCategory("relevant", "Direct vague-memory retrieval failure or friction with recalled episodic fragments"),
+    TaxonomyCategory("possibly_relevant", "Retrieval issue implied, ambiguous, or combined with broader album organization complaints"),
+    TaxonomyCategory("irrelevant", "App crashes, sync/backup errors, subscription/billing, or non-retrieval complaints"),
+]
+
+
 @dataclass(frozen=True)
 class TaxonomyConfig:
     version: str
@@ -121,6 +136,8 @@ class TaxonomyConfig:
     workaround_types: list[TaxonomyCategory]
     friction_types: list[str]
     groq_analysis: GroqAnalysisConfig = field(default_factory=GroqAnalysisConfig)
+    retrieval_failure_stages: list[TaxonomyCategory] = field(default_factory=list)
+    relevance_classes: list[TaxonomyCategory] = field(default_factory=list)
 
     def get_memory_cue_ids(self) -> list[str]:
         return [c.id for c in self.memory_cues]
@@ -131,11 +148,23 @@ class TaxonomyConfig:
     def get_workaround_ids(self) -> list[str]:
         return [c.id for c in self.workaround_types]
 
+    def get_failure_stage_ids(self) -> list[str]:
+        return [c.id for c in self.retrieval_failure_stages]
+
+    def get_relevance_class_ids(self) -> list[str]:
+        return [c.id for c in self.relevance_classes]
+
     def is_valid_memory_cue(self, cue_id: str) -> bool:
         return cue_id in self.get_memory_cue_ids()
 
     def is_valid_failure_point(self, failure_id: str) -> bool:
         return failure_id in self.get_failure_point_ids()
+
+    def is_valid_failure_stage(self, stage_id: str) -> bool:
+        return stage_id in self.get_failure_stage_ids()
+
+    def is_valid_relevance_class(self, class_id: str) -> bool:
+        return class_id in self.get_relevance_class_ids()
 
     def is_valid_target_media(self, media_type: str) -> bool:
         return media_type in self.target_media_types
@@ -155,6 +184,12 @@ class TaxonomyConfig:
     def get_failure_description(self, failure_id: str) -> str | None:
         for c in self.retrieval_failure_points:
             if c.id == failure_id:
+                return c.description
+        return None
+
+    def get_failure_stage_description(self, stage_id: str) -> str | None:
+        for c in self.retrieval_failure_stages:
+            if c.id == stage_id:
                 return c.description
         return None
 
@@ -473,7 +508,19 @@ def load_taxonomy(taxonomy_path: str | Path = "config/taxonomy.yaml") -> Taxonom
     if not friction_types:
         raise ConfigError("The 'friction_types' list must contain at least one non-empty string.")
 
-    # 7. Groq Analysis Section
+    # 7. Retrieval Failure Stages (Optional with defaults)
+    if "retrieval_failure_stages" in data and data["retrieval_failure_stages"]:
+        failure_stages = _parse_categories(data.get("retrieval_failure_stages"), "retrieval_failure_stages")
+    else:
+        failure_stages = list(DEFAULT_FAILURE_STAGES)
+
+    # 8. Relevance Classes (Optional with defaults)
+    if "relevance_classes" in data and data["relevance_classes"]:
+        relevance_classes = _parse_categories(data.get("relevance_classes"), "relevance_classes")
+    else:
+        relevance_classes = list(DEFAULT_RELEVANCE_CLASSES)
+
+    # 9. Groq Analysis Section
     groq_raw = data.get("groq_analysis", {})
     if not isinstance(groq_raw, dict):
         groq_raw = {}
@@ -496,5 +543,7 @@ def load_taxonomy(taxonomy_path: str | Path = "config/taxonomy.yaml") -> Taxonom
         workaround_types=workarounds,
         friction_types=friction_types,
         groq_analysis=groq_analysis,
+        retrieval_failure_stages=failure_stages,
+        relevance_classes=relevance_classes,
     )
 

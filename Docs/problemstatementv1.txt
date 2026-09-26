@@ -1,0 +1,266 @@
+# V1 — AI-Powered Research Analysis Engine
+
+## 1. Purpose
+
+V1 is the **analysis layer** built on top of the validated V0 evidence dataset.
+
+V0 answers:
+
+> **What are users saying about difficulty retrieving old photos and visual memories?**
+
+V1 must answer the more important research question:
+
+> **Why do users fail to retrieve a photo when they remember meaningful details about it but cannot precisely describe or search for it?**
+
+The goal is to transform unstructured public user conversations into **structured, traceable, evidence-backed product insights**.
+
+V1 should not directly design or recommend a product solution. Its purpose is to identify the underlying user behavior, retrieval failures, workarounds, and recurring patterns that can later inform the product opportunity and MVP.
+
+---
+
+# 2. Input
+
+V1 consumes the validated V0 dataset:
+
+```text
+reddit_evidence.json
+reddit_evidence.csv
+```
+
+Each record may contain:
+
+* Reddit post/comment
+* title
+* full text
+* subreddit
+* URL
+* timestamp
+* query that discovered it
+* parent-post context
+* stable `record_id`
+
+Every V1 insight must remain traceable to its original V0 `record_id`.
+
+---
+
+# 3. Core Problem
+
+People often remember a photograph through **fragments of context rather than precise searchable metadata**.
+
+For example, a user may remember:
+
+> "There was a picture from my Goa trip, probably at a small café, and my friend was wearing a red shirt."
+
+The user may remember several meaningful attributes:
+
+* approximate location
+* person
+* event
+* visual appearance
+* activity
+* approximate time
+
+However, these memories may not map directly to the information or interaction model available in a conventional photo-search experience.
+
+This creates a potential gap between:
+
+```text
+How the user remembers the photo
+                ↓
+How the user describes the photo
+                ↓
+How the system interprets the description
+                ↓
+How the system retrieves candidates
+                ↓
+How the user recognizes the correct photo
+```
+
+V1 must investigate **where this chain breaks and why**.
+
+---
+
+# 4. What V1 Must Discover
+
+V1 should investigate five major areas.
+
+## A. Relevance
+
+Determine whether each evidence record actually represents a problem related to retrieving a remembered visual item.
+
+Classify evidence as:
+
+* Relevant
+* Possibly relevant
+* Irrelevant
+
+The model should not assume that every complaint about Google Photos represents a vague-memory retrieval problem.
+
+For example:
+
+> "Google Photos keeps crashing."
+
+is not relevant to this research question.
+
+Whereas:
+
+> "I know I took this picture during my trip but I can't remember when, and I can't find it."
+
+is directly relevant.
+
+---
+
+# 5. Memory Cue Extraction
+
+For relevant evidence, identify **what the user actually remembers about the missing item**.
+
+Possible memory cues include:
+
+### Person
+
+Who appears in or is associated with the photo?
+
+### Place
+
+Where was the photo taken?
+
+Examples:
+
+* Goa
+* beach
+* restaurant
+* college
+* home
+
+### Time
+
+Examples:
+
+* last year
+* during college
+* around Diwali
+* sometime in 2022
+* before moving
+
+### Event
+
+Examples:
+
+* trip
+* birthday
+* wedding
+* concert
+* college event
+
+### Object
+
+Examples:
+
+* car
+* document
+* medicine
+* food
+* product
+
+### Visual details
+
+Examples:
+
+* red shirt
+* sunset
+* blue building
+* group photo
+* photo taken at night
+
+### Textual details
+
+Information remembered from text visible in the image:
+
+* signboard
+* receipt
+* document
+* medicine name
+* restaurant name
+
+### Activity
+
+Examples:
+
+* eating
+* travelling
+* studying
+* attending an event
+
+### Relationship
+
+Examples:
+
+* "my friend"
+* "my mother"
+* "my old roommate"
+
+The objective is to understand **the structure of human visual memory relevant to retrieval**, rather than simply extracting keywords.
+
+---
+
+# 6. Retrieval Failure Classification
+
+This is the central analytical component of V1.
+
+Every relevant failure should be mapped to the stage where retrieval appears to break.
+
+## 1. Memory → Query
+
+The user remembers the photo but cannot convert that memory into useful search terms.
+
+Example:
+
+> "I know what the picture looked like but I don't know what words to search."
+
+Research question:
+
+**Can users translate their memory into a searchable representation?**
+
+---
+
+## 2. Query → System
+
+The user provides a reasonable description, but the system does not appear to understand the intended meaning.
+
+Example:
+
+> User searches for a contextual description but receives irrelevant results.
+
+Research question:
+
+**Does the system understand the user's natural description?**
+
+---
+
+## 3. System → Candidate
+
+The system understands the request but returns too many, too few, or incorrect candidates.
+
+Example:
+
+> Searching for photos from a particular trip returns hundreds of unrelated images.
+
+Research question:
+
+**Can the system narrow the search space effectively?**
+
+---
+
+## 4. Candidate → Recognition
+
+Potential candidates are presented, but the user struggles to recognize or distinguish the correct photo.
+
+Research question:
+
+**Does the result presentation help users identify the remembered item?**
+
+---
+
+## 5. Search Refinement
+
+The initial search fails, and the user does not
