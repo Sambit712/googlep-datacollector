@@ -1,0 +1,124 @@
+{
+  "report_metadata": {
+    "generated_at": "2026-09-25T15:36:11Z",
+    "v0_source_file": "data/output/reddit_evidence.json",
+    "total_records_ingested": 10,
+    "relevant_evidence_count": 5,
+    "relevance_rate": 0.5,
+    "groq_model_used": "llama-3.3-70b-versatile"
+  },
+  "research_question": "Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?",
+  "executive_summary": "Out of 10 ingested evidence records, 5 (50.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'object', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'abandonment'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
+  "distributions": {
+    "top_memory_cues": {
+      "object": 1,
+      "text_in_image": 1,
+      "person": 1,
+      "temporal_epoch": 1
+    },
+    "retrieval_failure_points": {
+      "vocabulary_mismatch": 4,
+      "missing_metadata": 1
+    },
+    "top_workarounds": {
+      "abandonment": 1
+    },
+    "target_media_types": {
+      "personal_photo": 5
+    },
+    "friction_types": {
+      "frustration_with_search_tool": 3,
+      "time_wasted": 1,
+      "fear_of_memory_loss": 1
+    }
+  },
+  "cross_tabulations": {
+    "memory_cues_vs_failure_points": {
+      "object": {
+        "vocabulary_mismatch": 1
+      },
+      "person": {
+        "vocabulary_mismatch": 1
+      },
+      "temporal_epoch": {
+        "vocabulary_mismatch": 1
+      },
+      "text_in_image": {
+        "vocabulary_mismatch": 1
+      }
+    },
+    "target_media_vs_workarounds": {
+      "personal_photo": {
+        "abandonment": 1
+      }
+    }
+  },
+  "recurring_patterns": [
+    {
+      "pattern_id": "PAT_002",
+      "name": "Vocabulary & Semantic Label Mismatch",
+      "prevalence_count": 4,
+      "prevalence_percentage": 80.0,
+      "summary": "Users search using abstract concepts, emotions, or everyday descriptions that do not match the system's metadata or image labels.",
+      "supporting_evidence": [
+        {
+          "record_id": "RD_000012",
+          "url": "https://reddit.com/r/googlephotos/comments/1lyo0fc/i_just_noticed_google_has_deleted_years_worth_of/",
+          "quote": "Hi, I have no idea where to start. I went to look up photos of my grandma, and I noticed most are now missing with no cl"
+        },
+        {
+          "record_id": "RD_000014",
+          "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
+          "quote": "search any of the above and it shows thousands of photos with absolutely no relevance."
+        },
+        {
+          "record_id": "RD_000018",
+          "url": "https://reddit.com/r/googlephotos/comments/1vi6sag/google_photos_takeout_duplicate_file_names/",
+          "quote": "Hi. I have some photos in Google Photos that share the same filename but are actually different images. After exporting"
+        }
+      ]
+    },
+    {
+      "pattern_id": "PAT_001",
+      "name": "Chronological Fatigue in Large Galleries",
+      "prevalence_count": 1,
+      "prevalence_percentage": 20.0,
+      "summary": "Users retain episodic memory (who, where, rough era) but lack exact timestamps; timeline search forces hours of manual scrolling that leads to fatigue or abandonment.",
+      "supporting_evidence": [
+        {
+          "record_id": "RD_000021",
+          "url": "https://reddit.com/r/googlephotos/comments/1l1ssr7/whoa_google_photos_seriously_wtf/",
+          "quote": "Instead of providing the results by date, it gives me results based on what it thinks is the 'relevance' of each photo. More critically, there is no option to go back to 'show results by date.'"
+        }
+      ]
+    },
+    {
+      "pattern_id": "PAT_003",
+      "name": "Untagged Screenshot & Document Clutter",
+      "prevalence_count": 1,
+      "prevalence_percentage": 20.0,
+      "summary": "Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.",
+      "supporting_evidence": [
+        {
+          "record_id": "RD_000014",
+          "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
+          "quote": "search any of the above and it shows thousands of photos with absolutely no relevance."
+        }
+      ]
+    },
+    {
+      "pattern_id": "PAT_004",
+      "name": "Missing Metadata & Device Migration Loss",
+      "prevalence_count": 1,
+      "prevalence_percentage": 20.0,
+      "summary": "Photos transferred across devices, platforms, or cloud syncs lose timestamps or geotags, breaking timeline navigation and causing search abandonment.",
+      "supporting_evidence": [
+        {
+          "record_id": "RD_000017",
+          "url": "https://reddit.com/r/googlephotos/comments/1ug4ry2/google_is_evil_and_photos_proves_it/",
+          "quote": "\"I gave up on the takeout-to-apple direct approach because the takeouts that landed at apple were missing so much of my photo/video collection... Quick manual audits will show that even entire albums would be empty or missing.\""
+        }
+      ]
+    }
+  ]
+}

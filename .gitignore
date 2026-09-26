@@ -4,8 +4,13 @@
 # Credentials
 .env
 
-# Output data (large, regenerable)
-data/output/
+# Output data (large raw files ignored, report artifacts tracked)
+data/output/*
+!data/output/.gitkeep
+!data/output/collection_report.json
+!data/output/insight_report.json
+!data/output/analyzed_evidence.json
+!data/output/analyzed_evidence.csv
 data/seen_ids.json
 
 # Logs

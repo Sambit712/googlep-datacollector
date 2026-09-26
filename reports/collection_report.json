@@ -1,0 +1,41 @@
+{
+  "run_id": "run_20260918_150938_77d666",
+  "generated_at": "2026-09-18T15:25:03Z",
+  "duration_seconds": 925.07,
+  "is_dry_run": false,
+  "summary": {
+    "queries_executed": 3,
+    "tasks_completed": 16,
+    "tasks_failed": 0,
+    "raw_results": 400,
+    "unique_records": 381,
+    "duplicates_removed": 19,
+    "posts": 381,
+    "comments": 0,
+    "records_successfully_saved": 381
+  },
+  "data_quality": {
+    "records_with_missing_text": 46,
+    "records_with_missing_urls": 0,
+    "text_completeness_rate": 0.8793,
+    "url_completeness_rate": 1.0
+  },
+  "breakdown_by_subreddit": {
+    "googlephotos": 62,
+    "GooglePixel": 74,
+    "Android": 49,
+    "iphone": 49,
+    "photography": 50,
+    "techsupport": 49,
+    "AskReddit": 48
+  },
+  "breakdown_by_subreddit_tier": {
+    "primary": 234,
+    "discovery": 147
+  },
+  "breakdown_by_query": {
+    "Google Photos search": 175,
+    "Google Photos can't find photo": 170,
+    "Google Photos old photo": 46
+  }
+}

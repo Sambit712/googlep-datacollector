@@ -1,0 +1,322 @@
+[
+  {
+    "record_id": "RD_000012",
+    "source_id": "t3_1lyo0fc",
+    "title": "I just noticed Google has deleted YEARS worth of photos from my backup",
+    "raw_text": "Hi, I have no idea where to start. I went to look up photos of my grandma, and I noticed most are now missing with no clue on when or how they ever got deleted. Ive been using Google photos since 2012 and many of my photos from 2012 up to 2019 are just GONE. Why and how did this happen?? Has this happened to anyone else and is there any way to get them back? \n \nSlight update: I still haven’t gotten many of my photos back BUT there are two things that helped a little: firstly searching for a month and year instead of scrolling through. The other may be to change your membership, I recently got the offer for a year free for the student member ship (the one that is 1TB, the pro version of Gemini, etc.) and I got some videos and photos back. It’s definitely not everything but it’s at least some. The support team has not been helpful but still trying to work toward a solution. \n \nBiggest thing, there are a lot of us who have had this experience!",
+    "url": "https://reddit.com/r/googlephotos/comments/1lyo0fc/i_just_noticed_google_has_deleted_years_worth_of/",
+    "author": "rachelschmitz_",
+    "subreddit": "googlephotos",
+    "created_at": "2025-07-13T08:42:03Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:35:52.604348Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_confidence": 0.8,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": ""
+    }
+  },
+  {
+    "record_id": "RD_000013",
+    "source_id": "t3_1eqbi8x",
+    "title": "Google photos, what people don't understand in my opinion",
+    "raw_text": "Google photos is so much more than a storage location. The ability to search for people, places, And other things that you haven't actually identified but Google AI does makes it so valuable. Recently I wanted to find a picture of myself and my wife sitting in front of some tulips about 5 years ago. So I just typed that description in and found it in 2 minutes. That's the kind of thing you can do in Google photos that you can't do in a standard storage environment.",
+    "url": "https://reddit.com/r/googlephotos/comments/1eqbi8x/google_photos_what_people_dont_understand_in_my/",
+    "author": "twestheimer",
+    "subreddit": "googlephotos",
+    "created_at": "2024-08-12T11:44:37Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search",
+      "Google Photos can't find photo"
+    ],
+    "analyzed_at": "2026-09-25T15:35:55.047535Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_confidence": 0.8,
+      "relevance_reasoning": "The user describes a successful search in Google Photos, not a failure or friction, so it does not meet the failure criteria of the taxonomy.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "locate a personal photo of himself and his wife with tulips from about five years ago"
+    }
+  },
+  {
+    "record_id": "RD_000014",
+    "source_id": "t3_1fvq7hr",
+    "title": "Why did they ruin Google photos search???",
+    "raw_text": "Just last week, Google Photos search was awesome. Need a pic of passport? Just type \"Passport\". Forgot your Known Traveler Number? Search \"Global Entry Card\". Now I search any of the above and it shows be thousands of photos with absolutely no relevance. What happened?",
+    "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
+    "author": "NeillDrake",
+    "subreddit": "googlephotos",
+    "created_at": "2024-10-04T03:41:21Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:35:58.330891Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "User is searching for a passport photo in Google Photos but receives irrelevant results, indicating a retrieval failure.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "object",
+        "text_in_image"
+      ],
+      "memory_cue_details": {
+        "object": "passport, Global Entry Card",
+        "text_in_image": "passport, Global Entry Card"
+      },
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "search any of the above and it shows thousands of photos with absolutely no relevance.",
+      "workarounds_used": [],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "find a photo of their passport or Global Entry Card"
+    }
+  },
+  {
+    "record_id": "RD_000015",
+    "source_id": "t3_1pokg67",
+    "title": "Black-mask type photo appearing in my Google Photos Camera Roll?",
+    "raw_text": "One of these (sometimes a little different) appears in a random spot next to (relatively) old photos (2-3 years) in my google photos camera roll every few weeks as I go through my photos. Does anyone know what it is? It's kinda freaky.\n \nEdit: I found a keyword that was in all of them, so I typed it in the search bar and they all came up (at least the ones with that keyword). The weird thing is that it ranges all the way to very recent and I know I haven't added them.\n \nSOLVED\n \nThanks to\n \nu/jaxxr_\n \nwho lead me to a Google support page of someone who had the same exact problem with the same images and the same name descriptions. After I investigated a little more, I figured out that this all happened when I synced my Mac with my Google Drive. I had the understanding that this would only sync the files to Drive and only sync the photos on my iCloud Photos, but I guess it syncs the photos on my Mac files into Google Photos. After I looked at the metadata on the file on my Mac, it came from CapCut. I was not hacked. Thank you everyone for trying to help.",
+    "url": "https://reddit.com/r/googlephotos/comments/1pokg67/blackmask_type_photo_appearing_in_my_google/",
+    "author": "lighthousegamingYT",
+    "subreddit": "googlephotos",
+    "created_at": "2025-12-17T02:03:48Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search",
+      "Google Photos old photo"
+    ],
+    "analyzed_at": "2026-09-25T15:35:59.814148Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_confidence": 0.9,
+      "relevance_reasoning": "The user is not attempting to retrieve a specific photo based on vague memory; instead they are reporting an unexpected photo appearing in their library. This does not fit the criteria for a vague-memory retrieval scenario.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": ""
+    }
+  },
+  {
+    "record_id": "RD_000016",
+    "source_id": "t3_1vxd2sj",
+    "title": "Google Photos app not available in App Store?",
+    "raw_text": "It seems that Google forgot to add Photos app to App Store in Bosnia and Serbia. \n \nThe Google Photos service and subscription are officially available in both countries, and the app is officially available in Google Play Store. But not on iOS. \n \nDoes someone know how to raise this issue with someone at their support team, or if a support member might be in this sub?",
+    "url": "https://reddit.com/r/googlephotos/comments/1vxd2sj/google_photos_app_not_available_in_app_store/",
+    "author": "Medium_Respond_9650",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-24T19:37:23Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:01.340881Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_confidence": 0.96,
+      "relevance_reasoning": "The post concerns app availability in the App Store, not a vague-memory search for visual media, so it falls outside the taxonomy scope.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "",
+      "failure_evidence": "None",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "obtain help raising the issue with Google support to get the iOS Google Photos app in Bosnia and Serbia"
+    }
+  },
+  {
+    "record_id": "RD_000017",
+    "source_id": "t3_1ug4ry2",
+    "title": "Google is evil and photos proves it",
+    "raw_text": "I have been trying for months to get my photos from google so that I can get tf away from this company and I'm still trying.\n \nI was up against a wall on storage a few months back and I had a decision to make: would I increase storage with google or apple? I have used an iPhone with google photos for years so I'm not turned off by mixing the two worlds, but ultimately, I just chose to increase it with Apple and figured I'd move my photos there since there is a takeout process that transfers them directly. It seemed super easy so I just went for it.\n \nHoly shit this is a scandal. Google has made some of the most significant contributions to digital technology humanity has ever seen. They've conquered search, mapped the entire world, connected us to media like never before, developed the leading web-based office suite, and has made many noteworthy contributions to the current state of AI, etc.. \n \nBUT, apparently zipping photos and videos into an archive (something I can do with a single click on any PC or mobile device) and letting me download it has absolutely stumped them.\n \nI gave up on the takeout-to-apple direct approach because the takeouts that landed at apple were missing so much of my photo/video collection. And this is a silent failure. No logs indicate that anything should be missing due to file incompatibilities or anything like that. They just don't show up and they let you assume that they did. Quick manual audits will show that even entire albums would be empty or missing.\n \nSo I tried a standard takeout so that I can download the archives myself. Same deal. Things would be missing. Tried it again and DIFFERENT things would be missing. So far I've done three and the final archive sizes are different every single time. \n \nThis is not beyond Google's ability. It's just not. This is intentional, anti-consumer behavior meant to trap me at Google or punish me for leaving.\n \nI will not be going to Apple now either, because in doing all this, I've discovered just how bad their photos web interface is (also intentional).\n \nI'm done. I'm committed to ending or minimizing my relationship with these corporations as much as possible now. My photos will not be uploaded to anyone's server unless they are very loudly signaling their commitment to privacy and portability of my data. This has just gone too far. Tech companies have become the most toxic players in society in the most cartoonish ways, it's hard to even characterize it without sounding paranoid. I'm absolutely done with them. \n \nEthics will be THE primary metric by which I judge a tech company's worth and whether or not they get my money. Google and Apple are both off the table. I'll continue to use a smart phone that one of them control but it's under duress at this point. I'll be first to jump when a new option presents itself. \n \n/rant",
+    "url": "https://reddit.com/r/googlephotos/comments/1ug4ry2/google_is_evil_and_photos_proves_it/",
+    "author": "tirdg",
+    "subreddit": "googlephotos",
+    "created_at": "2026-06-26T11:58:51Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:03.121013Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The user is actively trying to retrieve personal photos from Google Photos and experiences repeated failures, fitting the vague‑memory retrieval scenario.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "missing_metadata",
+      "failure_evidence": "\"I gave up on the takeout-to-apple direct approach because the takeouts that landed at apple were missing so much of my photo/video collection... Quick manual audits will show that even entire albums would be empty or missing.\"",
+      "workarounds_used": [
+        "abandonment"
+      ],
+      "friction_experienced": [
+        "time_wasted",
+        "frustration_with_search_tool",
+        "fear_of_memory_loss"
+      ],
+      "desired_outcome": "Retrieve all photos and videos from Google Photos to a local archive or Apple Photos"
+    }
+  },
+  {
+    "record_id": "RD_000018",
+    "source_id": "t3_1vi6sag",
+    "title": "Google Photos Takeout duplicate file names - different photos",
+    "raw_text": "Hi. I have some photos in Google Photos that share the same filename but are actually different images. After exporting them with Google Takeout, one of the duplicates is renamed by appending (1) to the filename. When I run Metadata Fixer on these photos, the metadata gets mixed up. For example, both IMG_0125 and IMG_ 0125(1) receive the metadata that belongs to IMG_0125(1).\n \nI tried renaming IMG_0125.PNG.supplemental-metadata(1).json to IMG_0125(1).PNG.supplemental-metadata.json and because this didn't work I renamed the title inside the json file of IMG_0125(1).PNG.supplemental-metadata.json from IMG_0125.PNG to IMG_0125(1).PNG but it didn't work also.\n \nI'm using \nhttps://github.com/feloex/GoogleTakeoutFixer\n \nHow can I fix this?\n \nThanks",
+    "url": "https://reddit.com/r/googlephotos/comments/1vi6sag/google_photos_takeout_duplicate_file_names/",
+    "author": "Both_Risk_8103",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-07T17:19:54Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:05.216379Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_confidence": 0.8,
+      "relevance_reasoning": "",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person"
+      ],
+      "memory_cue_details": {
+        "person": "user explicitly mentions photos of people"
+      },
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "",
+      "workarounds_used": [],
+      "friction_experienced": [],
+      "desired_outcome": "user wants to separate duplicates and correct file names"
+    }
+  },
+  {
+    "record_id": "RD_000019",
+    "source_id": "t3_1vrhaxa",
+    "title": "The undo backup option deleted photos from my phone gallery but the photos are still present on my google account. But per the instruction it was suppose to delete it from the account not from my phone",
+    "raw_text": "2 months worth of photos are missing from my phone???? How is this possible",
+    "url": "https://reddit.com/r/googlephotos/comments/1vrhaxa/the_undo_backup_option_deleted_photos_from_my/",
+    "author": "killsyndrome",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-18T06:34:27Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:06.759872Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_confidence": 0.22,
+      "relevance_reasoning": "The post reports missing photos after a sync action but does not describe vague or partial memory cues or a search failure; it is about a deletion sync issue rather than memory‑based retrieval.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "",
+      "failure_evidence": "“2 months worth of photos are missing from my phone???? How is this possible”",
+      "workarounds_used": [],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "Restore the missing photos to the phone gallery while keeping them in the Google account."
+    }
+  },
+  {
+    "record_id": "RD_000020",
+    "source_id": "t3_1vu0bfa",
+    "title": "How to set Google Photos to default and delete/disable Samsung Gallery",
+    "raw_text": "New Fold 8 user. Switched from a Pixel fold.\n \nI'm trying to disable the Samsung gallery and Only use Google Photos... But I'm not having any luck.\n \nAll of the Google search and AI suggestions don't line up with the options I have on my phone...\n \nFor example the \"disable\" button on the Gallery apps section via settings is grayed out and not accessible.\n \nAny help?",
+    "url": "https://reddit.com/r/googlephotos/comments/1vu0bfa/how_to_set_google_photos_to_default_and/",
+    "author": "wmdc13",
+    "subreddit": "googlephotos",
+    "created_at": "2026-08-20T23:57:50Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:09.050435Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": false,
+      "relevance_confidence": 0.95,
+      "relevance_reasoning": "The user is asking for technical assistance on how to configure system settings to disable a default app, not describing a failure to retrieve a specific visual memory due to vague recall or search limitations.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [],
+      "memory_cue_details": {},
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "All of the Google search and AI suggestions don't line up with the options I have on my phone...",
+      "workarounds_used": [],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "To disable the Samsung Gallery app and set Google Photos as the default image viewer."
+    }
+  },
+  {
+    "record_id": "RD_000021",
+    "source_id": "t3_1l1ssr7",
+    "title": "WHOA, Google Photos -- seriously, WTF?",
+    "raw_text": "Using Google Photos in a web browser, I just tried to search for a photo. \n \nInstead of providing the results by date, it gives me results based on \nwhat it thinks\n is the \"relevance\" of each photo. More critically, t\nhere is no option to go back to \"show results by date.\"\n \nMY DUDES. WTF. I NEED TO BE ABLE TO LOOK THEM THROUGH CHRONOGICALLY. Seriously! What the hell?!",
+    "url": "https://reddit.com/r/googlephotos/comments/1l1ssr7/whoa_google_photos_seriously_wtf/",
+    "author": "Alaska_Jack",
+    "subreddit": "googlephotos",
+    "created_at": "2025-06-02T20:30:35Z",
+    "retrieved_at": "2026-09-18T15:10:01Z",
+    "queries_matched": [
+      "Google Photos search"
+    ],
+    "analyzed_at": "2026-09-25T15:36:10.056007Z",
+    "model_used": "llama-3.3-70b-versatile",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_confidence": 0.85,
+      "relevance_reasoning": "The user is searching for a photo in Google Photos and experiences a breakdown in retrieval because the system defaults to 'relevance' sorting instead of chronological order, preventing them from scanning results by date as they intended.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "temporal_epoch"
+      ],
+      "memory_cue_details": {
+        "temporal_epoch": "User explicitly states the need to look through results 'chronologically' and by 'date', indicating time is a primary cue for their search strategy."
+      },
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "Instead of providing the results by date, it gives me results based on what it thinks is the 'relevance' of each photo. More critically, there is no option to go back to 'show results by date.'",
+      "workarounds_used": [],
+      "friction_experienced": [
+        "frustration_with_search_tool"
+      ],
+      "desired_outcome": "To view search results sorted by date/chronologically to locate a specific photo."
+    }
+  }
+]
