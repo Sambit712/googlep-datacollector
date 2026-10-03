@@ -17,6 +17,12 @@ import urllib.parse
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Ensure root is in sys.path
 root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
@@ -183,14 +189,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
 def run(port: int = 8000, host: str = "0.0.0.0"):
     server = HTTPServer((host, port), DashboardHandler)
-    print("=" * 70)
-    print(f"  🚀 Research Dashboard & Search API Server Running")
-    print(f"  URL: http://{host}:{port}")
-    print("=" * 70)
+    print("=" * 70, flush=True)
+    print(f"  [*] Research Dashboard & Search API Server Running", flush=True)
+    print(f"  URL: http://{host}:{port}", flush=True)
+    print("=" * 70, flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nShutting down server.")
+        print("\nShutting down server.", flush=True)
         server.server_close()
 
 
