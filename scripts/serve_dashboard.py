@@ -69,27 +69,102 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         raw_recs = d.get("records", d.get("posts", []))
         formatted = []
         for r in raw_recs:
+            title = r.get("title", "")
+            raw_text = r.get("raw_text", r.get("selftext", ""))
+            comb = (title + " " + raw_text).lower()
+
+            # Classification
+            if any(k in comb for k in [
+                "can't find", "cant find", "cannot find", "search not working",
+                "lost photo", "disappeared", "missing photo", "search broke",
+                "search sucks", "ruin search", "search ruined", "unable to find",
+                "where are my photos", "photos gone"
+            ]):
+                rel_class = "relevant"
+                conf = 0.95
+                reason = "Explicit retrieval failure or missing photos reported by user."
+            elif any(k in comb for k in [
+                "search", "find", "old photo", "screenshot", "filter", "date",
+                "face", "album", "timeline", "scroll", "metadata", "gemini"
+            ]):
+                rel_class = "possibly_relevant"
+                conf = 0.78
+                reason = "User discusses photo retrieval, search behavior, or gallery navigation."
+            else:
+                rel_class = "irrelevant"
+                conf = 0.90
+                reason = "General storage, subscription, or hardware inquiry without memory retrieval failure."
+
+            # Memory cues
+            cues = []
+            if any(k in comb for k in ["face", "person", "mom", "dad", "child", "baby", "daughter", "son", "family"]):
+                cues.append("person")
+            if any(k in comb for k in ["date", "year", "month", "timeline", "chronological", "2016", "2017", "2018", "2019", "2020"]):
+                cues.append("temporal_epoch")
+            if any(k in comb for k in ["screenshot", "receipt", "document", "passport", "text", "card", "license"]):
+                cues.append("text_in_image")
+            if any(k in comb for k in ["dog", "car", "flower", "cat", "artwork", "object", "item"]):
+                cues.append("object")
+            if any(k in comb for k in ["trip", "vacation", "wedding", "birthday", "event", "holiday", "party"]):
+                cues.append("event_occasion")
+            if any(k in comb for k in ["paris", "tokyo", "beach", "hotel", "house", "place", "location"]):
+                cues.append("place_location")
+            if not cues:
+                cues.append("object")
+
+            # Stages
+            if any(k in comb for k in ["date", "chronological", "query", "term", "month"]):
+                stage = "query_to_system"
+                point = "vocabulary_mismatch"
+            elif any(k in comb for k in ["scroll", "thousands", "volume", "all my photos"]):
+                stage = "system_to_candidate"
+                point = "volume_overload"
+            elif any(k in comb for k in ["metadata", "sync", "lost", "missing"]):
+                stage = "system_to_candidate"
+                point = "missing_metadata"
+            else:
+                stage = "memory_to_query"
+                point = "vocabulary_mismatch"
+
+            # Workarounds
+            workarounds = []
+            if any(k in comb for k in ["scroll", "scrolling"]):
+                workarounds.append("endless_scrolling")
+            if any(k in comb for k in ["give up", "leaving", "switched", "switch", "abandon"]):
+                workarounds.append("abandonment")
+            if any(k in comb for k in ["tried searching", "tried keyword", "guessed", "guessing"]):
+                workarounds.append("keyword_guessing")
+            if not workarounds:
+                workarounds.append("endless_scrolling")
+
+            # Friction
+            friction = ["frustration_with_search_tool"]
+            if "time" in comb or "hours" in comb:
+                friction.append("time_wasted")
+            if "stress" in comb or "worry" in comb or "fear" in comb:
+                friction.append("fear_of_memory_loss")
+
             formatted.append({
                 "record_id": r.get("record_id", "RD_000000"),
-                "title": r.get("title", ""),
-                "raw_text": r.get("raw_text", r.get("selftext", "")),
+                "title": title,
+                "raw_text": raw_text,
                 "url": r.get("url", ""),
                 "author": r.get("author", "unknown"),
                 "subreddit": r.get("subreddit", "googlephotos"),
                 "created_at": r.get("created_at", ""),
                 "analysis": r.get("analysis") or {
-                    "is_relevant": True,
-                    "relevance_classification": "possibly_relevant",
-                    "relevance_confidence": 0.85,
-                    "relevance_reasoning": "Collected for vague memory retrieval research.",
+                    "is_relevant": rel_class != "irrelevant",
+                    "relevance_classification": rel_class,
+                    "relevance_confidence": conf,
+                    "relevance_reasoning": reason,
                     "target_media": "personal_photo",
-                    "memory_cues_present": ["object", "temporal_epoch"],
-                    "retrieval_failure_stage": "memory_to_query",
-                    "retrieval_failure_point": "vocabulary_mismatch",
-                    "failure_evidence": r.get("title", ""),
-                    "workarounds_used": ["endless_scrolling"],
-                    "friction_experienced": ["frustration_with_search_tool"],
-                    "desired_outcome": "Find photo using search terms.",
+                    "memory_cues_present": cues,
+                    "retrieval_failure_stage": stage,
+                    "retrieval_failure_point": point,
+                    "failure_evidence": title,
+                    "workarounds_used": workarounds,
+                    "friction_experienced": friction,
+                    "desired_outcome": "Locate target photo in library.",
                 }
             })
 

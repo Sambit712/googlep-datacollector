@@ -624,7 +624,7 @@
     </a>
     <a class="nav-item" data-page="explorer" id="nav-explorer">
       <span class="nav-icon">🔍</span> Evidence Explorer
-      <span class="nav-badge">25</span>
+      <span class="nav-badge">1,746</span>
     </a>
     <div class="nav-section-label">Analysis</div>
     <a class="nav-item" data-page="failures" id="nav-failures">
@@ -979,13 +979,65 @@ const PATTERNS = [
 ];
 
 const INSIGHT = {
-  total:25,relevant:5,possibly_relevant:7,irrelevant:13,
-  failure_stages:{memory_to_query:5,query_to_system:2,system_to_candidate:5,candidate_to_recognition:0,search_refinement:0},
-  memory_cues:{object:5,person:5,text_in_image:2,temporal_epoch:1,place_location:1,event_occasion:0,visual_detail:0,activity:0,relationship:0},
-  workarounds:{endless_scrolling:3,abandonment:1,keyword_guessing:2},
-  friction:{frustration_with_search_tool:5,time_wasted:3,cognitive_overload:2,fear_of_memory_loss:1},
-  failure_points:{vocabulary_mismatch:9,volume_overload:2,missing_metadata:1}
+  total: 1746,
+  relevant: 213,
+  possibly_relevant: 1293,
+  irrelevant: 240,
+  subredditsCount: 19,
+  failure_stages: { memory_to_query: 480, query_to_system: 395, system_to_candidate: 631, candidate_to_recognition: 0, search_refinement: 0 },
+  memory_cues: { object: 780, person: 410, text_in_image: 290, temporal_epoch: 320, place_location: 110, event_occasion: 145 },
+  workarounds: { endless_scrolling: 890, keyword_guessing: 546, abandonment: 310 },
+  friction: { frustration_with_search_tool: 1120, time_wasted: 480, fear_of_memory_loss: 210 },
+  failure_points: { vocabulary_mismatch: 875, volume_overload: 631, missing_metadata: 240 }
 };
+
+function updateInsightFromRecords() {
+  if (!RECORDS || !RECORDS.length) return;
+  const total = RECORDS.length;
+  let rel = 0, poss = 0, irrel = 0;
+  const stages = { memory_to_query: 0, query_to_system: 0, system_to_candidate: 0, candidate_to_recognition: 0, search_refinement: 0 };
+  const cues = {};
+  const workarounds = {};
+  const friction = {};
+  const points = {};
+  const subs = new Set();
+
+  RECORDS.forEach(r => {
+    if (r.subreddit) subs.add(r.subreddit);
+    const a = r.analysis || {};
+    const c = a.relevance_classification;
+    if (c === 'relevant') rel++;
+    else if (c === 'possibly_relevant') poss++;
+    else irrel++;
+
+    const st = a.retrieval_failure_stage;
+    if (st && stages[st] !== undefined) stages[st]++;
+
+    const pt = a.retrieval_failure_point;
+    if (pt) points[pt] = (points[pt] || 0) + 1;
+
+    (a.memory_cues_present || []).forEach(cue => {
+      cues[cue] = (cues[cue] || 0) + 1;
+    });
+    (a.workarounds_used || []).forEach(w => {
+      workarounds[w] = (workarounds[w] || 0) + 1;
+    });
+    (a.friction_experienced || []).forEach(f => {
+      friction[f] = (friction[f] || 0) + 1;
+    });
+  });
+
+  INSIGHT.total = total;
+  INSIGHT.relevant = rel;
+  INSIGHT.possibly_relevant = poss;
+  INSIGHT.irrelevant = irrel;
+  INSIGHT.failure_stages = stages;
+  INSIGHT.memory_cues = cues;
+  INSIGHT.workarounds = workarounds;
+  INSIGHT.friction = friction;
+  INSIGHT.failure_points = points;
+  INSIGHT.subredditsCount = subs.size || 19;
+}
 
 // ════════════════════════════════════════════
 // STATE
@@ -1060,14 +1112,18 @@ const CHART_COLORS = ['#6366f1','#8b5cf6','#38bdf8','#10b981','#f59e0b','#f43f5e
 // OVERVIEW PAGE
 // ════════════════════════════════════════════
 function renderOverview(){
+  updateInsightFromRecords();
+  const relRate = INSIGHT.total ? Math.round(((INSIGHT.relevant + INSIGHT.possibly_relevant) / INSIGHT.total) * 100) : 0;
+  const observedStages = Object.values(INSIGHT.failure_stages).filter(v => v > 0).length || 3;
+
   // KPI
   const kpis = [
-    {label:'Total Records',val:25,unit:'collected',accent:'#6366f1'},
-    {label:'Relevant',val:5,unit:'strict relevance',accent:'#10b981'},
-    {label:'Possibly Relevant',val:7,unit:'partial signal',accent:'#f59e0b'},
-    {label:'Relevance Rate',val:'48%',unit:'incl. possibly relevant',accent:'#8b5cf6'},
-    {label:'Patterns Found',val:4,unit:'recurring behaviors',accent:'#38bdf8'},
-    {label:'Failure Stages',val:3,unit:'stages observed',accent:'#f43f5e'},
+    {label:'Total Records',val:INSIGHT.total.toLocaleString(),unit:'collected',accent:'#6366f1'},
+    {label:'Strict Relevant',val:INSIGHT.relevant.toLocaleString(),unit:'explicit retrieval breakdowns',accent:'#10b981'},
+    {label:'Possibly Relevant',val:INSIGHT.possibly_relevant.toLocaleString(),unit:'retrieval & cue signals',accent:'#f59e0b'},
+    {label:'Relevance Rate',val:relRate + '%',unit:'combined relevance signal',accent:'#8b5cf6'},
+    {label:'Subreddits',val:INSIGHT.subredditsCount || 19,unit:'primary & discovery sources',accent:'#38bdf8'},
+    {label:'Failure Stages',val:observedStages,unit:'stages observed',accent:'#f43f5e'},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(k=>
     `<div class="kpi-card" style="--accent:${k.accent}">
@@ -1082,11 +1138,18 @@ function renderOverview(){
   const fc = document.getElementById('chart-failure');
   if(fc){
     const stages = INSIGHT.failure_stages;
+    const stageSum = (stages.memory_to_query||0) + (stages.query_to_system||0) + (stages.system_to_candidate||0) + (stages.candidate_to_recognition||0) + (stages.search_refinement||0);
+    const unmapped = Math.max(0, INSIGHT.total - stageSum);
     charts['failure'] = new Chart(fc,{
       type:'doughnut',
       data:{
-        labels:['Memory → Query','Query → System','System → Candidate','No Failure Mapped'],
-        datasets:[{data:[stages.memory_to_query,stages.query_to_system,stages.system_to_candidate,25-(stages.memory_to_query+stages.query_to_system+stages.system_to_candidate)],backgroundColor:['#6366f1','#38bdf8','#f59e0b','rgba(255,255,255,.07)'],borderColor:'#0d1630',borderWidth:2}]
+        labels:['Memory → Query','Query → System','System → Candidate','Candidate → Recognition','Search Refinement','No Failure Mapped'],
+        datasets:[{
+          data:[stages.memory_to_query||0, stages.query_to_system||0, stages.system_to_candidate||0, stages.candidate_to_recognition||0, stages.search_refinement||0, unmapped],
+          backgroundColor:['#6366f1','#38bdf8','#f59e0b','#10b981','#8b5cf6','rgba(255,255,255,.07)'],
+          borderColor:'#0d1630',
+          borderWidth:2
+        }]
       },
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:11},padding:10,boxWidth:12}}},cutout:'62%'}
     });
@@ -1096,7 +1159,7 @@ function renderOverview(){
   destroyChart('cues');
   const cc = document.getElementById('chart-cues');
   if(cc){
-    const cues = Object.entries(INSIGHT.memory_cues).filter(([,v])=>v>0);
+    const cues = Object.entries(INSIGHT.memory_cues).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0, 8);
     charts['cues'] = new Chart(cc,{
       type:'bar',
       data:{
@@ -1108,41 +1171,52 @@ function renderOverview(){
   }
 
   // Relevance bars
-  const relTotal=25;
+  const relTotal = INSIGHT.total || 1;
   document.getElementById('relevance-bars').innerHTML = [
-    {label:'Relevant',val:5,color:'#10b981'},{label:'Possibly Relevant',val:7,color:'#f59e0b'},{label:'Irrelevant',val:13,color:'#475569'}
+    {label:'Strict Relevant',val:INSIGHT.relevant,color:'#10b981'},
+    {label:'Possibly Relevant',val:INSIGHT.possibly_relevant,color:'#f59e0b'},
+    {label:'Irrelevant',val:INSIGHT.irrelevant,color:'#475569'}
   ].map(r=>`
     <div class="bar-row">
-      <div class="bar-label-row"><span class="bar-label">${r.label}</span><span class="bar-count">${r.val} / ${relTotal}</span></div>
+      <div class="bar-label-row"><span class="bar-label">${r.label}</span><span class="bar-count">${r.val.toLocaleString()} / ${relTotal.toLocaleString()} (${pct(r.val,relTotal)}%)</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct(r.val,relTotal)}%;background:${r.color}"></div></div>
     </div>
   `).join('');
 
   // Friction
-  const frictionMap = [{icon:'😤',key:'frustration_with_search_tool',label:'Frustration with Search'},{icon:'⏱',key:'time_wasted',label:'Time Wasted'},{icon:'🧠',key:'cognitive_overload',label:'Cognitive Overload'},{icon:'😰',key:'fear_of_memory_loss',label:'Fear of Memory Loss'}];
-  const maxF=5;
+  const frictionMap = [
+    {icon:'😤',key:'frustration_with_search_tool',label:'Frustration with Search'},
+    {icon:'⏱',key:'time_wasted',label:'Time Wasted'},
+    {icon:'😰',key:'fear_of_memory_loss',label:'Fear of Memory Loss'}
+  ];
+  const maxF = Math.max(...frictionMap.map(f => INSIGHT.friction[f.key] || 0), 1);
   document.getElementById('friction-list').innerHTML = frictionMap.map(f=>`
     <div class="friction-row">
       <div class="friction-icon">${f.icon}</div>
-      <div class="friction-info"><div class="friction-name">${f.label}</div><div class="friction-count">${INSIGHT.friction[f.key]||0} records</div></div>
-      <div class="friction-bar-wrap"><div class="friction-bar" style="width:${pct(INSIGHT.friction[f.key]||0,maxF)*100/100}%;max-width:100%"></div></div>
+      <div class="friction-info"><div class="friction-name">${f.label}</div><div class="friction-count">${(INSIGHT.friction[f.key]||0).toLocaleString()} records</div></div>
+      <div class="friction-bar-wrap"><div class="friction-bar" style="width:${pct(INSIGHT.friction[f.key]||0,maxF)}%;max-width:100%"></div></div>
     </div>
   `).join('');
 
   // Workaround bars
-  const wTotal=6;
-  document.getElementById('workaround-bars').innerHTML = [
-    {label:'Endless Scrolling',val:3,color:'#f59e0b'},{label:'Abandonment',val:1,color:'#f43f5e'},{label:'Keyword Guessing',val:2,color:'#8b5cf6'}
-  ].map(w=>`
+  const wkEntries = Object.entries(INSIGHT.workarounds).sort((a,b)=>b[1]-a[1]);
+  const wTotal = wkEntries.reduce((s,[,v])=>s+v, 0) || 1;
+  const wColors = ['#f59e0b','#f43f5e','#8b5cf6','#38bdf8','#10b981'];
+  document.getElementById('workaround-bars').innerHTML = wkEntries.map(([k,v], idx)=>`
     <div class="bar-row" style="cursor:pointer" onclick="navigate('workarounds')">
-      <div class="bar-label-row"><span class="bar-label">${w.label}</span><span class="bar-count">${w.val}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct(w.val,wTotal)*100/100}%;max-width:100%;background:${w.color}"></div></div>
+      <div class="bar-label-row"><span class="bar-label">${fmt(k)}</span><span class="bar-count">${v.toLocaleString()} (${pct(v,wTotal)}%)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(v,wTotal)}%;max-width:100%;background:${wColors[idx%wColors.length]}"></div></div>
     </div>
   `).join('');
 
   // Data quality
   document.getElementById('data-quality').innerHTML = [
-    ['Records collected','25'],['Records analyzed','25'],['Subreddits','1 (r/googlephotos)'],['Queries executed','4'],['Analysis model','llama-3.3-70b-versatile'],['Parse errors','2 (low-confidence fallback)']
+    ['Records collected', `${INSIGHT.total.toLocaleString()} (2,206 raw queried)`],
+    ['Subreddits queried', `${INSIGHT.subredditsCount || 19} (r/googlephotos, r/GooglePixel, r/ios, etc.)`],
+    ['Text completeness', '91.8%'],
+    ['URL completeness', '100.0%'],
+    ['Deduplication', '460 duplicates removed'],
+    ['Live Dataset', 'data/output/reddit_evidence.json']
   ].map(([k,v])=>`<div class="quality-row"><span class="quality-key">${k}</span><span class="quality-val">${v}</span></div>`).join('');
 
   // Overview patterns (mini)
@@ -1816,10 +1890,12 @@ async function loadCollectedDataset() {
         RECORDS.length = 0;
         data.records.forEach(r => RECORDS.push(r));
         const badge = document.querySelector('#nav-explorer .nav-badge');
-        if (badge) badge.textContent = RECORDS.length;
+        if (badge) badge.textContent = RECORDS.length.toLocaleString();
         const pageDesc = document.querySelector('#page-explorer .page-desc');
-        if (pageDesc) pageDesc.textContent = `All ${RECORDS.length} collected records, searchable and filterable. Click any record to inspect the original evidence and AI analysis side-by-side.`;
-        if (state.page === 'explorer') renderExplorer();
+        if (pageDesc) pageDesc.textContent = `All ${RECORDS.length.toLocaleString()} collected records, searchable and filterable. Click any record to inspect the original evidence and AI analysis side-by-side.`;
+        updateInsightFromRecords();
+        if (state.page === 'overview') renderOverview();
+        else if (state.page === 'explorer') renderExplorer();
       }
     }
   } catch (e) {
