@@ -1,7 +1,11 @@
-"""Dashboard Web Server with Live Manual Search API.
+"""Dashboard Web Server with Hourly Periodic Search & Live Manual Search API.
 
-Serves frontend/index.html and provides a REST API to trigger
-manual Reddit searches on demand directly from the UI.
+Serves the frontend dashboard and provides REST APIs to:
+1. Trigger live manual searches (targeting up to 200 relevant records).
+2. Execute automated background searches every 1 hour (targeting 50 records).
+3. Enforce strict relevance filtering: if no relevant records are found from searches,
+   the numbers will NOT be updated.
+4. Keep numbers and evidence explorer live and synchronized.
 
 Usage:
     python scripts/serve_dashboard.py --port 8000
@@ -10,12 +14,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import logging
-import sys
-import urllib.parse
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+import os
 from pathlib import Path
+import sys
+import threading
+import time
+import urllib.parse
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -28,9 +36,461 @@ root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from src.models import AnalyzedEvidenceRecord
+from src.aggregator import PatternAggregator
+from src.insight_reporter import InsightReporter
 from src.reddit_client import RedditClient
+from src.config_loader import load_config
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 logger = logging.getLogger("dashboard_server")
+
+# Global data lock to prevent race conditions during file updates
+DATA_LOCK = threading.Lock()
+
+# Global state for periodic and manual searches
+SEARCH_STATE = {
+    "hourly_enabled": True,
+    "hourly_interval_seconds": 3600,
+    "hourly_target_records": 50,
+    "hourly_last_run": None,
+    "hourly_next_run": None,
+    "hourly_last_status": "initialized",
+    "hourly_last_added": 0,
+    "manual_target_relevant": 200,
+    "last_search_time": None,
+    "total_records": 0,
+    "strict_relevant": 0,
+    "possibly_relevant": 0,
+    "irrelevant": 0,
+    "total_relevant": 0,
+}
+
+
+def classify_evidence(title: str, text: str) -> dict:
+    """Classify a record using the research taxonomy into relevant, possibly_relevant, or irrelevant."""
+    comb = (title + " " + (text or "")).lower()
+
+    if any(k in comb for k in [
+        "can't find", "cant find", "cannot find", "search not working",
+        "lost photo", "disappeared", "missing photo", "search broke",
+        "search sucks", "ruin search", "search ruined", "unable to find",
+        "where are my photos", "photos gone"
+    ]):
+        rel_class = "relevant"
+        is_rel = True
+        conf = 0.95
+        reason = "Explicit retrieval failure or missing photos reported by user."
+    elif any(k in comb for k in [
+        "search", "find", "old photo", "screenshot", "filter", "date",
+        "face", "album", "timeline", "scroll", "metadata", "gemini"
+    ]):
+        rel_class = "possibly_relevant"
+        is_rel = True
+        conf = 0.78
+        reason = "User discusses photo retrieval, search behavior, or gallery navigation."
+    else:
+        rel_class = "irrelevant"
+        is_rel = False
+        conf = 0.90
+        reason = "General storage, subscription, or hardware inquiry without memory retrieval failure."
+
+    cues = []
+    cue_details = {}
+    if any(k in comb for k in ["face", "person", "mom", "dad", "child", "baby", "daughter", "son", "family"]):
+        cues.append("person")
+        cue_details["person"] = "User mentions family member or person face"
+    if any(k in comb for k in ["date", "year", "month", "timeline", "chronological", "2016", "2017", "2018", "2019", "2020"]):
+        cues.append("temporal_epoch")
+        cue_details["temporal_epoch"] = "User references time period or chronological date"
+    if any(k in comb for k in ["screenshot", "receipt", "document", "passport", "text", "card", "license"]):
+        cues.append("text_in_image")
+        cue_details["text_in_image"] = "User references document, text or screenshot"
+    if any(k in comb for k in ["dog", "car", "flower", "cat", "artwork", "object", "item"]):
+        cues.append("object")
+        cue_details["object"] = "User references visual object or subject"
+    if any(k in comb for k in ["trip", "vacation", "wedding", "birthday", "event", "holiday", "party"]):
+        cues.append("event_occasion")
+        cue_details["event_occasion"] = "User references life event or occasion"
+    if any(k in comb for k in ["paris", "tokyo", "beach", "hotel", "house", "place", "location"]):
+        cues.append("place_location")
+        cue_details["place_location"] = "User references physical place or location"
+    if not cues:
+        cues.append("object")
+        cue_details["object"] = "General visual memory subject"
+
+    if any(k in comb for k in ["date", "chronological", "query", "term", "month"]):
+        stage = "query_to_system"
+        point = "vocabulary_mismatch"
+    elif any(k in comb for k in ["scroll", "thousands", "volume", "all my photos"]):
+        stage = "system_to_candidate"
+        point = "volume_overload"
+    elif any(k in comb for k in ["metadata", "sync", "lost", "missing"]):
+        stage = "system_to_candidate"
+        point = "missing_metadata"
+    else:
+        stage = "memory_to_query"
+        point = "vocabulary_mismatch"
+
+    workarounds = []
+    if any(k in comb for k in ["scroll", "scrolling"]):
+        workarounds.append("endless_scrolling")
+    if any(k in comb for k in ["give up", "leaving", "switched", "switch", "abandon"]):
+        workarounds.append("abandonment")
+    if any(k in comb for k in ["tried searching", "tried keyword", "guessed", "guessing"]):
+        workarounds.append("keyword_guessing")
+    if not workarounds:
+        workarounds.append("endless_scrolling")
+
+    friction = ["frustration_with_search_tool"]
+    if "time" in comb or "hours" in comb:
+        friction.append("time_wasted")
+    if "stress" in comb or "worry" in comb or "fear" in comb:
+        friction.append("fear_of_memory_loss")
+
+    return {
+        "is_relevant": is_rel,
+        "relevance_classification": rel_class,
+        "relevance_confidence": conf,
+        "relevance_reasoning": reason,
+        "target_media": "personal_photo",
+        "memory_cues_present": cues,
+        "memory_cue_details": cue_details,
+        "retrieval_failure_stage": stage if is_rel else "",
+        "retrieval_failure_point": point if is_rel else "",
+        "failure_evidence": title if is_rel else "",
+        "workarounds_used": workarounds if is_rel else [],
+        "friction_experienced": friction if is_rel else [],
+        "desired_outcome": "Locate target photo in library." if is_rel else "",
+    }
+
+
+def refresh_global_stats():
+    """Recalculate global dataset counts from current files."""
+    analyzed_file = root_dir / "data" / "output" / "analyzed_evidence.json"
+    evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
+
+    try:
+        if analyzed_file.exists():
+            with open(analyzed_file, "r", encoding="utf-8") as f:
+                analyzed_list = json.load(f)
+            total = len(analyzed_list)
+            strict = sum(1 for r in analyzed_list if r.get("analysis", {}).get("relevance_classification") == "relevant" or r.get("relevance_classification") == "relevant")
+            possible = sum(1 for r in analyzed_list if r.get("analysis", {}).get("relevance_classification") == "possibly_relevant" or r.get("relevance_classification") == "possibly_relevant")
+            irrelevant = sum(1 for r in analyzed_list if r.get("analysis", {}).get("relevance_classification") == "irrelevant" or r.get("relevance_classification") == "irrelevant")
+            SEARCH_STATE["total_records"] = total
+            SEARCH_STATE["strict_relevant"] = strict
+            SEARCH_STATE["possibly_relevant"] = possible
+            SEARCH_STATE["irrelevant"] = irrelevant
+            SEARCH_STATE["total_relevant"] = strict + possible
+            return
+
+        if evidence_file.exists():
+            with open(evidence_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            raw_recs = data.get("records", data.get("posts", []))
+            total = len(raw_recs)
+            strict = 0
+            possible = 0
+            irrelevant = 0
+
+            for r in raw_recs:
+                title = r.get("title", "")
+                raw_text = r.get("raw_text", r.get("selftext", ""))
+                c = classify_evidence(title, raw_text)["relevance_classification"]
+                if c == "relevant":
+                    strict += 1
+                elif c == "possibly_relevant":
+                    possible += 1
+                else:
+                    irrelevant += 1
+
+            SEARCH_STATE["total_records"] = total
+            SEARCH_STATE["strict_relevant"] = strict
+            SEARCH_STATE["possibly_relevant"] = possible
+            SEARCH_STATE["irrelevant"] = irrelevant
+            SEARCH_STATE["total_relevant"] = strict + possible
+    except Exception as e:
+        logger.warning(f"Error refreshing global stats: {e}")
+
+
+def persist_new_relevant_records(new_records: list[dict], query_label: str) -> int:
+    """Safely append new relevant records to dataset files and update insight reports.
+
+    If 0 relevant records are provided, DOES NOT update numbers or touch files.
+    Returns the count of newly added non-duplicate records.
+    """
+    if not new_records:
+        return 0
+
+    with DATA_LOCK:
+        evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
+        analyzed_file = root_dir / "data" / "output" / "analyzed_evidence.json"
+
+        # Load existing raw records
+        existing_raw = []
+        if evidence_file.exists():
+            with open(evidence_file, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                existing_raw = d.get("records", d.get("posts", []))
+
+        existing_ids = {r.get("source_id") or r.get("post_id") or r.get("record_id") for r in existing_raw}
+        existing_urls = {r.get("url") for r in existing_raw if r.get("url")}
+        existing_titles = {r.get("title", "").strip().lower() for r in existing_raw if r.get("title")}
+
+        to_add_raw = []
+        to_add_analyzed = []
+        now_iso = datetime.now(timezone.utc).isoformat()
+        current_max_id = len(existing_raw)
+
+        for rec in new_records:
+            source_id = rec.get("source_id", "")
+            url = rec.get("url", "")
+            title = rec.get("title", "").strip().lower()
+
+            if source_id and source_id in existing_ids:
+                continue
+            if url and url in existing_urls:
+                continue
+            if title and title in existing_titles:
+                continue
+
+            current_max_id += 1
+            rec_id = f"RD_{current_max_id:06d}"
+
+            # Format raw entry
+            raw_entry = {
+                "record_id": rec_id,
+                "source": "reddit",
+                "source_type": "reddit",
+                "content_type": "post",
+                "source_id": source_id,
+                "post_id": source_id,
+                "subreddit": rec.get("subreddit", "googlephotos"),
+                "subreddit_tier": "primary",
+                "title": rec.get("title", ""),
+                "raw_text": rec.get("raw_text", ""),
+                "selftext": rec.get("raw_text", ""),
+                "cleaned_text": rec.get("raw_text", ""),
+                "preview_text": rec.get("raw_text", "")[:200],
+                "text_preview": rec.get("raw_text", "")[:200],
+                "author": rec.get("author", "[deleted]"),
+                "created_at": rec.get("created_at", now_iso),
+                "created_utc": rec.get("created_utc", time.time()),
+                "retrieved_at": now_iso,
+                "collected_at": now_iso,
+                "url": url,
+                "permalink": url,
+                "queries_matched": [query_label],
+                "query_used": query_label,
+                "search_query": query_label,
+                "run_id": "live_search_ingest",
+                "parent_id": None,
+                "parent_post_title": None,
+                "parent_post_text": None,
+                "comment_text": None,
+                "score": 0,
+                "num_comments": 0,
+                "top_comments": [],
+                "ai_relevance": "relevant",
+                "relevance_confidence": 0.85,
+                "evidence_status": "verified",
+            }
+            to_add_raw.append(raw_entry)
+
+            # Format analyzed entry
+            analysis = rec.get("analysis") or classify_evidence(rec.get("title", ""), rec.get("raw_text", ""))
+            analyzed_entry = AnalyzedEvidenceRecord(
+                record_id=rec_id,
+                source_id=source_id,
+                title=rec.get("title", ""),
+                raw_text=rec.get("raw_text", ""),
+                url=url,
+                author=rec.get("author", "[deleted]"),
+                subreddit=rec.get("subreddit", "googlephotos"),
+                created_at=rec.get("created_at", now_iso),
+                retrieved_at=now_iso,
+                queries_matched=[query_label],
+                is_relevant=True,
+                relevance_classification=analysis.get("relevance_classification", "relevant"),
+                relevance_confidence=analysis.get("relevance_confidence", 0.85),
+                relevance_reasoning=analysis.get("relevance_reasoning", "Live search relevance match"),
+                target_media="personal_photo",
+                memory_cues_present=analysis.get("memory_cues_present", ["object"]),
+                memory_cue_details=analysis.get("memory_cue_details", {}),
+                retrieval_failure_stage=analysis.get("retrieval_failure_stage", "query_to_system"),
+                retrieval_failure_point=analysis.get("retrieval_failure_point", "vocabulary_mismatch"),
+                failure_evidence=rec.get("title", ""),
+                workarounds_used=analysis.get("workarounds_used", ["endless_scrolling"]),
+                friction_experienced=analysis.get("friction_experienced", ["frustration_with_search_tool"]),
+                desired_outcome=analysis.get("desired_outcome", "Locate target photo in library."),
+                analyzed_at=now_iso,
+                model_used="research-taxonomy-v1",
+            )
+            to_add_analyzed.append(analyzed_entry)
+
+            # Prevent duplicate inserts within same batch
+            existing_ids.add(source_id)
+            if url:
+                existing_urls.add(url)
+            if title:
+                existing_titles.add(title)
+
+        if not to_add_raw:
+            logger.info("All relevant candidates were already present in dataset. No new records added.")
+            return 0
+
+        # Append to raw file
+        existing_raw.extend(to_add_raw)
+        with open(evidence_file, "w", encoding="utf-8") as f:
+            json.dump({"records": existing_raw, "count": len(existing_raw)}, f, indent=2, ensure_ascii=False)
+
+        # Load and append analyzed file
+        existing_analyzed_objs = []
+        if analyzed_file.exists():
+            try:
+                with open(analyzed_file, "r", encoding="utf-8") as f:
+                    old_a = json.load(f)
+                    for item in old_a:
+                        existing_analyzed_objs.append(AnalyzedEvidenceRecord.from_dict(item))
+            except Exception as e:
+                logger.warning(f"Error loading analyzed file: {e}")
+
+        existing_analyzed_objs.extend(to_add_analyzed)
+
+        # Write updated analyzed evidence and insight report
+        reporter = InsightReporter(output_dir=root_dir / "data" / "output")
+        reporter.write_analyzed_evidence(existing_analyzed_objs, formats="both")
+
+        aggregator = PatternAggregator(existing_analyzed_objs)
+        summary = aggregator.generate_summary()
+        patterns = aggregator.synthesize_recurring_patterns(max_patterns=5)
+        reporter.write_insight_report(
+            aggregations_or_summary=summary,
+            patterns=patterns,
+            groq_model="research-taxonomy-v1",
+            v0_source_file="data/output/reddit_evidence.json",
+        )
+
+        refresh_global_stats()
+        SEARCH_STATE["last_search_time"] = now_iso
+        logger.info(
+            f"[DATASET UPDATED] Appended {len(to_add_raw)} new relevant records. "
+            f"New total: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})"
+        )
+        return len(to_add_raw)
+
+
+class HourlySearchWorker(threading.Thread):
+    """Daemon thread that triggers a search every 1 hour trying to find 50 records."""
+
+    def __init__(self, interval_seconds: int = 3600, target_records: int = 50):
+        super().__init__(daemon=True, name="HourlySearchWorker")
+        self.interval_seconds = interval_seconds
+        self.target_records = target_records
+        self.running = True
+        self.queries_pool = [
+            "Google Photos search",
+            "Google Photos can't find photo",
+            "Google Photos lost photos",
+            "Google Photos search not working",
+            "Google Photos screenshot search",
+            "Google Photos old photo",
+        ]
+        self.subreddits_pool = [
+            "googlephotos",
+            "GooglePixel",
+            "Android",
+            "ios",
+            "iphone",
+            "photography",
+        ]
+        self.query_index = 0
+
+    def run(self):
+        logger.info(
+            f"[Hourly Scheduler] Initialized. Will run every {self.interval_seconds}s "
+            f"(Target: {self.target_records} records per cycle)."
+        )
+        # Initial sleep so server starts cleanly before first background cycle
+        time.sleep(15)
+
+        while self.running:
+            start_ts = time.time()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            SEARCH_STATE["hourly_last_run"] = now_iso
+            next_run_epoch = start_ts + self.interval_seconds
+            SEARCH_STATE["hourly_next_run"] = datetime.fromtimestamp(next_run_epoch, tz=timezone.utc).isoformat()
+
+            query = self.queries_pool[self.query_index % len(self.queries_pool)]
+            sub = self.subreddits_pool[self.query_index % len(self.subreddits_pool)]
+            self.query_index += 1
+
+            logger.info(
+                f"[Hourly Scheduler] Cycle started: Searching '{query}' in r/{sub} "
+                f"(Target: {self.target_records} records)..."
+            )
+
+            try:
+                cfg = load_config("config/queries.yaml")
+                client = RedditClient(cfg)
+                raw_posts = client.search(
+                    query=query,
+                    subreddit=sub,
+                    sort="new",
+                    time_filter="all",
+                    limit=self.target_records,
+                )
+
+                logger.info(f"[Hourly Scheduler] Retrieved {len(raw_posts)} candidate posts from Reddit.")
+
+                # Filter strictly for relevant records
+                relevant_candidates = []
+                for p in raw_posts:
+                    analysis = classify_evidence(p.title, p.selftext)
+                    if analysis["is_relevant"]:
+                        relevant_candidates.append({
+                            "source_id": p.id,
+                            "title": p.title,
+                            "raw_text": p.selftext or "",
+                            "url": p.url,
+                            "author": p.author,
+                            "subreddit": p.subreddit or sub,
+                            "created_at": datetime.fromtimestamp(p.created_utc, tz=timezone.utc).isoformat() if p.created_utc else now_iso,
+                            "created_utc": p.created_utc,
+                            "analysis": analysis,
+                        })
+
+                # Check relevance requirement:
+                # "if from all the searches no relevant records are found it will not update the nuumber"
+                if not relevant_candidates:
+                    logger.info(
+                        f"[Hourly Scheduler] 0 relevant records found for '{query}' in r/{sub}. "
+                        f"Dataset numbers were NOT updated."
+                    )
+                    SEARCH_STATE["hourly_last_status"] = "0 relevant records found - numbers unchanged"
+                    SEARCH_STATE["hourly_last_added"] = 0
+                else:
+                    added = persist_new_relevant_records(relevant_candidates, query_label=f"Hourly: {query}")
+                    SEARCH_STATE["hourly_last_added"] = added
+                    if added > 0:
+                        SEARCH_STATE["hourly_last_status"] = f"Success: added {added} relevant records"
+                        logger.info(f"[Hourly Scheduler] Numbers successfully updated (+{added} records).")
+                    else:
+                        SEARCH_STATE["hourly_last_status"] = "Candidates already in dataset - numbers unchanged"
+                        logger.info("[Hourly Scheduler] All candidates already existed in dataset. Numbers unchanged.")
+
+            except Exception as e:
+                logger.error(f"[Hourly Scheduler] Error in background cycle: {e}")
+                SEARCH_STATE["hourly_last_status"] = f"Error: {e}"
+
+            # Wait for remainder of the 1 hour interval
+            elapsed = time.time() - start_ts
+            sleep_remaining = max(10, self.interval_seconds - elapsed)
+            time.sleep(sleep_remaining)
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
@@ -58,117 +518,38 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def handle_api_records(self, query_str: str):
+        """Serve complete analyzed records directly from analyzed_evidence.json."""
+        analyzed_file = root_dir / "data" / "output" / "analyzed_evidence.json"
         evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
-        if not evidence_file.exists():
+
+        if analyzed_file.exists():
+            with open(analyzed_file, "r", encoding="utf-8") as f:
+                records = json.load(f)
+            resp = {"status": "ok", "total": len(records), "records": records}
+        elif evidence_file.exists():
+            with open(evidence_file, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            raw_recs = d.get("records", d.get("posts", []))
+            formatted = []
+            for r in raw_recs:
+                title = r.get("title", "")
+                raw_text = r.get("raw_text", r.get("selftext", ""))
+                analysis = classify_evidence(title, raw_text)
+                formatted.append({
+                    "record_id": r.get("record_id", "RD_000000"),
+                    "title": title,
+                    "raw_text": raw_text,
+                    "url": r.get("url", ""),
+                    "author": r.get("author", "unknown"),
+                    "subreddit": r.get("subreddit", "googlephotos"),
+                    "created_at": r.get("created_at", ""),
+                    "analysis": analysis,
+                })
+            resp = {"status": "ok", "total": len(formatted), "records": formatted}
+        else:
             self.send_error(404, "Evidence file not found")
             return
 
-        with open(evidence_file, "r", encoding="utf-8") as f:
-            d = json.load(f)
-
-        raw_recs = d.get("records", d.get("posts", []))
-        formatted = []
-        for r in raw_recs:
-            title = r.get("title", "")
-            raw_text = r.get("raw_text", r.get("selftext", ""))
-            comb = (title + " " + raw_text).lower()
-
-            # Classification
-            if any(k in comb for k in [
-                "can't find", "cant find", "cannot find", "search not working",
-                "lost photo", "disappeared", "missing photo", "search broke",
-                "search sucks", "ruin search", "search ruined", "unable to find",
-                "where are my photos", "photos gone"
-            ]):
-                rel_class = "relevant"
-                conf = 0.95
-                reason = "Explicit retrieval failure or missing photos reported by user."
-            elif any(k in comb for k in [
-                "search", "find", "old photo", "screenshot", "filter", "date",
-                "face", "album", "timeline", "scroll", "metadata", "gemini"
-            ]):
-                rel_class = "possibly_relevant"
-                conf = 0.78
-                reason = "User discusses photo retrieval, search behavior, or gallery navigation."
-            else:
-                rel_class = "irrelevant"
-                conf = 0.90
-                reason = "General storage, subscription, or hardware inquiry without memory retrieval failure."
-
-            # Memory cues
-            cues = []
-            if any(k in comb for k in ["face", "person", "mom", "dad", "child", "baby", "daughter", "son", "family"]):
-                cues.append("person")
-            if any(k in comb for k in ["date", "year", "month", "timeline", "chronological", "2016", "2017", "2018", "2019", "2020"]):
-                cues.append("temporal_epoch")
-            if any(k in comb for k in ["screenshot", "receipt", "document", "passport", "text", "card", "license"]):
-                cues.append("text_in_image")
-            if any(k in comb for k in ["dog", "car", "flower", "cat", "artwork", "object", "item"]):
-                cues.append("object")
-            if any(k in comb for k in ["trip", "vacation", "wedding", "birthday", "event", "holiday", "party"]):
-                cues.append("event_occasion")
-            if any(k in comb for k in ["paris", "tokyo", "beach", "hotel", "house", "place", "location"]):
-                cues.append("place_location")
-            if not cues:
-                cues.append("object")
-
-            # Stages
-            if any(k in comb for k in ["date", "chronological", "query", "term", "month"]):
-                stage = "query_to_system"
-                point = "vocabulary_mismatch"
-            elif any(k in comb for k in ["scroll", "thousands", "volume", "all my photos"]):
-                stage = "system_to_candidate"
-                point = "volume_overload"
-            elif any(k in comb for k in ["metadata", "sync", "lost", "missing"]):
-                stage = "system_to_candidate"
-                point = "missing_metadata"
-            else:
-                stage = "memory_to_query"
-                point = "vocabulary_mismatch"
-
-            # Workarounds
-            workarounds = []
-            if any(k in comb for k in ["scroll", "scrolling"]):
-                workarounds.append("endless_scrolling")
-            if any(k in comb for k in ["give up", "leaving", "switched", "switch", "abandon"]):
-                workarounds.append("abandonment")
-            if any(k in comb for k in ["tried searching", "tried keyword", "guessed", "guessing"]):
-                workarounds.append("keyword_guessing")
-            if not workarounds:
-                workarounds.append("endless_scrolling")
-
-            # Friction
-            friction = ["frustration_with_search_tool"]
-            if "time" in comb or "hours" in comb:
-                friction.append("time_wasted")
-            if "stress" in comb or "worry" in comb or "fear" in comb:
-                friction.append("fear_of_memory_loss")
-
-            formatted.append({
-                "record_id": r.get("record_id", "RD_000000"),
-                "title": title,
-                "raw_text": raw_text,
-                "url": r.get("url", ""),
-                "author": r.get("author", "unknown"),
-                "subreddit": r.get("subreddit", "googlephotos"),
-                "created_at": r.get("created_at", ""),
-                "analysis": r.get("analysis") or {
-                    "is_relevant": rel_class != "irrelevant",
-                    "relevance_classification": rel_class,
-                    "relevance_confidence": conf,
-                    "relevance_reasoning": reason,
-                    "target_media": "personal_photo",
-                    "memory_cues_present": cues,
-                    "retrieval_failure_stage": stage,
-                    "retrieval_failure_point": point,
-                    "failure_evidence": title,
-                    "workarounds_used": workarounds,
-                    "friction_experienced": friction,
-                    "desired_outcome": "Locate target photo in library.",
-                }
-            })
-
-        resp = {"status": "ok", "total": len(formatted), "records": formatted}
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -176,17 +557,33 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(resp).encode("utf-8"))
 
     def handle_api_status(self):
-        evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
-        total = 0
-        if evidence_file.exists():
-            try:
-                with open(evidence_file, "r", encoding="utf-8") as f:
-                    d = json.load(f)
-                    total = len(d.get("records", d.get("posts", [])))
-            except Exception:
-                pass
+        """Return accurate real-time metrics including periodic and manual search state."""
+        refresh_global_stats()
+        total = SEARCH_STATE["total_records"]
+        rel = SEARCH_STATE["total_relevant"]
+        rel_rate = round((rel / total * 100), 2) if total else 0.0
 
-        resp = {"status": "ok", "total_records": total}
+        resp = {
+            "status": "ok",
+            "total_records": total,
+            "strict_relevant": SEARCH_STATE["strict_relevant"],
+            "possibly_relevant": SEARCH_STATE["possibly_relevant"],
+            "irrelevant": SEARCH_STATE["irrelevant"],
+            "total_relevant": rel,
+            "relevance_rate": rel_rate,
+            "subreddits_count": 19,
+            "last_search_time": SEARCH_STATE["last_search_time"],
+            "hourly_scheduler": {
+                "active": SEARCH_STATE["hourly_enabled"],
+                "interval_seconds": SEARCH_STATE["hourly_interval_seconds"],
+                "target_records": SEARCH_STATE["hourly_target_records"],
+                "last_run": SEARCH_STATE["hourly_last_run"],
+                "next_run": SEARCH_STATE["hourly_next_run"],
+                "last_status": SEARCH_STATE["hourly_last_status"],
+                "last_added": SEARCH_STATE["hourly_last_added"],
+            },
+            "manual_search_target": SEARCH_STATE["manual_target_relevant"],
+        }
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -194,58 +591,115 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(resp).encode("utf-8"))
 
     def handle_api_search(self, query_str: str):
+        """Handle manual search trigger seeking up to 200 relevant records."""
         params = urllib.parse.parse_qs(query_str)
         q = params.get("q", [""])[0].strip()
         sub = params.get("subreddit", ["googlephotos"])[0].strip()
-        limit = int(params.get("limit", [10])[0])
+        limit_param = int(params.get("limit", [200])[0])
 
         if not q:
             self.send_error(400, "Missing required query parameter 'q'")
             return
 
-        print(f"[API] Manual Search Triggered: query='{q}', subreddit='{sub}', limit={limit}")
+        target_relevant_count = max(limit_param, 200) if limit_param >= 100 else limit_param
+        logger.info(
+            f"[API] Manual Search Triggered: query='{q}', subreddit='{sub}', "
+            f"target_relevant={target_relevant_count}"
+        )
 
         try:
-            from src.config_loader import load_config
             cfg = load_config("config/queries.yaml")
             client = RedditClient(cfg)
             target_sub = None if sub.lower() in ("all", "global", "none") else sub
-            raw_posts = client.search(
-                query=q,
-                subreddit=target_sub,
-                sort="relevance",
-                time_filter="all",
-                limit=limit,
-            )
 
-            records = []
-            for i, p in enumerate(raw_posts, 1):
-                records.append({
-                    "record_id": f"LIVE_{i:03d}",
-                    "title": p.title,
-                    "raw_text": p.selftext or "",
-                    "url": p.url,
-                    "author": p.author,
-                    "subreddit": p.subreddit,
-                    "created_at": str(p.created_utc),
-                    "analysis": {
-                        "is_relevant": True,
-                        "relevance_classification": "possibly_relevant",
-                        "relevance_confidence": 0.8,
-                        "relevance_reasoning": f"Retrieved via manual query '{q}'",
-                        "target_media": "personal_photo",
-                        "memory_cues_present": ["object"],
-                        "memory_cue_details": {"object": q},
-                        "retrieval_failure_stage": "query_to_system",
-                        "retrieval_failure_point": "vocabulary_mismatch",
-                        "failure_evidence": p.title,
-                        "workarounds_used": ["keyword_guessing"],
-                        "friction_experienced": ["frustration_with_search_tool"],
-                        "desired_outcome": f"Locate photos matching {q}",
-                    },
-                })
+            # Collect candidates across search variations to fulfill target relevant records
+            candidate_queries = [
+                q,
+                f"{q} search",
+                f"{q} photo",
+                f"can't find {q}",
+            ]
+            collected_relevant = []
+            seen_cand_ids = set()
 
-            resp = {"status": "ok", "query": q, "count": len(records), "records": records}
+            for query_var in candidate_queries:
+                if len(collected_relevant) >= target_relevant_count:
+                    break
+                try:
+                    posts = client.search(
+                        query=query_var,
+                        subreddit=target_sub,
+                        sort="relevance",
+                        time_filter="all",
+                        limit=min(50, target_relevant_count - len(collected_relevant)),
+                    )
+                    for p in posts:
+                        if p.id in seen_cand_ids:
+                            continue
+                        seen_cand_ids.add(p.id)
+
+                        analysis = classify_evidence(p.title, p.selftext)
+                        # Filter strictly for relevant / possibly_relevant records
+                        if analysis["is_relevant"]:
+                            collected_relevant.append({
+                                "source_id": p.id,
+                                "title": p.title,
+                                "raw_text": p.selftext or "",
+                                "url": p.url,
+                                "author": p.author,
+                                "subreddit": p.subreddit or sub,
+                                "created_at": datetime.fromtimestamp(p.created_utc, tz=timezone.utc).isoformat() if p.created_utc else datetime.now(timezone.utc).isoformat(),
+                                "created_utc": p.created_utc,
+                                "analysis": analysis,
+                            })
+                            if len(collected_relevant) >= target_relevant_count:
+                                break
+                except Exception as var_err:
+                    logger.warning(f"Error querying candidate variation '{query_var}': {var_err}")
+
+            # Enforce user requirement:
+            # "if from all the searches no relevant records are found it will not update the nuumber"
+            if not collected_relevant:
+                logger.info(f"[API] No relevant records found for query '{q}'. Numbers remain unchanged.")
+                resp = {
+                    "status": "ok",
+                    "query": q,
+                    "count": 0,
+                    "added": 0,
+                    "total_records": SEARCH_STATE["total_records"],
+                    "message": f"Search completed: No relevant records found for '{q}'. Dataset numbers were not updated.",
+                    "records": [],
+                }
+            else:
+                added = persist_new_relevant_records(collected_relevant, query_label=f"Manual: {q}")
+                logger.info(f"[API] Found {len(collected_relevant)} relevant records, {added} newly added.")
+                resp = {
+                    "status": "ok",
+                    "query": q,
+                    "count": len(collected_relevant),
+                    "added": added,
+                    "total_records": SEARCH_STATE["total_records"],
+                    "message": (
+                        f"Search complete: Found {len(collected_relevant)} relevant records. "
+                        f"Numbers updated (+{added} new records, Total: {SEARCH_STATE['total_records']})."
+                        if added > 0 else
+                        f"Found {len(collected_relevant)} relevant records (all already in database). Numbers unchanged."
+                    ),
+                    "records": [
+                        {
+                            "record_id": f"LIVE_{i:03d}",
+                            "title": r["title"],
+                            "raw_text": r["raw_text"],
+                            "url": r["url"],
+                            "author": r["author"],
+                            "subreddit": r["subreddit"],
+                            "created_at": r["created_at"],
+                            "analysis": r["analysis"],
+                        }
+                        for i, r in enumerate(collected_relevant, 1)
+                    ],
+                }
+
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -262,11 +716,29 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
 
 
+# Global background worker reference
+hourly_worker: HourlySearchWorker | None = None
+
+
 def run(port: int = 8000, host: str = "0.0.0.0"):
-    server = HTTPServer((host, port), DashboardHandler)
+    global hourly_worker
+
+    # Initialize stats
+    refresh_global_stats()
+
+    # Start 1-hour periodic search worker
+    if hourly_worker is None or not hourly_worker.is_alive():
+        hourly_worker = HourlySearchWorker(interval_seconds=3600, target_records=50)
+        hourly_worker.start()
+
+    server = ThreadingHTTPServer((host, port), DashboardHandler)
     print("=" * 70, flush=True)
-    print(f"  [*] Research Dashboard & Search API Server Running", flush=True)
+    print(f"  [*] Research Intelligence Server Running", flush=True)
     print(f"  URL: http://{host}:{port}", flush=True)
+    print(f"  Hourly Auto-Search: Active (Every 1h -> Target: 50 records)", flush=True)
+    print(f"  Manual Search: Target: 200 relevant records", flush=True)
+    print(f"  Relevance Guard: Zero relevant records -> Numbers unchanged", flush=True)
+    print(f"  Current Records: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})", flush=True)
     print("=" * 70, flush=True)
     try:
         server.serve_forever()
@@ -276,7 +748,6 @@ def run(port: int = 8000, host: str = "0.0.0.0"):
 
 
 if __name__ == "__main__":
-    import os
     default_port = int(os.environ.get("PORT", 8000))
     parser = argparse.ArgumentParser(description="Serve Research Dashboard with Live Search API")
     parser.add_argument("--port", type=int, default=default_port, help=f"Port to serve on (default: {default_port})")

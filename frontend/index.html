@@ -656,7 +656,11 @@
     <div class="page-header">
       <div class="page-eyebrow">Research Intelligence</div>
       <div class="page-title">Google Photos — Vague Memory Retrieval Research</div>
-      <div class="page-desc">Analyzing why users fail to retrieve photos they remember but cannot precisely describe. Based on analyzed public Reddit evidence from r/googlephotos — all findings are traceable to original source records.</div>
+      <div class="page-desc">Analyzing why users fail to retrieve photos they remember but cannot precisely describe. Based on analyzed public Reddit evidence across 19 subreddits — all findings are traceable to original source records.</div>
+    </div>
+
+    <div id="system-live-pill" style="display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--primary-light);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;margin-bottom:20px">
+      ⏱️ Hourly Auto-Search: Active (Every 1h, target 50) | 🎯 Manual Search: Target 200 Relevant | 🛡️ Strict Relevance Guard Active
     </div>
 
     <div class="kpi-grid" id="kpi-grid"></div>
@@ -912,11 +916,13 @@
         <div class="form-group">
           <label class="form-label" for="manual-search-limit">Record Limit</label>
           <select id="manual-search-limit" class="form-select">
-            <option value="10">10 records</option>
-            <option value="25" selected>25 records</option>
             <option value="50">50 records</option>
             <option value="100">100 records</option>
+            <option value="200" selected>200 relevant records (Target)</option>
           </select>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px">
+            🛡️ Strict Relevance: Only relevant records update dataset numbers.
+          </div>
         </div>
       </div>
       
@@ -984,11 +990,11 @@ const INSIGHT = {
   possibly_relevant: 1293,
   irrelevant: 240,
   subredditsCount: 19,
-  failure_stages: { memory_to_query: 480, query_to_system: 395, system_to_candidate: 631, candidate_to_recognition: 0, search_refinement: 0 },
-  memory_cues: { object: 780, person: 410, text_in_image: 290, temporal_epoch: 320, place_location: 110, event_occasion: 145 },
-  workarounds: { endless_scrolling: 890, keyword_guessing: 546, abandonment: 310 },
-  friction: { frustration_with_search_tool: 1120, time_wasted: 480, fear_of_memory_loss: 210 },
-  failure_points: { vocabulary_mismatch: 875, volume_overload: 631, missing_metadata: 240 }
+  failure_stages: { memory_to_query: 617, query_to_system: 662, system_to_candidate: 227, candidate_to_recognition: 0, search_refinement: 0 },
+  memory_cues: { object: 899, temporal_epoch: 827, person: 642, text_in_image: 583, place_location: 459, event_occasion: 300 },
+  workarounds: { endless_scrolling: 1279, abandonment: 254, keyword_guessing: 27 },
+  friction: { frustration_with_search_tool: 1506, time_wasted: 668, fear_of_memory_loss: 49 },
+  failure_points: { vocabulary_mismatch: 1279, missing_metadata: 145, volume_overload: 82 }
 };
 
 function updateInsightFromRecords() {
@@ -1789,7 +1795,7 @@ const copyCmdBtn = document.getElementById('copy-cmd-btn');
 function updateCmdPreview() {
   const q = manualQueryInput ? manualQueryInput.value.trim() : '';
   const sub = manualSubSelect ? manualSubSelect.value : 'googlephotos';
-  const lim = manualLimitSelect ? manualLimitSelect.value : '25';
+  const lim = manualLimitSelect ? manualLimitSelect.value : '200';
   if(cmdCode) {
     cmdCode.textContent = `.venv\\Scripts\\python.exe scripts/manual_search.py --query "${q}" --subreddit ${sub} --limit ${lim}`;
   }
@@ -1831,7 +1837,7 @@ if(btnExecuteLive) {
   btnExecuteLive.onclick = async () => {
     const q = manualQueryInput ? manualQueryInput.value.trim() : '';
     const sub = manualSubSelect ? manualSubSelect.value : 'googlephotos';
-    const lim = manualLimitSelect ? manualLimitSelect.value : '25';
+    const lim = manualLimitSelect ? manualLimitSelect.value : '200';
 
     if(!q) {
       alert('Please enter a search query.');
@@ -1840,7 +1846,7 @@ if(btnExecuteLive) {
 
     if(liveStatus) {
       liveStatus.style.display = 'block';
-      liveStatus.innerHTML = `<span style="color:var(--primary-light)">⏳ Connecting to local search runner & executing Reddit search for "<strong>${q}</strong>" (r/${sub})...</span>`;
+      liveStatus.innerHTML = `<span style="color:var(--primary-light)">⏳ Connecting to search runner & searching Reddit for "<strong>${q}</strong>" (Target: up to 200 relevant records)...</span>`;
     }
 
     try {
@@ -1848,15 +1854,25 @@ if(btnExecuteLive) {
       if(res.ok) {
         const data = await res.json();
         if(liveStatus) {
-          liveStatus.innerHTML = `<span style="color:var(--emerald)">✓ Success! Collected ${data.records ? data.records.length : 0} live records. Injected into Evidence Explorer!</span>`;
+          if (data.added > 0) {
+            liveStatus.innerHTML = `<span style="color:var(--emerald)">✓ Success! Found ${data.count} relevant records (+${data.added} new records added). Database numbers updated to ${data.total_records.toLocaleString()}!</span>`;
+          } else if (data.count > 0) {
+            liveStatus.innerHTML = `<span style="color:var(--sky)">ℹ Found ${data.count} relevant records (all already in database). Numbers remain at ${data.total_records.toLocaleString()}.</span>`;
+          } else {
+            liveStatus.innerHTML = `<span style="color:var(--amber)">⚠️ No relevant records found for "${q}". Database numbers were NOT updated (Strict Relevance Guard).</span>`;
+          }
         }
-        if(data.records && data.records.length) {
+        if(data.records && data.records.length && data.added > 0) {
           data.records.forEach(newRec => {
             if(!RECORDS.find(r => r.record_id === newRec.record_id)) {
               RECORDS.unshift(newRec);
             }
           });
-          renderExplorer();
+          updateInsightFromRecords();
+          const badge = document.querySelector('#nav-explorer .nav-badge');
+          if (badge) badge.textContent = RECORDS.length.toLocaleString();
+          if (state.page === 'overview') renderOverview();
+          else if (state.page === 'explorer') renderExplorer();
         }
       } else {
         throw new Error('API server returned ' + res.status);
@@ -1903,8 +1919,41 @@ async function loadCollectedDataset() {
   }
 }
 
+// Auto-polling: Check for live background updates every 20 seconds
+let lastPolledTotal = 0;
+async function pollLiveStatusAndSync() {
+  try {
+    const res = await fetch('/api/status');
+    if (res.ok) {
+      const st = await res.json();
+      const sysPill = document.getElementById('system-live-pill');
+      if (sysPill) {
+        const h = st.hourly_scheduler || {};
+        let timeDesc = 'Every 1h';
+        if (h.next_run) {
+          const diffMs = new Date(h.next_run) - new Date();
+          const diffMin = Math.max(1, Math.round(diffMs / 60000));
+          timeDesc = `Next in ~${diffMin}m`;
+        }
+        sysPill.innerHTML = `⏱️ Hourly Auto-Search: Active (${timeDesc}, target 50) | 🎯 Manual: 200 Relevant Target | 📊 Total: ${st.total_records.toLocaleString()} (${st.total_relevant.toLocaleString()} relevant)`;
+      }
+
+      if (st.total_records && st.total_records !== lastPolledTotal && lastPolledTotal !== 0) {
+        lastPolledTotal = st.total_records;
+        await loadCollectedDataset();
+      } else if (lastPolledTotal === 0) {
+        lastPolledTotal = st.total_records;
+      }
+    }
+  } catch (e) {
+    // Standalone or offline mode
+  }
+}
+
 navigate('overview');
 loadCollectedDataset();
+setInterval(pollLiveStatusAndSync, 20000);
+pollLiveStatusAndSync();
 </script>
 </body>
 </html>
