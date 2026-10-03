@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google Photos — Vague Memory Retrieval Research</title>
+  <meta name="description" content="AI Research Intelligence Dashboard analyzing why users struggle to retrieve photos they remember but cannot precisely describe." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060b18;
+      --surface: #0d1630;
+      --surface-2: #111e38;
+      --border: rgba(99,102,241,.14);
+      --border-hover: rgba(99,102,241,.35);
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --violet: #8b5cf6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --sky: #38bdf8;
+      --text-heading: #f1f5f9;
+      --text-body: #94a3b8;
+      --text-muted: #475569;
+      --text-label: #64748b;
+      --sidebar-w: 228px;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-body); font-size: 14px; line-height: 1.6; display: flex; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 0; overflow: hidden; z-index: 10;
+    }
+    .sidebar-brand {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .12em; color: var(--primary); text-transform: uppercase; margin-bottom: 4px; }
+    .brand-title { font-size: 13px; font-weight: 700; color: var(--text-heading); line-height: 1.3; }
+    .brand-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+    .nav-section-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; color: var(--text-muted); text-transform: uppercase; padding: 12px 10px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+      border-radius: var(--radius-sm); cursor: pointer; transition: all .15s;
+      color: var(--text-body); font-size: 13px; font-weight: 500; text-decoration: none;
+      position: relative; margin-bottom: 1px;
+    }
+    .nav-item:hover { background: rgba(99,102,241,.08); color: var(--text-heading); }
+    .nav-item.active { background: rgba(99,102,241,.14); color: var(--primary-light); }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+      width: 3px; background: var(--primary); border-radius: 0 3px 3px 0;
+    }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; opacity: .85; }
+    .nav-badge { margin-left: auto; font-size: 10px; background: rgba(99,102,241,.2); color: var(--primary-light); padding: 1px 7px; border-radius: 20px; font-weight: 600; }
+
+    .sidebar-footer { padding: 14px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+    .sidebar-footer strong { color: var(--text-label); }
+
+    /* ── Main ── */
+    #main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .page { display: none; padding: 32px 36px; min-height: 100%; }
+    .page.active { display: block; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Page header ── */
+    .page-header { margin-bottom: 28px; }
+    .page-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .page-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--primary); text-transform: uppercase; margin-bottom: 6px; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--text-heading); letter-spacing: -.02em; line-height: 1.2; }
+    .page-desc { font-size: 13px; color: var(--text-body); margin-top: 6px; max-width: 640px; line-height: 1.6; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; transition: border-color .15s;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-title { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--text-label); text-transform: uppercase; margin-bottom: 12px; }
+    .card-value { font-size: 28px; font-weight: 700; color: var(--text-heading); letter-spacing: -.02em; }
+    .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── KPI Grid ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; }
+    .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent, var(--primary)); }
+    .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 30px; font-weight: 700; color: var(--text-heading); letter-spacing: -.03em; line-height: 1; }
+    .kpi-unit { font-size: 13px; font-weight: 500; color: var(--text-label); margin-top: 4px; }
+
+    /* ── Grid layouts ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .grid-main-side { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+    @media (max-width: 1100px) { .grid-main-side { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── Section spacing ── */
+    .section { margin-bottom: 28px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 14px; font-weight: 600; color: var(--text-heading); }
+    .section-count { font-size: 12px; color: var(--text-muted); }
+
+    /* ── Charts ── */
+    .chart-wrap { position: relative; }
+    .chart-wrap canvas { width: 100% !important; }
+
+    /* ── Bar rows ── */
+    .bar-row { margin-bottom: 12px; }
+    .bar-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+    .bar-label { font-size: 13px; color: var(--text-body); font-weight: 500; }
+    .bar-count { font-size: 12px; color: var(--text-muted); }
+    .bar-track { background: rgba(255,255,255,.05); border-radius: 4px; height: 6px; }
+    .bar-fill { height: 6px; border-radius: 4px; transition: width .4s ease; }
+
+    /* ── Pattern cards ── */
+    .pattern-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px; margin-bottom: 16px; transition: border-color .15s;
+    }
+    .pattern-card:hover { border-color: var(--border-hover); }
+    .pattern-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+    .pattern-id { font-size: 11px; font-weight: 700; background: rgba(99,102,241,.15); color: var(--primary-light); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+    .pattern-title { font-size: 16px; font-weight: 700; color: var(--text-heading); }
+    .pattern-prev { font-size: 11px; font-weight: 600; color: var(--emerald); margin-top: 2px; }
+    .pattern-body { font-size: 13px; color: var(--text-body); margin-bottom: 14px; line-height: 1.7; }
+    .pattern-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .meta-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .chip-stage { background: rgba(56,189,248,.1); color: var(--sky); border: 1px solid rgba(56,189,248,.2); }
+    .chip-cue { background: rgba(139,92,246,.1); color: #a78bfa; border: 1px solid rgba(139,92,246,.2); }
+    .chip-workaround { background: rgba(245,158,11,.1); color: #fbbf24; border: 1px solid rgba(245,158,11,.2); }
+    .chip-failure { background: rgba(244,63,94,.1); color: #fb7185; border: 1px solid rgba(244,63,94,.2); }
+    .pattern-evidence { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
+    .evidence-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .evidence-quote { background: var(--surface-2); border-left: 3px solid var(--primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; color: var(--text-body); font-style: italic; line-height: 1.6; }
+    .evidence-cite { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .record-link { color: var(--primary-light); cursor: pointer; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    .record-link:hover { color: var(--primary); }
+
+    /* ── Tags ── */
+    .tag { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+    .tag-relevant { background: rgba(16,185,129,.12); color: #34d399; border: 1px solid rgba(16,185,129,.2); }
+    .tag-possibly { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.2); }
+    .tag-irrelevant { background: rgba(100,116,139,.1); color: var(--text-muted); border: 1px solid rgba(100,116,139,.2); }
+    .tag-stage { background: rgba(56,189,248,.1); color: var(--sky); border: 1px solid rgba(56,189,248,.2); }
+    .tag-cue { background: rgba(139,92,246,.1); color: #a78bfa; }
+    .tag-generic { background: rgba(99,102,241,.1); color: var(--primary-light); }
+
+    /* ── Evidence Explorer Search & Actions ── */
+    .search-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 280px;
+    }
+    .search-input-wrapper input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 36px 11px 40px;
+      color: var(--text-heading);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: all .2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .search-input-wrapper input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.25);
+    }
+    .search-input-wrapper input::placeholder { color: var(--text-muted); }
+    .search-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 15px;
+      pointer-events: none;
+    }
+    .clear-search-btn {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,.08);
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      transition: all .15s;
+    }
+    .clear-search-btn:hover {
+      background: rgba(244,63,94,.2);
+      color: var(--rose);
+    }
+
+    /* Buttons */
+    .btn-search-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 11px 18px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all .2s ease;
+      box-shadow: 0 3px 12px rgba(99,102,241,.35);
+      user-select: none;
+      white-space: nowrap;
+    }
+    .btn-search-trigger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 18px rgba(99,102,241,.5);
+      filter: brightness(1.1);
+    }
+    .btn-search-trigger:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(99,102,241,.3);
+    }
+
+    .btn-search-reset {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-2);
+      color: var(--text-body);
+      font-weight: 500;
+      font-size: 13px;
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .btn-search-reset:hover {
+      border-color: var(--border-hover);
+      color: var(--text-heading);
+      background: rgba(255,255,255,.05);
+    }
+
+    .btn-live-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(16,185,129,.12);
+      color: var(--emerald);
+      border: 1px solid rgba(16,185,129,.3);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all .2s ease;
+      white-space: nowrap;
+    }
+    .btn-live-trigger:hover {
+      background: rgba(16,185,129,.2);
+      border-color: var(--emerald);
+      box-shadow: 0 0 12px rgba(16,185,129,.25);
+    }
+
+    /* Quick Suggestions */
+    .quick-searches {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      font-size: 11px;
+    }
+    .quick-search-label {
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-right: 4px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .quick-chip {
+      background: rgba(99,102,241,.08);
+      border: 1px solid rgba(99,102,241,.18);
+      color: var(--primary-light);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .quick-chip:hover {
+      background: rgba(99,102,241,.2);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Feedback Banner */
+    .search-feedback-banner {
+      background: rgba(99,102,241,.12);
+      border: 1px solid rgba(99,102,241,.25);
+      color: var(--text-heading);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: fadeIn .2s ease;
+    }
+
+    /* Modal for Manual Live Reddit Search */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6,11,24,.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.active {
+      display: flex;
+      animation: fadeIn .2s ease;
+    }
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.6);
+      overflow: hidden;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      border-radius: 4px;
+    }
+    .modal-close:hover { color: var(--rose); }
+    .modal-body {
+      padding: 24px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      color: var(--text-heading);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+    }
+    .cmd-preview-box {
+      background: #040711;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--emerald);
+      overflow-x: auto;
+      margin-top: 10px;
+      position: relative;
+    }
+    .cmd-copy-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      font-size: 10px;
+      padding: 3px 8px;
+      background: rgba(255,255,255,.1);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-heading);
+      cursor: pointer;
+    }
+    .cmd-copy-btn:hover {
+      background: var(--primary);
+    }
+
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; align-items: center; }
+    .filter-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .filter-pill {
+      font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 20px;
+      border: 1px solid var(--border); color: var(--text-body); cursor: pointer;
+      transition: all .15s; background: transparent;
+    }
+    .filter-pill:hover { border-color: var(--primary); color: var(--primary-light); }
+    .filter-pill.active { background: rgba(99,102,241,.15); border-color: var(--primary); color: var(--primary-light); }
+    .filter-clear { font-size: 11px; color: var(--primary-light); cursor: pointer; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; margin-left: auto; }
+
+    .results-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+    .evidence-table { display: flex; flex-direction: column; gap: 8px; }
+    .evidence-row {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px 16px; cursor: pointer; transition: all .15s;
+      display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: start;
+    }
+    .evidence-row:hover { border-color: var(--border-hover); background: var(--surface-2); }
+    .evidence-row-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--primary-light); font-weight: 500; padding-top: 2px; }
+    .evidence-row-title { font-size: 13px; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; line-height: 1.4; }
+    .evidence-row-preview { font-size: 12px; color: var(--text-body); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+    .evidence-row-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    /* ── Detail view ── */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .detail-panel-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-human { background: var(--sky); }
+    .dot-ai { background: var(--violet); }
+    .detail-panel-body { padding: 20px; }
+
+    .detail-field { margin-bottom: 14px; }
+    .detail-field:last-child { margin-bottom: 0; }
+    .detail-field-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .detail-field-value { font-size: 13px; color: var(--text-body); line-height: 1.6; }
+    .detail-field-value.heading { color: var(--text-heading); font-weight: 600; font-size: 15px; }
+    .detail-raw-text {
+      background: var(--surface-2); border-radius: var(--radius-sm);
+      padding: 14px; font-size: 13px; color: var(--text-body); line-height: 1.75;
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap;
+    }
+    .external-link { color: var(--primary-light); text-decoration: none; font-size: 12px; }
+    .external-link:hover { text-decoration: underline; }
+    .detail-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; margin-bottom: 20px; font-weight: 500; }
+    .detail-back:hover { color: var(--primary-light); }
+    .confidence-bar { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .confidence-fill { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--violet)); }
+    .confidence-track { flex: 1; background: rgba(255,255,255,.06); border-radius: 3px; height: 5px; }
+    .confidence-val { font-size: 11px; color: var(--text-muted); }
+
+    /* ── Failure Journey ── */
+    .journey-flow { display: flex; align-items: stretch; gap: 0; margin-bottom: 28px; overflow-x: auto; padding-bottom: 4px; }
+    .journey-stage {
+      flex: 1; min-width: 140px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 16px 14px; cursor: pointer;
+      transition: all .15s; position: relative; text-align: center;
+    }
+    .journey-stage:not(:last-child)::after {
+      content: '→'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 16px; z-index: 2; background: var(--bg); padding: 0 2px;
+    }
+    .journey-stage:not(:last-child) { margin-right: 32px; }
+    .journey-stage:hover, .journey-stage.active { border-color: var(--primary); background: rgba(99,102,241,.07); }
+    .journey-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .journey-count { font-size: 24px; font-weight: 700; color: var(--text-heading); }
+    .journey-pct { font-size: 12px; color: var(--primary-light); margin-top: 2px; }
+    .journey-desc { font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+
+    /* ── Stage detail box ── */
+    .stage-detail { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 24px; }
+    .stage-question { font-size: 13px; color: var(--primary-light); font-weight: 600; margin-bottom: 6px; }
+    .stage-explanation { font-size: 13px; color: var(--text-body); line-height: 1.7; }
+
+    /* ── Cue grid ── */
+    .cue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .cue-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 16px; cursor: pointer; transition: all .15s;
+    }
+    .cue-card:hover { border-color: var(--border-hover); background: var(--surface-2); }
+    .cue-icon { font-size: 22px; margin-bottom: 10px; }
+    .cue-name { font-size: 14px; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; }
+    .cue-count { font-size: 12px; color: var(--text-muted); }
+    .cue-bar { height: 3px; border-radius: 2px; background: var(--primary); margin-top: 10px; transition: width .4s; }
+
+    /* ── Workaround cards ── */
+    .workaround-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .workaround-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; transition: all .15s; cursor: pointer;
+    }
+    .workaround-card:hover { border-color: var(--border-hover); }
+    .workaround-icon { font-size: 24px; margin-bottom: 12px; }
+    .workaround-name { font-size: 15px; font-weight: 700; color: var(--text-heading); margin-bottom: 6px; }
+    .workaround-count { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+    .workaround-desc { font-size: 12px; color: var(--text-body); line-height: 1.6; }
+
+    /* ── Friction list ── */
+    .friction-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .friction-row:last-child { border-bottom: none; }
+    .friction-icon { font-size: 18px; width: 24px; text-align: center; }
+    .friction-info { flex: 1; }
+    .friction-name { font-size: 13px; font-weight: 600; color: var(--text-heading); }
+    .friction-count { font-size: 12px; color: var(--text-muted); }
+    .friction-bar-wrap { width: 100px; }
+    .friction-bar { height: 4px; border-radius: 2px; background: var(--rose); }
+
+    /* ── Data quality ── */
+    .quality-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .quality-row:last-child { border-bottom: none; }
+    .quality-key { font-size: 12px; color: var(--text-body); }
+    .quality-val { font-size: 13px; font-weight: 600; color: var(--text-heading); font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 40px; margin-bottom: 14px; opacity: .5; }
+    .empty-state-title { font-size: 15px; font-weight: 600; color: var(--text-label); margin-bottom: 6px; }
+    .empty-state-desc { font-size: 13px; }
+
+    /* ── Callout ── */
+    .callout { background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 12px; color: var(--text-body); line-height: 1.6; }
+    .callout strong { color: var(--primary-light); }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 20px; flex-wrap: wrap; }
+    .breadcrumb-sep { opacity: .4; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* ── Btn ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: all .15s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-ghost { background: transparent; color: var(--text-body); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary-light); }
+
+    /* ── Research note ── */
+    .research-note { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 10px 0; border-top: 1px solid var(--border); margin-top: 16px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-eyebrow">Research Dashboard</div>
+    <div class="brand-title">Google Photos<br>Retrieval Study</div>
+    <div class="brand-sub">V0 + V1 Analysis</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Research</div>
+    <a class="nav-item active" data-page="overview" id="nav-overview">
+      <span class="nav-icon">◈</span> Overview
+    </a>
+    <a class="nav-item" data-page="explorer" id="nav-explorer">
+      <span class="nav-icon">🔍</span> Evidence Explorer
+      <span class="nav-badge">25</span>
+    </a>
+    <div class="nav-section-label">Analysis</div>
+    <a class="nav-item" data-page="failures" id="nav-failures">
+      <span class="nav-icon">⚡</span> Retrieval Failures
+    </a>
+    <a class="nav-item" data-page="cues" id="nav-cues">
+      <span class="nav-icon">🧠</span> Memory Cues
+    </a>
+    <a class="nav-item" data-page="workarounds" id="nav-workarounds">
+      <span class="nav-icon">🔄</span> Workarounds
+    </a>
+    <div class="nav-section-label">Findings</div>
+    <a class="nav-item" data-page="patterns" id="nav-patterns">
+      <span class="nav-icon">✦</span> Research Patterns
+      <span class="nav-badge">4</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <strong>Evidence collected:</strong> Sep 2026<br>
+    Model: llama-3.3-70b-versatile
+  </div>
+</nav>
+
+<!-- Main content -->
+<main id="main">
+
+  <!-- ─── OVERVIEW ─── -->
+  <div class="page active" id="page-overview">
+    <div class="page-header">
+      <div class="page-eyebrow">Research Intelligence</div>
+      <div class="page-title">Google Photos — Vague Memory Retrieval Research</div>
+      <div class="page-desc">Analyzing why users fail to retrieve photos they remember but cannot precisely describe. Based on analyzed public Reddit evidence from r/googlephotos — all findings are traceable to original source records.</div>
+    </div>
+
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="grid-2 section">
+      <div class="card">
+        <div class="card-title">Retrieval Failure Distribution</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="chart-failure"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Memory Cue Frequency</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="chart-cues"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-main-side section">
+      <div class="card">
+        <div class="card-title">Relevance Classification</div>
+        <div id="relevance-bars"></div>
+        <hr class="divider" />
+        <div class="card-title">User Friction Experienced</div>
+        <div id="friction-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Common Workarounds</div>
+        <div id="workaround-bars"></div>
+        <hr class="divider" />
+        <div class="card-title" style="margin-top:4px">Data Quality</div>
+        <div id="data-quality"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recurring Research Patterns</div>
+        <div class="section-count">4 patterns identified</div>
+      </div>
+      <div id="overview-patterns"></div>
+    </div>
+  </div>
+
+  <!-- ─── EXPLORER ─── -->
+  <div class="page" id="page-explorer">
+    <div class="page-header">
+      <div class="page-eyebrow">Evidence Explorer</div>
+      <div class="page-title">Browse & Search Evidence Records</div>
+      <div class="page-desc">All 25 collected records, searchable and filterable. Click any record to inspect the original evidence and AI analysis side-by-side.</div>
+    </div>
+
+    <!-- Upgraded Search Controls with Manual Trigger Button -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="explorer-search" placeholder="Search titles, evidence text, record IDs, subreddits, memory cues…" autocomplete="off" />
+        <button type="button" id="clear-search-btn" class="clear-search-btn" title="Clear search input" style="display:none">✕</button>
+      </div>
+      <button type="button" id="btn-trigger-search" class="btn-search-trigger" title="Click to manually execute search">
+        <span class="btn-icon">⚡</span>
+        <span>Trigger Search</span>
+      </button>
+      <button type="button" id="btn-reset-filters" class="btn-search-reset" title="Reset search & filters">
+        <span>Reset</span>
+      </button>
+      <button type="button" id="btn-live-reddit-modal" class="btn-live-trigger" title="Trigger a live manual search on Reddit">
+        <span class="btn-icon">🌐</span>
+        <span>Manual Reddit Search</span>
+      </button>
+    </div>
+
+    <!-- Quick Search Query Chips -->
+    <div class="quick-searches">
+      <span class="quick-search-label">Quick Suggestions:</span>
+      <button type="button" class="quick-chip" data-query="July 2016">July 2016</button>
+      <button type="button" class="quick-chip" data-query="Passport">Passport</button>
+      <button type="button" class="quick-chip" data-query="Gemini AI">Gemini AI</button>
+      <button type="button" class="quick-chip" data-query="Unrecognized faces">Unrecognized faces</button>
+      <button type="button" class="quick-chip" data-query="Deleted photos">Deleted photos</button>
+      <button type="button" class="quick-chip" data-query="Takeout">Takeout</button>
+      <button type="button" class="quick-chip" data-query="Storage warning">Storage warning</button>
+    </div>
+
+    <!-- Live execution feedback banner -->
+    <div id="search-feedback-banner" class="search-feedback-banner" style="display:none;"></div>
+
+    <div class="filter-row">
+      <span class="filter-label">Relevance:</span>
+      <button class="filter-pill active" data-filter="relevance" data-val="all">All</button>
+      <button class="filter-pill" data-filter="relevance" data-val="relevant">Relevant</button>
+      <button class="filter-pill" data-filter="relevance" data-val="possibly_relevant">Possibly Relevant</button>
+      <button class="filter-pill" data-filter="relevance" data-val="irrelevant">Irrelevant</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Failure Stage:</span>
+      <button class="filter-pill active" data-filter="stage" data-val="all">All</button>
+      <button class="filter-pill" data-filter="stage" data-val="memory_to_query">Memory → Query</button>
+      <button class="filter-pill" data-filter="stage" data-val="query_to_system">Query → System</button>
+      <button class="filter-pill" data-filter="stage" data-val="system_to_candidate">System → Candidate</button>
+      <button class="filter-pill" data-filter="stage" data-val="search_refinement">Search Refinement</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">Memory Cue:</span>
+      <button class="filter-pill active" data-filter="cue" data-val="all">All</button>
+      <button class="filter-pill" data-filter="cue" data-val="person">Person</button>
+      <button class="filter-pill" data-filter="cue" data-val="place_location">Place</button>
+      <button class="filter-pill" data-filter="cue" data-val="temporal_epoch">Time</button>
+      <button class="filter-pill" data-filter="cue" data-val="object">Object</button>
+      <button class="filter-pill" data-filter="cue" data-val="text_in_image">Text in Image</button>
+      <span class="filter-clear" id="clear-filters">Clear filters</span>
+    </div>
+
+    <div class="results-meta" id="explorer-meta"></div>
+    <div class="evidence-table" id="evidence-list"></div>
+    <div class="empty-state" id="explorer-empty" style="display:none">
+      <div class="empty-state-icon">🔎</div>
+      <div class="empty-state-title">No matching records</div>
+      <div class="empty-state-desc">Try adjusting your search terms or removing filters.</div>
+    </div>
+  </div>
+
+  <!-- ─── DETAIL ─── -->
+  <div class="page" id="page-detail">
+    <div class="detail-back" id="detail-back">← Back to Evidence Explorer</div>
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- ─── FAILURES ─── -->
+  <div class="page" id="page-failures">
+    <div class="page-header">
+      <div class="page-eyebrow">Retrieval Failures</div>
+      <div class="page-title">Where Does Retrieval Break?</div>
+      <div class="page-desc">Each stage represents a point in the cognitive-to-system retrieval chain where the process fails. Click any stage to explore the supporting evidence.</div>
+    </div>
+
+    <div class="journey-flow" id="journey-flow"></div>
+    <div id="stage-detail-box"></div>
+
+    <div class="grid-2 section">
+      <div class="card">
+        <div class="card-title">Failure Point Breakdown</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="chart-failure-points"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Memory Cue × Failure Stage Cross-tab</div>
+        <div id="crosstab"></div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:8px">
+      <strong>Research note:</strong> These stages represent observed failure patterns from a 25-record sample. Percentages are relative to the 12 relevant/possibly-relevant records. Numbers are directional, not statistically conclusive.
+    </div>
+  </div>
+
+  <!-- ─── MEMORY CUES ─── -->
+  <div class="page" id="page-cues">
+    <div class="page-header">
+      <div class="page-eyebrow">Memory Cues</div>
+      <div class="page-title">What Users Remember About Photos</div>
+      <div class="page-desc">When users search for a photo they remember, these are the cognitive cues they naturally recall and use. Each cue represents a dimension of human visual memory. Click any cue to see supporting evidence.</div>
+    </div>
+    <div class="cue-grid" id="cue-grid"></div>
+    <hr class="divider" />
+    <div class="grid-2 section">
+      <div class="card">
+        <div class="card-title">Cue Distribution</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="chart-cue-detail"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cue → Failure Stage Mapping</div>
+        <div id="cue-stage-map"></div>
+      </div>
+    </div>
+    <div class="research-note">⚠ These patterns represent behaviors observed in the collected research evidence (25 Reddit records). They are not population-level statistics and should be treated as directional research hypotheses pending validation through user interviews.</div>
+  </div>
+
+  <!-- ─── WORKAROUNDS ─── -->
+  <div class="page" id="page-workarounds">
+    <div class="page-header">
+      <div class="page-eyebrow">Workarounds</div>
+      <div class="page-title">What Users Do When Retrieval Fails</div>
+      <div class="page-desc">When normal search doesn't work, users develop informal coping strategies. These workarounds reveal where the system falls short and what users actually need.</div>
+    </div>
+
+    <div class="workaround-grid" id="workaround-grid"></div>
+
+    <hr class="divider" />
+
+    <div class="grid-2 section">
+      <div class="card">
+        <div class="card-title">Workaround Frequency</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="chart-workaround"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">User Friction Signals</div>
+        <div id="friction-detail"></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Observed pattern:</strong> Endless scrolling is the dominant workaround — not because it works, but because no alternative recovery path exists within the product. Abandonment is the terminal state when scrolling fails.
+    </div>
+  </div>
+
+  <!-- ─── PATTERNS ─── -->
+  <div class="page" id="page-patterns">
+    <div class="page-header">
+      <div class="page-eyebrow">Research Patterns</div>
+      <div class="page-title">Recurring Findings from the Evidence</div>
+      <div class="page-desc">These patterns were synthesized from AI analysis of 25 Reddit evidence records. Each finding is backed by traceable citations. Click any record ID to inspect the full evidence and source.</div>
+    </div>
+    <div class="callout" style="margin-bottom:24px">
+      <strong>Classification:</strong> These are <em>research patterns</em> — emerging hypotheses observed in the evidence, not validated conclusions. They should be tested through user interviews before being treated as confirmed product problems.
+    </div>
+    <div id="patterns-list"></div>
+  </div>
+
+</main>
+
+<!-- Live Reddit Search Modal -->
+<div id="live-search-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span style="font-size:18px">🌐</span> Trigger Manual Reddit Search
+      </div>
+      <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="manual-search-query">Search Keyword / Query</label>
+        <input type="text" id="manual-search-query" class="form-input" placeholder="e.g. google photos cant find old photo" value="Google Photos search not working" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label" for="manual-search-sub">Target Subreddit</label>
+          <select id="manual-search-sub" class="form-select">
+            <option value="googlephotos" selected>r/googlephotos (Primary)</option>
+            <option value="GooglePixel">r/GooglePixel</option>
+            <option value="Android">r/Android</option>
+            <option value="iphone">r/iphone</option>
+            <option value="all">r/all (Global)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="manual-search-limit">Record Limit</label>
+          <select id="manual-search-limit" class="form-select">
+            <option value="10">10 records</option>
+            <option value="25" selected>25 records</option>
+            <option value="50">50 records</option>
+            <option value="100">100 records</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="margin-top:6px;display:flex;gap:10px">
+        <button type="button" id="btn-execute-live-search" class="btn-search-trigger" style="flex:1;justify-content:center">
+          <span class="btn-icon">🚀</span> Execute Live Search Now
+        </button>
+      </div>
+
+      <div id="live-search-status" style="margin-top:14px;font-size:12px;color:var(--text-muted);display:none;background:rgba(255,255,255,.03);padding:10px;border-radius:6px;border:1px solid var(--border)"></div>
+
+      <div style="margin-top:16px">
+        <div class="form-label">Or Run in Terminal Directly:</div>
+        <div class="cmd-preview-box">
+          <button type="button" class="cmd-copy-btn" id="copy-cmd-btn">Copy</button>
+          <code id="cmd-preview-code">.venv\Scripts\python.exe main.py --mode collect --config config/queries.yaml --limit 25</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════
+const RECORDS = [
+  {record_id:"RD_000012",title:"I just noticed Google has deleted YEARS worth of photos from my backup",raw_text:"Hi, I have no idea where to start. I went to look up photos of my grandma, and I noticed most are now missing with no clue on when or how they ever got deleted. Ive been using Google photos since 2012 and many of my photos from 2012 up to 2019 are just GONE. Why and how did this happen??\n\nSlight update: I still haven't gotten many of my photos back BUT there are two things that helped a little: firstly searching for a month and year instead of scrolling through. The other may be to change your membership, I recently got the offer for a year free for the student membership.\n\nBiggest thing, there are a lot of us who have had this experience!",url:"https://reddit.com/r/googlephotos/comments/1lyo0fc/i_just_noticed_google_has_deleted_years_worth_of/",author:"rachelschmitz_",subreddit:"googlephotos",created_at:"2025-07-13T08:42:03Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0,relevance_reasoning:"",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"memory_to_query",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:""}},
+  {record_id:"RD_000013",title:"Google photos — what people don't understand in my opinion",raw_text:"Google photos is so much more than a storage location. The ability to search for people, places, and other things that you haven't actually identified but Google AI does makes it so valuable. Recently I wanted to find a picture of myself and my wife sitting in front of some tulips about 5 years ago. So I just typed that description in and found it in 2 minutes. That's the kind of thing you can do in Google photos that you can't do in a standard storage environment.",url:"https://reddit.com/r/googlephotos/comments/1eqbi8x/google_photos_what_people_dont_understand_in_my/",author:"twestheimer",subreddit:"googlephotos",created_at:"2024-08-12T11:44:37Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.98,relevance_reasoning:"The post describes a successful search without any retrieval difficulty — a positive counterexample.",target_media:"personal_photo",memory_cues_present:["person","place_location","temporal_epoch","object"],memory_cue_details:{person:"myself and my wife",place_location:"in front of some tulips",temporal_epoch:"about 5 years ago",object:"tulips"},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"None",workarounds_used:[],friction_experienced:[],desired_outcome:"Locate a photo of the user and their spouse standing in front of tulips taken roughly five years ago."}},
+  {record_id:"RD_000014",title:"Why did they ruin Google photos search???",raw_text:"Just last week, Google Photos search was awesome. Need a pic of passport? Just type \"Passport\". Forgot your Known Traveler Number? Search \"Global Entry Card\". Now I search any of the above and it shows me thousands of photos with absolutely no relevance. What happened?",url:"https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",author:"NeillDrake",subreddit:"googlephotos",created_at:"2024-10-04T03:41:21Z",analysis:{is_relevant:true,relevance_classification:"relevant",relevance_confidence:0.95,relevance_reasoning:"The user describes a specific retrieval failure where searching for distinct document types returns irrelevant results — a clear vocabulary mismatch breakdown.",target_media:"document_receipt",memory_cues_present:["text_in_image","object"],memory_cue_details:{text_in_image:"User searches for specific text-based identifiers like 'Passport' and 'Global Entry Card'.",object:"The target items are physical documents (passport, card) depicted in the photos."},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"Now I search any of the above and it shows me thousands of photos with absolutely no relevance.",workarounds_used:[],friction_experienced:["frustration_with_search_tool"],desired_outcome:"To quickly locate specific document photos (passport, Global Entry card) using keyword search."}},
+  {record_id:"RD_000015",title:"Black-mask type photo appearing in my Google Photos Camera Roll?",raw_text:"One of these appears in a random spot next to old photos (2-3 years) in my google photos camera roll every few weeks as I go through my photos. Does anyone know what it is? It's kinda freaky.\n\nSOLVED — figured out that this happened when I synced my Mac with my Google Drive. It came from CapCut. I was not hacked.",url:"https://reddit.com/r/googlephotos/comments/1pokg67/blackmask_type_photo_appearing_in_my_google/",author:"lighthousegamingYT",subreddit:"googlephotos",created_at:"2025-12-17T02:03:48Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0,relevance_reasoning:"Analysis error: JSON decode failed (API 400). Post concerns unexpected sync artifacts, not retrieval failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:""}},
+  {record_id:"RD_000016",title:"Google Photos app not available in App Store?",raw_text:"It seems that Google forgot to add Photos app to App Store in Bosnia and Serbia. The Google Photos service and subscription are officially available in both countries, and the app is officially available in Google Play Store. But not on iOS. Does someone know how to raise this issue with someone at their support team?",url:"https://reddit.com/r/googlephotos/comments/1vxd2sj/google_photos_app_not_available_in_app_store/",author:"Medium_Respond_9650",subreddit:"googlephotos",created_at:"2026-08-24T19:37:23Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.99,relevance_reasoning:"Post concerns app availability in the App Store, not a vague-memory photo retrieval problem.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"None",workarounds_used:[],friction_experienced:[],desired_outcome:"Contact Google support to request the iOS app be listed in the App Store for Bosnia and Serbia."}},
+  {record_id:"RD_000017",title:"Google is evil and photos proves it",raw_text:"I have been trying for months to get my photos from google so that I can get tf away from this company and I'm still trying.\n\nI tried takeout-to-apple direct approach but the takeouts that landed at apple were missing so much of my photo/video collection. And this is a silent failure. So I tried a standard takeout so that I can download the archives myself. Same deal. Things would be missing. Tried it again and DIFFERENT things would be missing.",url:"https://reddit.com/r/googlephotos/comments/1ug4ry2/google_is_evil_and_photos_proves_it/",author:"tirdg",subreddit:"googlephotos",created_at:"2026-06-26T11:58:51Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"User is complaining about data export failures during migration, not inability to retrieve a specific photo due to vague memory.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"missing_metadata",failure_evidence:"Takeouts that landed at apple were missing so much of my photo/video collection.",workarounds_used:["abandonment"],friction_experienced:["frustration_with_search_tool"],desired_outcome:"Successfully export and transfer all photos from Google Photos to Apple Photos without data loss."}},
+  {record_id:"RD_000018",title:"Google Photos Takeout duplicate file names — different photos",raw_text:"Hi. I have some photos in Google Photos that share the same filename but are actually different images. After exporting them with Google Takeout, one of the duplicates is renamed by appending (1) to the filename. When I run Metadata Fixer on these photos, the metadata gets mixed up.",url:"https://reddit.com/r/googlephotos/comments/1vi6sag/google_photos_takeout_duplicate_file_names/",author:"Both_Risk_8103",subreddit:"googlephotos",created_at:"2026-08-07T17:19:54Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.99,relevance_reasoning:"Post concerns duplicate filenames and metadata fixing during Takeout export, not vague-memory retrieval.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:"Correct the mismatched metadata for duplicate-named photos after Google Takeout."}},
+  {record_id:"RD_000019",title:"The undo backup option deleted photos from my phone gallery",raw_text:"2 months worth of photos are missing from my phone???? How is this possible. The undo backup option was supposed to delete from the account not from my phone.",url:"https://reddit.com/r/googlephotos/comments/1vrhaxa/the_undo_backup_option_deleted_photos_from_my/",author:"killsyndrome",subreddit:"googlephotos",created_at:"2026-08-18T06:34:27Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"User reports a data synchronization and backup error — a technical sync issue rather than vague-memory retrieval failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"missing_metadata",failure_evidence:"The undo backup option deleted photos from my phone gallery but photos are still on my google account.",workarounds_used:[],friction_experienced:["device_storage_anxiety"],desired_outcome:"Restore the missing photos to the local phone gallery."}},
+  {record_id:"RD_000020",title:"How to set Google Photos to default and delete/disable Samsung Gallery",raw_text:"New Fold 8 user. Switched from a Pixel fold. I'm trying to disable the Samsung gallery and only use Google Photos... But I'm not having any luck. All of the Google search and AI suggestions don't line up with the options I have on my phone. For example the \"disable\" button on the Gallery apps section via settings is grayed out.",url:"https://reddit.com/r/googlephotos/comments/1vu0bfa/how_to_set_google_photos_to_default_and/",author:"wmdc13",subreddit:"googlephotos",created_at:"2026-08-20T23:57:50Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:1.0,relevance_reasoning:"User is asking for technical assistance on how to change default app settings — a configuration issue, not retrieval.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"query_to_system",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"All of the Google search and AI suggestions don't line up with the options I have on my phone.",workarounds_used:[],friction_experienced:["frustration_with_search_tool"],desired_outcome:"To set Google Photos as the default gallery app and disable the Samsung Gallery app."}},
+  {record_id:"RD_000021",title:"WHOA, Google Photos — seriously, WTF?",raw_text:"Using Google Photos in a web browser, I just tried to search for a photo. Instead of providing the results by date, it gives me results based on what it thinks is the \"relevance\" of each photo. More critically, there is no option to go back to \"show results by date.\" MY DUDES. WTF. I NEED TO BE ABLE TO LOOK THEM THROUGH CHRONOLOGICALLY. Seriously! What the hell?!",url:"https://reddit.com/r/googlephotos/comments/1l1ssr7/whoa_google_photos_seriously_wtf/",author:"Alaska_Jack",subreddit:"googlephotos",created_at:"2025-06-02T20:30:35Z",analysis:{is_relevant:true,relevance_classification:"relevant",relevance_confidence:0.9,relevance_reasoning:"User explicitly describes inability to search chronologically — the AI search override removed a key retrieval cue (date order).",target_media:"personal_photo",memory_cues_present:["temporal_epoch"],memory_cue_details:{temporal_epoch:"User needs chronological result ordering to find photos by date"},retrieval_failure_stage:"query_to_system",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"There is no option to go back to 'show results by date.'",workarounds_used:[],friction_experienced:["frustration_with_search_tool"],desired_outcome:"View photos in chronological date order when searching."}},
+  {record_id:"RD_000022",title:"How to un-sync an iPhone from Google Photos without deleting every photo from iPhone",raw_text:"Hello Reddit! I went on a trip with friends and they sent me a google photos link so i can share all the photos. I have never used google photos before. Well I guess I had the 'sync everything' button on and it automatically synced almost my entire photo album. 25k photos. Because my photos on my iPhone and Google Photos are synced, if I delete anything off Google Photos, it will be deleted off my phone and even iCloud.",url:"https://reddit.com/r/googlephotos/comments/1vnlmml/how_to_unsync_an_iphone_from_google_photos/",author:"blaketlewis",subreddit:"googlephotos",created_at:"2026-08-13T20:01:45Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"User is concerned about sync settings and deletion, not retrieving a photo from memory.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:"Un-sync iPhone from Google Photos without deleting photos from iPhone/iCloud."}},
+  {record_id:"RD_000023",title:"I can no longer search for photos by date",raw_text:"I have saved photos from when my child was a baby in Google photos. I've always been able to search by date, for example \"July 2016,\" but now when I do that it says I can't search using those terms. I don't see any option to disable the AI search feature. I'm going to have to migrate all of my photos to a different platform if this keeps up, there's no point in storing photos if I can't search for them without AI.",url:"https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/",author:"NiceCandle5357",subreddit:"googlephotos",created_at:"2026-07-22T13:51:41Z",analysis:{is_relevant:true,relevance_classification:"relevant",relevance_confidence:0.95,relevance_reasoning:"The user describes a specific breakdown in retrieving photos using a temporal memory cue ('July 2016') due to system changes — direct retrieval friction.",target_media:"personal_photo",memory_cues_present:["temporal_epoch","person"],memory_cue_details:{temporal_epoch:"July 2016",person:"my child was a baby"},retrieval_failure_stage:"query_to_system",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"I've always been able to search by date, for example 'July 2016,' but now when I do that it says I can't search using those terms.",workarounds_used:["abandonment"],friction_experienced:["frustration_with_search_tool","fear_of_memory_loss"],desired_outcome:"To retrieve specific baby photos from July 2016 using a date-based search query without relying on AI interpretation."}},
+  {record_id:"RD_000024",title:"How many of you still use Google Photos? Usage reduced since 2019",raw_text:"After 2019, I started reducing my Google Photos usage because it slowly became more of a problem than a convenience for me. The app already feels bloated, but the bigger issue is how deeply it is tied into Google's unified storage system. If Google Photos backup is enabled, it can quickly fill up your Google account storage. Once that happens, other important services like Gmail and Google Drive can stop working properly.",url:"https://reddit.com/r/googlephotos/comments/1sznq0k/how_many_of_you_still_use_google_photos_ive/",author:"malviys",subreddit:"googlephotos",created_at:"2026-04-30T06:12:20Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0,relevance_reasoning:"",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:""}},
+  {record_id:"RD_000025",title:"Google photos missing features",raw_text:"I have been using the Google Photos App on pure Android phones for many years. I've generally been happy with the service. However there are a couple features that should be added:\n\n- Manual Face & Person Tagging: Google Photos currently only lets you tag people if its algorithm detects a clear face.\n\n- Album Search Bar: it's a pain to search through large albums (some of mine have over 1,000 photos!) Adding a dedicated search bar inside individual albums would make finding specific photos of people or tags much faster.",url:"https://reddit.com/r/googlephotos/comments/1vu4zfx/google_photos_missing_features/",author:"LMNOPAUL",subreddit:"googlephotos",created_at:"2026-08-21T03:31:45Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.85,relevance_reasoning:"The user explicitly describes friction finding specific photos within large albums due to lack of a search bar — retrieval friction and volume overload.",target_media:"personal_photo",memory_cues_present:["person","object"],memory_cue_details:{person:"User mentions finding specific photos of people or tags",object:"User refers to 'large albums' containing over 1,000 photos"},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"volume_overload",failure_evidence:"It's a pain to search through large albums (some of mine have over 1,000 photos!) Adding a dedicated search bar inside individual albums would make finding specific photos of people or tags much faster.",workarounds_used:["endless_scrolling"],friction_experienced:["time_wasted","cognitive_overload"],desired_outcome:"To quickly locate specific photos within large albums using a dedicated search bar."}},
+  {record_id:"RD_000026",title:"What Gemini said about Google Photos search function being broken",raw_text:"Quote from Gemini:\n\nThe Death of Product Ownership — Google's internal promotion system is heavily criticized by its own engineers. Engineers and product managers at Google do not get promoted for maintaining a product or making sure it actually works. They get promoted for launching new things — specifically, anything with 'AI' in the title.\n\nThe team that launched the broken vector search over a year ago likely already got their promotions and moved on. The engineers left behind are stuck maintaining a deeply flawed system they didn't build.",url:"https://reddit.com/r/googlephotos/comments/1tc7fga/what_gemini_said_about_google_photos_search/",author:"The_Texan_Hunter",subreddit:"googlephotos",created_at:"2026-05-13T17:56:52Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0,relevance_reasoning:"Analysis error: JSON decode failed. Post is a philosophical/organizational critique of Google, not a user retrieval failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:[],desired_outcome:""}},
+  {record_id:"RD_000027",title:"Google photos stuck on \"setting up your library\"",raw_text:"I've got the exact same version gphotos installed in both my main profile and work profile. Main profile works 100% fine. But the app in work profile logs into my account fine, but gets permanently stuck on \"Setting up your library\" and the main timeline stays completely empty.\n\nThe crazy part is sometimes if I go to the search tab inside the app and search for photo, my backed-up photos actually pop up there. They just refuse to load into the main gallery view.",url:"https://reddit.com/r/googlephotos/comments/1w2hzit/google_photos_stuck_on_setting_up_your_library/",author:"lime_131",subreddit:"googlephotos",created_at:"2026-08-30T13:45:20Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.6,relevance_reasoning:"Photos are visible via search tab but not the main view — a candidate presentation failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"memory_to_query",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"Main timeline stays completely empty. Photos pop up in search tab but refuse to load into main gallery view.",workarounds_used:[],friction_experienced:[],desired_outcome:"View backed-up photos in the main gallery view."}},
+  {record_id:"RD_000028",title:"Google Photos' New AI Search Sucks",raw_text:"Anyone else notice how bad the new Google Photos Search is? Yesterday, for example, I search for pics with the new version, and it gave me 2 pics. It did show I could click to \"see more\", but clicking on that gave a screen that said \"no more results\". I of course had MANY photos so I switched back to \"Classic Search\" and put in same word and got all the pics I was expecting, and in date order and with the date showing! NOT the first time I've used the new search and found it completely useless.",url:"https://reddit.com/r/googlephotos/comments/1kucfki/google_photos_new_ai_search_sucks/",author:"PWM30",subreddit:"googlephotos",created_at:"2025-05-24T14:06:10Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.75,relevance_reasoning:"AI search returns severely truncated results compared to Classic Search — direct retrieval regression.",target_media:"personal_photo",memory_cues_present:["person","object"],memory_cue_details:{person:"I searched for 'pics'",object:"no exact object"},retrieval_failure_stage:"memory_to_query",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"New AI search gave 2 pics then said 'no more results'. Classic Search returned all expected photos in date order.",workarounds_used:[],friction_experienced:[],desired_outcome:"Ability to find photos by date and context."}},
+  {record_id:"RD_000029",title:"Less than 10% storage remaining on Google photos message",raw_text:"Every time I open up photos on my phone, I get the 10% warning and no idea why. I'm using the app called \"photos\" that came on my Oppo find x5, I do not use the Google photos app and I do not have back ups turned on. I have checked photos.google.com and I have one photo on there and no videos.",url:"https://reddit.com/r/googlephotos/comments/1u72jlt/less_than_10_storage_remaining_on_google_photos/",author:"Betsypix",subreddit:"googlephotos",created_at:"2026-06-16T03:43:43Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"User is not attempting to retrieve a photo; they are concerned about a storage warning.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"search_refinement",retrieval_failure_point:"missing_metadata",failure_evidence:"User reports a storage warning despite having only one photo.",workarounds_used:["keyword_guessing"],friction_experienced:["frustration_with_search_tool"],desired_outcome:"Understand what is consuming the storage quota."}},
+  {record_id:"RD_000030",title:"Gemini broke Google Photos",raw_text:"I'm pretty disappointed — Google Photos was the undisputed king of image storage and organization imo. But with all of these AI updates, I find it increasingly frustrating to use. It's beyond slow in almost every aspect. Beyond loading speeds, the Gemini AI search is just plain inferior to the old system. It's laggy and gives worse results to its predecessor. I like that I got Gemini Pro as a 'free' upgrade but the only thing keeping me in the service is the fact that Apple's search is vastly inferior.",url:"https://reddit.com/r/googlephotos/comments/1rnp4uc/gemini_broke_google_photos/",author:"bostonshuffler",subreddit:"googlephotos",created_at:"2026-03-07T23:42:40Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.65,relevance_reasoning:"Gemini AI search is described as giving worse retrieval results than the predecessor system.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"memory_to_query",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"The Gemini AI search is just plain inferior to the old system. It's laggy and gives worse results.",workarounds_used:[],friction_experienced:[],desired_outcome:"Retrieve specific memories with performance matching the pre-Gemini system."}},
+  {record_id:"RD_000031",title:"Google Photos alternative?",raw_text:"I like Google Photos except for two pain points: My wife and I want our photos to upload to the same storage bucket and be searchable and categorizable together. Dropbox seems like a reasonable alternative since we can share one account. However, it doesn't have the AI search tool Google Photo has, so searching for images of someone/something is a very manual process.",url:"https://reddit.com/r/googlephotos/comments/1kvewzt/google_photos_alternative/",author:"Bad_Mechanic",subreddit:"googlephotos",created_at:"2025-05-25T22:30:31Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"The post discusses general search limitations and backup workflow, not a specific vague-memory retrieval failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"",retrieval_failure_point:"",failure_evidence:"",workarounds_used:[],friction_experienced:["time_wasted","frustration_with_search_tool"],desired_outcome:"A unified photo library for both partners that can be AI-searched and categorized together."}},
+  {record_id:"RD_000032",title:"Google Photos shared album taking up too much space",raw_text:"My account storage is now almost full and I don't know how to clear up space without deleting everything from the shared album as well, AND how to stop auto-saving everything I share. A quick google search seems to be outdated since I cannot find anywhere to stop the shared album from auto-saving photos I upload.",url:"https://reddit.com/r/googlephotos/comments/1v2p8kj/google_photos_shared_album_taking_up_too_much/",author:"A_Funky_Goose",subreddit:"googlephotos",created_at:"2026-07-21T17:32:41Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.3,relevance_reasoning:"User cannot locate the correct setting to stop auto-saving — a settings retrieval failure.",target_media:"personal_photo",memory_cues_present:["person","object"],memory_cue_details:{person:"vague_memory",object:"vague_memory"},retrieval_failure_stage:"memory_to_query",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"I cannot find anywhere to stop the shared album from auto-saving photos I upload.",workarounds_used:[],friction_experienced:[],desired_outcome:"Stop auto-saving to shared album and clear up storage without deleting everything from the shared album."}},
+  {record_id:"RD_000033",title:"Finding the \"Unrecognized\" or \"Face available to Add\" — How I finally automated the discovery of thousands of hidden faces",raw_text:"I am at my breaking point. I have over 85,000 photos in my library and the number still increasing, and Google Photos has completely failed to manage all faces.\n\nThe core problem? The \"Unrecognized\" faces or \"Face available to Add\" — We all know they are there buried deep and Google makes it impossible to see a list of them. You can't search, filter or even use the AI Ask photos feature. The manually clicking through 85,000 photos to find which ones have an 'Available to add' tag is a literal prison sentence.\n\nSo I decided to stop waiting for Google to fix their product and built my own scanner to extract these hidden faces.",url:"https://reddit.com/r/googlephotos/comments/1tirpw1/finding_the_unrecognized_or_face_available_to_add/",author:"mohdnader",subreddit:"googlephotos",created_at:"2026-05-20T16:57:44Z",analysis:{is_relevant:true,relevance_classification:"possibly_relevant",relevance_confidence:0.65,relevance_reasoning:"User describes significant friction in managing 85,000-photo library where specific items cannot be retrieved via standard search, forcing manual or automated workaround — aligns with 'possibly_relevant'.",target_media:"personal_photo",memory_cues_present:["person"],memory_cue_details:{person:"The user is looking for photos containing 'Unrecognized' or 'Face available to Add' tags — people whose identities are not yet labeled."},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"volume_overload",failure_evidence:"Google Photos has completely failed to manage all faces. You can't search, filter or even use the AI Ask photos feature. The manually clicking through 85,000 photos to find which ones have an 'Available to add' tag is a literal prison sentence.",workarounds_used:["endless_scrolling"],friction_experienced:["time_wasted","frustration_with_search_tool","cognitive_overload"],desired_outcome:"To identify and list all photos in the library that contain unrecognized faces so they can be labeled, without manually browsing 85,000 images."}},
+  {record_id:"RD_000034",title:"My Google Photos are showing in husband's Google Photos",raw_text:"Driving myself crazy trying to figure out why my Google Photos are now in my husband's separate Google Photos! We have different accounts. We're both only logged in to our own accounts. I've tried logging in via web to his Google account and searching his photos by my phone name, but that isn't showing all the photos.",url:"https://reddit.com/r/googlephotos/comments/1ud7fm0/my_google_photos_are_showing_in_husbands_google/",author:"HappyWolf-00353845",subreddit:"googlephotos",created_at:"2026-06-23T04:46:33Z",analysis:{is_relevant:false,relevance_classification:"irrelevant",relevance_confidence:0.95,relevance_reasoning:"User is experiencing a synchronization and account management issue, not a failure to retrieve a specific photo based on vague memory.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"query_to_system",retrieval_failure_point:"missing_metadata",failure_evidence:"I've tried logging in via web to his Google account and searching his photos by my phone name, but that isn't showing all the photos.",workarounds_used:["keyword_guessing"],friction_experienced:["frustration_with_search_tool"],desired_outcome:"Remove all personal photos from the husband's Google Photos account."}},
+  {record_id:"RD_000035",title:"what did google do to photos overnight?",raw_text:"I run a metal fab shop and I used to be able to search for a single word like \"redeye\" or \"coyote\" and it would pull up any artwork or piece that I made that has the text in it or was part of a logo so I could send it to a customer and show them while on the phone with them. literally yesterday it was working. now when I search for them it doesn't pull anything up. lucky for me I use a watermark and it still reads that, but now I can't just search for the style, I have to scroll through thousands of images to find a good example.\n\nUpdate: looked into immich and hosting my own photo server. Set up the server on an old laptop using chatgpt codex. took 15 minutes. Can now search my photos and the search works so much better than Google photos. 26k photos moved over with ease.",url:"https://reddit.com/r/googlephotos/comments/1u2729t/what_did_google_do_to_photos_overnight/",author:"Shadow-1334",subreddit:"googlephotos",created_at:"2026-06-10T16:25:07Z",analysis:{is_relevant:true,relevance_classification:"relevant",relevance_confidence:0.95,relevance_reasoning:"User reports that Google Photos no longer returns any results for specific text cues, forcing manual scrolling through 26k images — a clear vague-memory retrieval failure.",target_media:"personal_photo",memory_cues_present:["text_in_image","object"],memory_cue_details:{text_in_image:"Search for a single word like 'redeye' or 'coyote' that appears in the artwork",object:"Artwork or piece that has the text in it or was part of a logo"},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"vocabulary_mismatch",failure_evidence:"Now when I search for them it doesn't pull anything up.",workarounds_used:["endless_scrolling"],friction_experienced:["time_wasted","frustration_with_search_tool"],desired_outcome:"Quickly locate and retrieve specific artwork images containing given text to share with customers."}},
+  {record_id:"RD_000036",title:"Google Photos app vs. website showing different photos",raw_text:"I've run into a strange issue. A few days ago, I started clearing my local phone storage by deleting photos that were already backed up in Google Photos — something I've done many times before.\n\nNow, I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab. Strangely, all the photos appear perfectly fine on the Google Photos website.",url:"https://reddit.com/r/googlephotos/comments/1uwcxgs/google_photos_app_vs_website_showing_different/",author:"Due_Beautiful1510",subreddit:"googlephotos",created_at:"2026-07-14T16:04:25Z",analysis:{is_relevant:true,relevance_classification:"relevant",relevance_confidence:0.95,relevance_reasoning:"User is attempting to retrieve photos that are missing from the app's main view — a candidate presentation failure.",target_media:"personal_photo",memory_cues_present:[],memory_cue_details:{},retrieval_failure_stage:"system_to_candidate",retrieval_failure_point:"missing_metadata",failure_evidence:"Now, I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab.",workarounds_used:[],friction_experienced:["frustration_with_search_tool"],desired_outcome:"Have the missing photos appear in the main Photos tab of the Google Photos app."}}
+];
+
+const PATTERNS = [
+  {id:"PAT_002",name:"Vocabulary & Semantic Label Mismatch",prevalence:9,pct:75,summary:"Users search using natural language, emotional descriptions, or everyday terms that do not match the system's metadata or AI image labels. The result is either thousands of irrelevant photos or zero results — even when the target photo definitely exists.",stage:"system_to_candidate",cues:["object","text_in_image","person"],workaround:"endless_scrolling",failure_point:"vocabulary_mismatch",evidence:[{id:"RD_000014",quote:"Now I search any of the above and it shows me thousands of photos with absolutely no relevance.",url:"https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/"},{id:"RD_000035",quote:"Now when I search for them it doesn't pull anything up. I have to scroll through thousands of images.",url:"https://reddit.com/r/googlephotos/comments/1u2729t/what_did_google_do_to_photos_overnight/"},{id:"RD_000012",quote:"I went to look up photos of my grandma, and I noticed most are now missing with no clue on when or how they ever got deleted.",url:"https://reddit.com/r/googlephotos/comments/1lyo0fc/i_just_noticed_google_has_deleted_years_worth_of/"}]},
+  {id:"PAT_001",name:"Chronological Fatigue in Large Galleries",prevalence:4,pct:33,summary:"Users retain episodic memory anchored to a rough time period ('July 2016', 'when my child was a baby'). When date-based filtering is absent or broken, they are forced into manual timeline scrolling through thousands of photos — always ending in exhaustion or abandonment.",stage:"query_to_system",cues:["temporal_epoch","person"],workaround:"abandonment",failure_point:"vocabulary_mismatch",evidence:[{id:"RD_000023",quote:"I've always been able to search by date, for example 'July 2016,' but now when I do that it says I can't search using those terms.",url:"https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/"},{id:"RD_000021",quote:"I NEED TO BE ABLE TO LOOK THEM THROUGH CHRONOLOGICALLY. Seriously! What the hell?!",url:"https://reddit.com/r/googlephotos/comments/1l1ssr7/whoa_google_photos_seriously_wtf/"},{id:"RD_000033",quote:"The manually clicking through 85,000 photos to find which ones have an 'Available to add' tag is a literal prison sentence.",url:"https://reddit.com/r/googlephotos/comments/1tirpw1/finding_the_unrecognized_or_face_available_to_add/"}]},
+  {id:"PAT_003",name:"Untagged Screenshot & Document Clutter",prevalence:2,pct:17,summary:"Informational visual media (receipts, screenshots, logos, documents) gets drowned in photo feeds, making them unretrievable when exact text isn't indexed. Users who rely on photos as functional memory aids (not just personal memories) are especially affected.",stage:"system_to_candidate",cues:["text_in_image","object"],workaround:"endless_scrolling",failure_point:"vocabulary_mismatch",evidence:[{id:"RD_000014",quote:"Need a pic of passport? Just type 'Passport'. Forgot your Known Traveler Number? Search 'Global Entry Card'. Now it shows thousands of photos with absolutely no relevance.",url:"https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/"},{id:"RD_000035",quote:"Now when I search for them it doesn't pull anything up.",url:"https://reddit.com/r/googlephotos/comments/1u2729t/what_did_google_do_to_photos_overnight/"}]},
+  {id:"PAT_004",name:"Missing Metadata & Device Migration Loss",prevalence:2,pct:17,summary:"Photos transferred across devices, platforms, or cloud syncs lose timestamps or geotags, breaking timeline navigation and date-based search. Users often don't realize the metadata is gone until a search fails unexpectedly.",stage:"system_to_candidate",cues:["temporal_epoch"],workaround:"abandonment",failure_point:"missing_metadata",evidence:[{id:"RD_000023",quote:"I've always been able to search by date, for example 'July 2016,' but now when I do that it says I can't search using those terms.",url:"https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/"},{id:"RD_000036",quote:"I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab.",url:"https://reddit.com/r/googlephotos/comments/1uwcxgs/google_photos_app_vs_website_showing_different/"}]}
+];
+
+const INSIGHT = {
+  total:25,relevant:5,possibly_relevant:7,irrelevant:13,
+  failure_stages:{memory_to_query:5,query_to_system:2,system_to_candidate:5,candidate_to_recognition:0,search_refinement:0},
+  memory_cues:{object:5,person:5,text_in_image:2,temporal_epoch:1,place_location:1,event_occasion:0,visual_detail:0,activity:0,relationship:0},
+  workarounds:{endless_scrolling:3,abandonment:1,keyword_guessing:2},
+  friction:{frustration_with_search_tool:5,time_wasted:3,cognitive_overload:2,fear_of_memory_loss:1},
+  failure_points:{vocabulary_mismatch:9,volume_overload:2,missing_metadata:1}
+};
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+const state = {
+  page: 'overview',
+  filters: { relevance:'all', stage:'all', cue:'all' },
+  search: '',
+  selectedRecord: null,
+  prevPage: 'explorer',
+  selectedStage: null
+};
+
+// ════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════
+function fmt(s){ return (s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+function stageLabel(s){
+  const m={memory_to_query:'Memory → Query',query_to_system:'Query → System',system_to_candidate:'System → Candidate',candidate_to_recognition:'Candidate → Recognition',search_refinement:'Search Refinement'};
+  return m[s]||fmt(s)||'—';
+}
+function relTag(r){
+  if(r==='relevant') return '<span class="tag tag-relevant">Relevant</span>';
+  if(r==='possibly_relevant') return '<span class="tag tag-possibly">Possibly Relevant</span>';
+  return '<span class="tag tag-irrelevant">Irrelevant</span>';
+}
+function cueList(cues){
+  if(!cues||!cues.length) return '<span style="color:var(--text-muted);font-size:11px">—</span>';
+  return cues.map(c=>`<span class="tag tag-cue" style="font-size:10px;padding:1px 7px">${fmt(c)}</span>`).join(' ');
+}
+function pct(n,t){ return t?Math.round(n/t*100):0; }
+function truncate(s,n){ return s&&s.length>n?s.slice(0,n)+'…':s||''; }
+
+// ════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════
+function navigate(page, params={}){
+  if(page!=='detail') state.prevPage = page;
+  state.page = page;
+  if(params.record){ state.selectedRecord=params.record; }
+  if(params.stageFilter!==undefined){ state.filters.stage=params.stageFilter; state.filters.relevance='all'; state.filters.cue='all'; state.search=''; }
+  if(params.cueFilter!==undefined){ state.filters.cue=params.cueFilter; state.filters.relevance='all'; state.filters.stage='all'; state.search=''; }
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = page==='detail'?'explorer':page;
+  const el = document.getElementById('page-'+page) || document.getElementById('page-explorer');
+  const nav = document.getElementById('nav-'+pg);
+  if(el) el.classList.add('active');
+  if(nav) nav.classList.add('active');
+  window.scrollTo(0,0);
+  if(page==='overview') renderOverview();
+  else if(page==='explorer'||page==='detail') renderExplorer();
+  else if(page==='failures') renderFailures();
+  else if(page==='cues') renderCues();
+  else if(page==='workarounds') renderWorkarounds();
+  else if(page==='patterns') renderPatterns();
+}
+
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',e=>{ e.preventDefault(); navigate(item.dataset.page); });
+});
+
+// ════════════════════════════════════════════
+// CHARTS REGISTRY
+// ════════════════════════════════════════════
+const charts = {};
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+const CHART_COLORS = ['#6366f1','#8b5cf6','#38bdf8','#10b981','#f59e0b','#f43f5e','#a78bfa','#34d399'];
+
+// ════════════════════════════════════════════
+// OVERVIEW PAGE
+// ════════════════════════════════════════════
+function renderOverview(){
+  // KPI
+  const kpis = [
+    {label:'Total Records',val:25,unit:'collected',accent:'#6366f1'},
+    {label:'Relevant',val:5,unit:'strict relevance',accent:'#10b981'},
+    {label:'Possibly Relevant',val:7,unit:'partial signal',accent:'#f59e0b'},
+    {label:'Relevance Rate',val:'48%',unit:'incl. possibly relevant',accent:'#8b5cf6'},
+    {label:'Patterns Found',val:4,unit:'recurring behaviors',accent:'#38bdf8'},
+    {label:'Failure Stages',val:3,unit:'stages observed',accent:'#f43f5e'},
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k=>
+    `<div class="kpi-card" style="--accent:${k.accent}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-unit">${k.unit}</div>
+    </div>`
+  ).join('');
+
+  // Failure chart
+  destroyChart('failure');
+  const fc = document.getElementById('chart-failure');
+  if(fc){
+    const stages = INSIGHT.failure_stages;
+    charts['failure'] = new Chart(fc,{
+      type:'doughnut',
+      data:{
+        labels:['Memory → Query','Query → System','System → Candidate','No Failure Mapped'],
+        datasets:[{data:[stages.memory_to_query,stages.query_to_system,stages.system_to_candidate,25-(stages.memory_to_query+stages.query_to_system+stages.system_to_candidate)],backgroundColor:['#6366f1','#38bdf8','#f59e0b','rgba(255,255,255,.07)'],borderColor:'#0d1630',borderWidth:2}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:11},padding:10,boxWidth:12}}},cutout:'62%'}
+    });
+  }
+
+  // Cue chart
+  destroyChart('cues');
+  const cc = document.getElementById('chart-cues');
+  if(cc){
+    const cues = Object.entries(INSIGHT.memory_cues).filter(([,v])=>v>0);
+    charts['cues'] = new Chart(cc,{
+      type:'bar',
+      data:{
+        labels:cues.map(([k])=>fmt(k)),
+        datasets:[{data:cues.map(([,v])=>v),backgroundColor:CHART_COLORS,borderRadius:4,borderSkipped:false}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',font:{size:11}}},y:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}}}}
+    });
+  }
+
+  // Relevance bars
+  const relTotal=25;
+  document.getElementById('relevance-bars').innerHTML = [
+    {label:'Relevant',val:5,color:'#10b981'},{label:'Possibly Relevant',val:7,color:'#f59e0b'},{label:'Irrelevant',val:13,color:'#475569'}
+  ].map(r=>`
+    <div class="bar-row">
+      <div class="bar-label-row"><span class="bar-label">${r.label}</span><span class="bar-count">${r.val} / ${relTotal}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(r.val,relTotal)}%;background:${r.color}"></div></div>
+    </div>
+  `).join('');
+
+  // Friction
+  const frictionMap = [{icon:'😤',key:'frustration_with_search_tool',label:'Frustration with Search'},{icon:'⏱',key:'time_wasted',label:'Time Wasted'},{icon:'🧠',key:'cognitive_overload',label:'Cognitive Overload'},{icon:'😰',key:'fear_of_memory_loss',label:'Fear of Memory Loss'}];
+  const maxF=5;
+  document.getElementById('friction-list').innerHTML = frictionMap.map(f=>`
+    <div class="friction-row">
+      <div class="friction-icon">${f.icon}</div>
+      <div class="friction-info"><div class="friction-name">${f.label}</div><div class="friction-count">${INSIGHT.friction[f.key]||0} records</div></div>
+      <div class="friction-bar-wrap"><div class="friction-bar" style="width:${pct(INSIGHT.friction[f.key]||0,maxF)*100/100}%;max-width:100%"></div></div>
+    </div>
+  `).join('');
+
+  // Workaround bars
+  const wTotal=6;
+  document.getElementById('workaround-bars').innerHTML = [
+    {label:'Endless Scrolling',val:3,color:'#f59e0b'},{label:'Abandonment',val:1,color:'#f43f5e'},{label:'Keyword Guessing',val:2,color:'#8b5cf6'}
+  ].map(w=>`
+    <div class="bar-row" style="cursor:pointer" onclick="navigate('workarounds')">
+      <div class="bar-label-row"><span class="bar-label">${w.label}</span><span class="bar-count">${w.val}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct(w.val,wTotal)*100/100}%;max-width:100%;background:${w.color}"></div></div>
+    </div>
+  `).join('');
+
+  // Data quality
+  document.getElementById('data-quality').innerHTML = [
+    ['Records collected','25'],['Records analyzed','25'],['Subreddits','1 (r/googlephotos)'],['Queries executed','4'],['Analysis model','llama-3.3-70b-versatile'],['Parse errors','2 (low-confidence fallback)']
+  ].map(([k,v])=>`<div class="quality-row"><span class="quality-key">${k}</span><span class="quality-val">${v}</span></div>`).join('');
+
+  // Overview patterns (mini)
+  document.getElementById('overview-patterns').innerHTML = PATTERNS.map(p=>`
+    <div class="card" style="margin-bottom:12px;cursor:pointer" onclick="navigate('patterns')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span class="pattern-id">${p.id}</span>
+            <span style="font-size:15px;font-weight:700;color:var(--text-heading)">${p.name}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-body)">${truncate(p.summary,140)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:22px;font-weight:700;color:var(--text-heading)">${p.prevalence}</div>
+          <div style="font-size:11px;color:var(--text-muted)">records (${p.pct}%)</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <span class="meta-chip chip-stage">${stageLabel(p.stage)}</span>
+        ${p.cues.map(c=>`<span class="meta-chip chip-cue">${fmt(c)}</span>`).join('')}
+        <span class="meta-chip chip-workaround">${fmt(p.workaround)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════
+// EXPLORER PAGE
+// ════════════════════════════════════════════
+function getFilteredRecords(){
+  let recs = RECORDS;
+  if(state.filters.relevance!=='all') recs=recs.filter(r=>r.analysis.relevance_classification===state.filters.relevance);
+  if(state.filters.stage!=='all') recs=recs.filter(r=>r.analysis.retrieval_failure_stage===state.filters.stage);
+  if(state.filters.cue!=='all') recs=recs.filter(r=>r.analysis.memory_cues_present&&r.analysis.memory_cues_present.includes(state.filters.cue));
+  if(state.search){
+    const q=state.search.toLowerCase();
+    recs=recs.filter(r=>{
+      const haystack=[r.record_id,r.title,r.raw_text,r.subreddit,r.author,...(r.analysis.memory_cues_present||[]),r.analysis.retrieval_failure_stage,r.analysis.retrieval_failure_point,...(r.analysis.workarounds_used||[])].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+  return recs;
+}
+
+function renderExplorer(){
+  if(state.page==='detail'){ renderDetail(); return; }
+  // sync search input
+  const si = document.getElementById('explorer-search');
+  if(si) si.value = state.search;
+  // sync filter pills
+  document.querySelectorAll('.filter-pill').forEach(p=>{
+    const group=p.dataset.filter, val=p.dataset.val;
+    p.classList.toggle('active', state.filters[group]==='all'?val==='all':state.filters[group]===val);
+  });
+  const recs = getFilteredRecords();
+  const list = document.getElementById('evidence-list');
+  const empty = document.getElementById('explorer-empty');
+  const meta = document.getElementById('explorer-meta');
+  if(meta) meta.textContent=`Showing ${recs.length} of ${RECORDS.length} records`;
+  if(!recs.length){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  list.innerHTML = recs.map(r=>{
+    const a=r.analysis;
+    return `<div class="evidence-row" onclick="openDetail('${r.record_id}')">
+      <div class="evidence-row-id">${r.record_id}</div>
+      <div>
+        <div class="evidence-row-title">${r.title}</div>
+        <div class="evidence-row-preview">${truncate(r.raw_text,180)}</div>
+        <div class="evidence-row-chips">
+          ${relTag(a.relevance_classification)}
+          ${a.retrieval_failure_stage?`<span class="tag tag-stage">${stageLabel(a.retrieval_failure_stage)}</span>`:''}
+          ${(a.memory_cues_present||[]).slice(0,3).map(c=>`<span class="tag tag-cue">${fmt(c)}</span>`).join('')}
+          ${(a.workarounds_used||[]).slice(0,1).map(w=>`<span class="tag tag-generic">${fmt(w)}</span>`).join('')}
+          <span style="font-size:10px;color:var(--text-muted);margin-left:4px">r/${r.subreddit}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  // Wire filters
+  document.querySelectorAll('.filter-pill').forEach(p=>{
+    p.onclick=()=>{
+      state.filters[p.dataset.filter]=p.dataset.val;
+      renderExplorer();
+    };
+  });
+
+  // Search Input & Controls
+  const si2 = document.getElementById('explorer-search');
+  const btnTrigger = document.getElementById('btn-trigger-search');
+  const clearBtn = document.getElementById('clear-search-btn');
+  const btnReset = document.getElementById('btn-reset-filters');
+  const feedback = document.getElementById('search-feedback-banner');
+
+  function executeSearch(queryOverride) {
+    const val = queryOverride !== undefined ? queryOverride : (si2 ? si2.value.trim() : '');
+    state.search = val;
+    renderExplorer();
+    
+    // Feedback notification
+    if(feedback) {
+      const count = getFilteredRecords().length;
+      if(val) {
+        feedback.innerHTML = `<span>⚡ <strong>Manual Search Triggered:</strong> Found <strong>${count}</strong> record${count === 1 ? '' : 's'} matching "<em>${val}</em>"</span><span style="font-size:11px;color:var(--primary-light)">Manual Query Active</span>`;
+      } else {
+        feedback.innerHTML = `<span>⚡ <strong>Manual Search Triggered:</strong> Reset query, showing all <strong>${count}</strong> records</span>`;
+      }
+      feedback.style.display = 'flex';
+      setTimeout(() => { feedback.style.display = 'none'; }, 4000);
+    }
+  }
+
+  if(si2) {
+    si2.value = state.search;
+    if(clearBtn) clearBtn.style.display = si2.value ? 'flex' : 'none';
+
+    si2.oninput = (e) => {
+      if(clearBtn) clearBtn.style.display = e.target.value ? 'flex' : 'none';
+      state.search = e.target.value;
+      const recs = getFilteredRecords();
+      const meta = document.getElementById('explorer-meta');
+      if(meta) meta.textContent = `Showing ${recs.length} of ${RECORDS.length} records (press Trigger Search or Enter)`;
+    };
+
+    si2.onkeydown = (e) => {
+      if(e.key === 'Enter') {
+        e.preventDefault();
+        executeSearch();
+      }
+    };
+  }
+
+  if(btnTrigger) {
+    btnTrigger.onclick = (e) => {
+      e.preventDefault();
+      executeSearch();
+    };
+  }
+
+  if(clearBtn) {
+    clearBtn.onclick = () => {
+      if(si2) {
+        si2.value = '';
+        si2.focus();
+      }
+      clearBtn.style.display = 'none';
+      executeSearch('');
+    };
+  }
+
+  if(btnReset) {
+    btnReset.onclick = () => {
+      state.filters = { relevance: 'all', stage: 'all', cue: 'all' };
+      state.search = '';
+      if(si2) si2.value = '';
+      if(clearBtn) clearBtn.style.display = 'none';
+      if(feedback) feedback.style.display = 'none';
+      renderExplorer();
+    };
+  }
+
+  const cc2 = document.getElementById('clear-filters');
+  if(cc2) cc2.onclick=()=>{
+    state.filters={relevance:'all',stage:'all',cue:'all'};
+    state.search='';
+    if(si2) si2.value = '';
+    if(clearBtn) clearBtn.style.display = 'none';
+    renderExplorer();
+  };
+
+  // Wire quick search chips
+  document.querySelectorAll('.quick-chip').forEach(chip => {
+    chip.onclick = () => {
+      const q = chip.dataset.query;
+      if(si2) {
+        si2.value = q;
+        if(clearBtn) clearBtn.style.display = 'flex';
+      }
+      executeSearch(q);
+    };
+  });
+}
+
+function openDetail(id){
+  const rec = RECORDS.find(r=>r.record_id===id);
+  if(!rec) return;
+  state.selectedRecord=rec;
+  state.prevPage=state.page;
+  state.page='detail';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  renderDetail();
+}
+
+function renderDetail(){
+  const r = state.selectedRecord;
+  if(!r){ document.getElementById('detail-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">No record selected</div></div>'; return; }
+  const a=r.analysis;
+  const conf=a.relevance_confidence||0;
+  const cueEntries=Object.entries(a.memory_cue_details||{});
+  document.getElementById('detail-back').onclick=()=>navigate(state.prevPage);
+  document.getElementById('detail-content').innerHTML=`
+    <div class="breadcrumb">
+      <span style="cursor:pointer;color:var(--primary-light)" onclick="navigate('${state.prevPage}')">${state.prevPage==='explorer'?'Evidence Explorer':'Research Patterns'}</span>
+      <span class="breadcrumb-sep">›</span>
+      <span>${r.record_id}</span>
+    </div>
+    <div class="detail-grid">
+      <!-- Human Evidence -->
+      <div class="detail-panel">
+        <div class="detail-panel-header" style="color:var(--sky)">
+          <span class="panel-dot dot-human"></span> Original Evidence
+        </div>
+        <div class="detail-panel-body">
+          <div class="detail-field">
+            <div class="detail-field-label">Record ID</div>
+            <div class="detail-field-value" style="font-family:'JetBrains Mono',monospace;color:var(--primary-light)">${r.record_id}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Title</div>
+            <div class="detail-field-value heading">${r.title}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Subreddit · Author · Date</div>
+            <div class="detail-field-value">r/${r.subreddit} · u/${r.author} · ${new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Full Original Text</div>
+            <div class="detail-raw-text">${r.raw_text}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Source</div>
+            <a class="external-link" href="${r.url}" target="_blank" rel="noopener">↗ View on Reddit</a>
+          </div>
+        </div>
+      </div>
+      <!-- AI Analysis -->
+      <div class="detail-panel">
+        <div class="detail-panel-header" style="color:#a78bfa">
+          <span class="panel-dot dot-ai"></span> AI Analysis
+          <span style="margin-left:auto;font-size:10px;color:var(--text-muted);font-weight:400">llama-3.3-70b-versatile</span>
+        </div>
+        <div class="detail-panel-body">
+          <div class="detail-field">
+            <div class="detail-field-label">Relevance Classification</div>
+            <div class="detail-field-value">${relTag(a.relevance_classification)}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Confidence</div>
+            <div class="confidence-bar">
+              <div class="confidence-track"><div class="confidence-fill" style="width:${conf*100}%"></div></div>
+              <span class="confidence-val">${Math.round(conf*100)}%</span>
+            </div>
+          </div>
+          ${a.relevance_reasoning?`<div class="detail-field"><div class="detail-field-label">Relevance Reasoning</div><div class="detail-field-value">${a.relevance_reasoning||'<em style="color:var(--text-muted)">Not available</em>'}</div></div>`:''}
+          <div class="detail-field">
+            <div class="detail-field-label">Retrieval Failure Stage</div>
+            <div class="detail-field-value">${a.retrieval_failure_stage?`<span class="tag tag-stage">${stageLabel(a.retrieval_failure_stage)}</span>`:'<span style="color:var(--text-muted)">No failure mapped</span>'}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Failure Point</div>
+            <div class="detail-field-value">${fmt(a.retrieval_failure_point)||'<span style="color:var(--text-muted)">—</span>'}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Memory Cues Present</div>
+            <div class="detail-field-value">${cueList(a.memory_cues_present)}</div>
+          </div>
+          ${cueEntries.length?`<div class="detail-field">
+            <div class="detail-field-label">Memory Cue Details</div>
+            ${cueEntries.map(([k,v])=>`<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:600;color:var(--primary-light)">${fmt(k)}: </span><span style="font-size:12px;color:var(--text-body)">${v}</span></div>`).join('')}
+          </div>`:''}
+          <div class="detail-field">
+            <div class="detail-field-label">Supporting Evidence Quote</div>
+            <div class="detail-field-value">${a.failure_evidence&&a.failure_evidence!=='None'?`<div class="evidence-quote">${a.failure_evidence}</div>`:'<span style="color:var(--text-muted);font-size:12px">AI analysis is not available for this field.</span>'}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Workarounds Used</div>
+            <div class="detail-field-value">${a.workarounds_used&&a.workarounds_used.length?a.workarounds_used.map(w=>`<span class="tag tag-generic">${fmt(w)}</span>`).join(' '):'<span style="color:var(--text-muted)">None observed</span>'}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Friction Experienced</div>
+            <div class="detail-field-value">${a.friction_experienced&&a.friction_experienced.length?a.friction_experienced.map(f=>`<span class="tag tag-cue">${fmt(f)}</span>`).join(' '):'<span style="color:var(--text-muted)">None observed</span>'}</div>
+          </div>
+          ${a.desired_outcome?`<div class="detail-field"><div class="detail-field-label">Desired Outcome</div><div class="detail-field-value">${a.desired_outcome}</div></div>`:''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════
+// FAILURES PAGE
+// ════════════════════════════════════════════
+const STAGE_INFO = {
+  memory_to_query:{label:'Memory → Query',desc:'Can the user translate their memory into a searchable query?',q:'Mental model vs. keyword gap',icon:'🧩',color:'#6366f1'},
+  query_to_system:{label:'Query → System',desc:'Does the system understand the user\'s natural language query?',q:'Semantic parsing & intent mismatch',icon:'⚡',color:'#38bdf8'},
+  system_to_candidate:{label:'System → Candidate',desc:'Can the system narrow the candidate set to the right photos?',q:'Flooding with irrelevant results or zero hits',icon:'🗂',color:'#f59e0b'},
+  candidate_to_recognition:{label:'Candidate → Recognition',desc:'Does result presentation help users identify the target photo?',q:'Small thumbnails, visually indistinguishable',icon:'👁',color:'#10b981'},
+  search_refinement:{label:'Search Refinement',desc:'How do users adjust when the initial search fails?',q:'Dead-end without query pivot guidance',icon:'🔄',color:'#8b5cf6'}
+};
+
+function renderFailures(){
+  const stages = INSIGHT.failure_stages;
+  const total = Object.values(stages).reduce((a,b)=>a+b,0);
+  document.getElementById('journey-flow').innerHTML = Object.entries(STAGE_INFO).map(([key,info])=>{
+    const count=stages[key]||0;
+    const isActive=state.selectedStage===key;
+    return `<div class="journey-stage ${isActive?'active':''}" onclick="selectStage('${key}')">
+      <div class="journey-label">${info.icon}</div>
+      <div class="journey-count" style="color:${count>0?'var(--text-heading)':'var(--text-muted)'}">${count}</div>
+      <div class="journey-pct" style="color:${info.color}">${count?pct(count,total)+'%':'—'}</div>
+      <div class="journey-label" style="font-size:10px;margin-top:2px">${info.label}</div>
+    </div>`;
+  }).join('');
+
+  renderStageDetail(state.selectedStage);
+
+  // Failure points chart
+  destroyChart('failure-points');
+  const fpc = document.getElementById('chart-failure-points');
+  if(fpc){
+    const fp=INSIGHT.failure_points;
+    charts['failure-points']=new Chart(fpc,{
+      type:'bar',
+      data:{labels:Object.keys(fp).map(fmt),datasets:[{data:Object.values(fp),backgroundColor:['#6366f1','#f59e0b','#38bdf8'],borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',stepSize:1}}}}
+    });
+  }
+
+  // Crosstab
+  const crossData=[
+    {cue:'Object',stages:{memory_to_query:2,query_to_system:0,system_to_candidate:3}},
+    {cue:'Person',stages:{memory_to_query:2,query_to_system:1,system_to_candidate:2}},
+    {cue:'Text in Image',stages:{memory_to_query:0,query_to_system:0,system_to_candidate:2}},
+    {cue:'Temporal Epoch',stages:{memory_to_query:0,query_to_system:1,system_to_candidate:0}}
+  ];
+  document.getElementById('crosstab').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 4px;color:var(--text-muted);font-weight:600">Cue</th>
+          <th style="padding:8px 4px;color:var(--primary-light);text-align:center">M→Q</th>
+          <th style="padding:8px 4px;color:var(--sky);text-align:center">Q→S</th>
+          <th style="padding:8px 4px;color:var(--amber);text-align:center">S→C</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${crossData.map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+          <td style="padding:8px 4px;color:var(--text-body);font-weight:500">${r.cue}</td>
+          <td style="text-align:center;padding:8px 4px;color:${r.stages.memory_to_query?'var(--primary-light)':'var(--text-muted)'};font-weight:${r.stages.memory_to_query?'600':'400'}">${r.stages.memory_to_query||'—'}</td>
+          <td style="text-align:center;padding:8px 4px;color:${r.stages.query_to_system?'var(--sky)':'var(--text-muted)'};font-weight:${r.stages.query_to_system?'600':'400'}">${r.stages.query_to_system||'—'}</td>
+          <td style="text-align:center;padding:8px 4px;color:${r.stages.system_to_candidate?'var(--amber)':'var(--text-muted)'};font-weight:${r.stages.system_to_candidate?'600':'400'}">${r.stages.system_to_candidate||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function selectStage(key){
+  state.selectedStage = state.selectedStage===key?null:key;
+  renderFailures();
+}
+
+function renderStageDetail(key){
+  const box = document.getElementById('stage-detail-box');
+  if(!key){ box.innerHTML='<div class="stage-detail"><div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0">Click a stage above to see its explanation and supporting evidence.</div></div>'; return; }
+  const info = STAGE_INFO[key];
+  const count = INSIGHT.failure_stages[key]||0;
+  const supporting = RECORDS.filter(r=>r.analysis.retrieval_failure_stage===key);
+  box.innerHTML=`
+    <div class="stage-detail">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span style="font-size:28px">${info.icon}</span>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:var(--text-heading)">${info.label}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${count} records — ${pct(count,12)}% of relevant evidence</div>
+        </div>
+        ${count?`<button class="btn btn-ghost" style="margin-left:auto" onclick="navigate('explorer',{stageFilter:'${key}'})">View ${count} records →</button>`:''}
+      </div>
+      <div class="stage-question">Research question: ${info.q}</div>
+      <div class="stage-explanation" style="margin-top:6px">${info.desc}</div>
+      ${supporting.length?`
+        <div style="margin-top:16px">
+          <div class="evidence-label">Representative Evidence</div>
+          ${supporting.slice(0,2).map(r=>`
+            <div class="evidence-quote" style="cursor:pointer" onclick="openDetail('${r.record_id}')">
+              ${truncate(r.analysis.failure_evidence||r.raw_text,200)}
+              <div class="evidence-cite">${r.record_id} · ${r.title}</div>
+            </div>
+          `).join('')}
+        </div>
+      `:'<div style="margin-top:12px;color:var(--text-muted);font-size:12px">No supporting evidence for this stage in the current dataset.</div>'}
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════
+// MEMORY CUES PAGE
+// ════════════════════════════════════════════
+const CUE_META = {
+  person:{icon:'👤',desc:'The people present in the photo — family members, friends, or self'},
+  object:{icon:'📦',desc:'Physical objects, items, or artifacts that appear in the photo'},
+  temporal_epoch:{icon:'📅',desc:'A rough time period — season, year, life stage, or era'},
+  text_in_image:{icon:'🔤',desc:'Text visible in the photo — signs, receipts, logos, documents'},
+  place_location:{icon:'📍',desc:'Location, setting, or environment — indoor/outdoor, city, venue'},
+  event_occasion:{icon:'🎉',desc:'An event or occasion — birthday, holiday, trip, celebration'},
+  visual_detail:{icon:'🎨',desc:'Specific visual details — colors, patterns, styles, visual characteristics'},
+  activity:{icon:'🏃',desc:'Activities or actions happening in the photo'},
+  relationship:{icon:'💬',desc:'The relational context — who the user was with and why'}
+};
+
+function renderCues(){
+  const cues = INSIGHT.memory_cues;
+  const max = Math.max(...Object.values(cues));
+  document.getElementById('cue-grid').innerHTML = Object.entries(CUE_META).map(([key,meta])=>{
+    const count=cues[key]||0;
+    return `<div class="cue-card" onclick="${count?`navigate('explorer',{cueFilter:'${key}'})`:'void(0)'}">
+      <div class="cue-icon">${meta.icon}</div>
+      <div class="cue-name">${fmt(key)}</div>
+      <div class="cue-count">${count} record${count!==1?'s':''} ${count?`(${pct(count,12)}% of relevant)`:'— none observed'}</div>
+      <div class="bar-track" style="margin-top:10px"><div class="bar-fill" style="width:${max?pct(count,max)+'%':'0'};background:${count?'var(--primary)':'rgba(255,255,255,.05)'}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Cue detail chart
+  destroyChart('cue-detail');
+  const cdc = document.getElementById('chart-cue-detail');
+  if(cdc){
+    const entries=Object.entries(cues);
+    charts['cue-detail']=new Chart(cdc,{
+      type:'polarArea',
+      data:{labels:entries.map(([k])=>fmt(k)),datasets:[{data:entries.map(([,v])=>v),backgroundColor:CHART_COLORS.map(c=>c+'90'),borderColor:CHART_COLORS,borderWidth:1.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:10},padding:8,boxWidth:10}}},scales:{r:{grid:{color:'rgba(255,255,255,.05)'},ticks:{display:false}}}}
+    });
+  }
+
+  // Cue→stage map
+  const cueStageData=[
+    {cue:'Object',m2q:2,q2s:0,s2c:3},{cue:'Person',m2q:2,q2s:1,s2c:2},{cue:'Text in Image',m2q:0,q2s:0,s2c:2},{cue:'Temporal Epoch',m2q:0,q2s:1,s2c:0}
+  ];
+  document.getElementById('cue-stage-map').innerHTML=`
+    <div style="font-size:12px;color:var(--text-body);margin-bottom:12px">Where does retrieval break for each memory cue type?</div>
+    ${cueStageData.map(row=>`
+      <div style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-heading);margin-bottom:6px">${row.cue}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${row.m2q?`<span class="meta-chip chip-stage" style="cursor:pointer" onclick="navigate('failures')">Memory→Query: ${row.m2q}</span>`:''}
+          ${row.q2s?`<span class="meta-chip chip-stage" style="cursor:pointer" onclick="navigate('failures')">Query→System: ${row.q2s}</span>`:''}
+          ${row.s2c?`<span class="meta-chip chip-stage" style="cursor:pointer" onclick="navigate('failures')">System→Candidate: ${row.s2c}</span>`:''}
+          ${!row.m2q&&!row.q2s&&!row.s2c?`<span style="font-size:11px;color:var(--text-muted)">No failure stage observed</span>`:''}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ════════════════════════════════════════════
+// WORKAROUNDS PAGE
+// ════════════════════════════════════════════
+const WORKAROUND_META = [
+  {key:'endless_scrolling',icon:'📜',name:'Endless Scrolling',count:3,stage:'system_to_candidate',desc:'When search fails to return the right photo, users fall back to manually scrolling backward through their entire photo timeline. With libraries of 1,000–85,000 photos, this can take hours.',records:['RD_000033','RD_000035','RD_000025']},
+  {key:'abandonment',icon:'🚪',name:'Abandonment',count:1,stage:'query_to_system',desc:'The user gives up entirely on finding the photo and accepts the loss. This is the terminal failure state — no recovery path exists and the cost of continuing exceeds the value of the photo.',records:['RD_000023']},
+  {key:'keyword_guessing',icon:'🎯',name:'Keyword Guessing',count:2,stage:'memory_to_query',desc:'Users try multiple different search terms hoping to stumble onto the right label or keyword the system understands — iterating blindly without feedback on why each query failed.',records:['RD_000029','RD_000034']},
+  {key:'self_hosting',icon:'🖥',name:'Platform Migration',count:1,stage:'system_to_candidate',desc:'The most drastic workaround — users migrate their entire photo library to a self-hosted alternative (like Immich) when Google Photos\' search becomes too broken to use.',records:['RD_000035']},
+  {key:'date_search',icon:'📅',name:'Date-based Filtering',count:1,stage:'memory_to_query',desc:'Users rely on date or month+year searches as a fallback when object or person search fails. This strategy was broken by the AI search update.',records:['RD_000023']},
+  {key:'scripted_automation',icon:'🤖',name:'Custom Automation',count:1,stage:'system_to_candidate',desc:'Technically capable users write custom browser automation scripts to perform tasks (like finding unrecognized faces) that the product interface makes impossible.',records:['RD_000033']}
+];
+
+function renderWorkarounds(){
+  document.getElementById('workaround-grid').innerHTML = WORKAROUND_META.map(w=>`
+    <div class="workaround-card" onclick="navigate('explorer',{stageFilter:'${w.stage}'})">
+      <div class="workaround-icon">${w.icon}</div>
+      <div class="workaround-name">${w.name}</div>
+      <div class="workaround-count">${w.count} record${w.count!==1?'s':''} · Related stage: <span style="color:var(--sky)">${stageLabel(w.stage)}</span></div>
+      <div class="workaround-desc">${w.desc}</div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">
+        ${w.records.map(id=>`<span class="record-link" style="font-size:11px" onclick="event.stopPropagation();openDetail('${id}')">${id}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  destroyChart('workaround');
+  const wc = document.getElementById('chart-workaround');
+  if(wc){
+    charts['workaround']=new Chart(wc,{
+      type:'bar',
+      data:{
+        labels:WORKAROUND_META.map(w=>w.name),
+        datasets:[{data:WORKAROUND_META.map(w=>w.count),backgroundColor:['#f59e0b','#f43f5e','#8b5cf6','#38bdf8','#10b981','#6366f1'],borderRadius:4,borderSkipped:false}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#64748b',stepSize:1}},y:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}}}}
+    });
+  }
+
+  const frictionMeta=[
+    {icon:'😤',label:'Frustration with Search',val:5,color:'#f43f5e'},
+    {icon:'⏱',label:'Time Wasted',val:3,color:'#f59e0b'},
+    {icon:'🧠',label:'Cognitive Overload',val:2,color:'#8b5cf6'},
+    {icon:'😰',label:'Fear of Memory Loss',val:1,color:'#38bdf8'}
+  ];
+  document.getElementById('friction-detail').innerHTML=frictionMeta.map(f=>`
+    <div class="friction-row">
+      <div class="friction-icon">${f.icon}</div>
+      <div class="friction-info">
+        <div class="friction-name">${f.label}</div>
+        <div class="friction-count">${f.val} records</div>
+      </div>
+      <div style="width:80px">
+        <div style="background:rgba(255,255,255,.05);border-radius:3px;height:4px">
+          <div style="width:${pct(f.val,5)*1}%;max-width:100%;height:4px;border-radius:3px;background:${f.color}"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════
+// PATTERNS PAGE
+// ════════════════════════════════════════════
+function renderPatterns(){
+  document.getElementById('patterns-list').innerHTML = PATTERNS.map(p=>`
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span class="pattern-id">${p.id}</span>
+            <span class="pattern-title">${p.name}</span>
+          </div>
+          <div class="pattern-prev">${p.prevalence} supporting records · ${p.pct}% of relevant evidence</div>
+        </div>
+        <button class="btn btn-ghost" style="flex-shrink:0" onclick="navigate('explorer',{stageFilter:'${p.stage}'})">Explore Records →</button>
+      </div>
+      <div class="pattern-body">${p.summary}</div>
+      <div class="pattern-meta">
+        <span class="meta-chip chip-stage">Failure: ${stageLabel(p.stage)}</span>
+        ${p.cues.map(c=>`<span class="meta-chip chip-cue">Cue: ${fmt(c)}</span>`).join('')}
+        <span class="meta-chip chip-workaround">Workaround: ${fmt(p.workaround)}</span>
+        <span class="meta-chip chip-failure">Point: ${fmt(p.failure_point)}</span>
+      </div>
+      <div class="pattern-evidence">
+        <div class="evidence-label">Supporting Evidence</div>
+        ${p.evidence.map(e=>`
+          <div class="evidence-quote" style="cursor:pointer" onclick="openDetail('${e.id}')">
+            "${e.quote}"
+            <div class="evidence-cite">
+              <span class="record-link" onclick="event.stopPropagation();openDetail('${e.id}')">${e.id}</span>
+              · <a class="external-link" href="${e.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ Source</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════
+// MANUAL LIVE REDDIT SEARCH MODAL HANDLERS
+// ════════════════════════════════════════════
+const liveModal = document.getElementById('live-search-modal');
+const btnLiveModal = document.getElementById('btn-live-reddit-modal');
+const modalCloseBtn = document.getElementById('modal-close-btn');
+const manualQueryInput = document.getElementById('manual-search-query');
+const manualSubSelect = document.getElementById('manual-search-sub');
+const manualLimitSelect = document.getElementById('manual-search-limit');
+const btnExecuteLive = document.getElementById('btn-execute-live-search');
+const liveStatus = document.getElementById('live-search-status');
+const cmdCode = document.getElementById('cmd-preview-code');
+const copyCmdBtn = document.getElementById('copy-cmd-btn');
+
+function updateCmdPreview() {
+  const q = manualQueryInput ? manualQueryInput.value.trim() : '';
+  const sub = manualSubSelect ? manualSubSelect.value : 'googlephotos';
+  const lim = manualLimitSelect ? manualLimitSelect.value : '25';
+  if(cmdCode) {
+    cmdCode.textContent = `.venv\\Scripts\\python.exe scripts/manual_search.py --query "${q}" --subreddit ${sub} --limit ${lim}`;
+  }
+}
+
+if(manualQueryInput) manualQueryInput.oninput = updateCmdPreview;
+if(manualSubSelect) manualSubSelect.onchange = updateCmdPreview;
+if(manualLimitSelect) manualLimitSelect.onchange = updateCmdPreview;
+
+if(btnLiveModal && liveModal) {
+  btnLiveModal.onclick = () => {
+    liveModal.classList.add('active');
+    updateCmdPreview();
+  };
+}
+
+if(modalCloseBtn && liveModal) {
+  modalCloseBtn.onclick = () => {
+    liveModal.classList.remove('active');
+  };
+}
+
+if(liveModal) {
+  liveModal.onclick = (e) => {
+    if(e.target === liveModal) liveModal.classList.remove('active');
+  };
+}
+
+if(copyCmdBtn && cmdCode) {
+  copyCmdBtn.onclick = () => {
+    navigator.clipboard.writeText(cmdCode.textContent).then(() => {
+      copyCmdBtn.textContent = 'Copied!';
+      setTimeout(() => { copyCmdBtn.textContent = 'Copy'; }, 2000);
+    });
+  };
+}
+
+if(btnExecuteLive) {
+  btnExecuteLive.onclick = async () => {
+    const q = manualQueryInput ? manualQueryInput.value.trim() : '';
+    const sub = manualSubSelect ? manualSubSelect.value : 'googlephotos';
+    const lim = manualLimitSelect ? manualLimitSelect.value : '25';
+
+    if(!q) {
+      alert('Please enter a search query.');
+      return;
+    }
+
+    if(liveStatus) {
+      liveStatus.style.display = 'block';
+      liveStatus.innerHTML = `<span style="color:var(--primary-light)">⏳ Connecting to local search runner & executing Reddit search for "<strong>${q}</strong>" (r/${sub})...</span>`;
+    }
+
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&subreddit=${encodeURIComponent(sub)}&limit=${lim}`);
+      if(res.ok) {
+        const data = await res.json();
+        if(liveStatus) {
+          liveStatus.innerHTML = `<span style="color:var(--emerald)">✓ Success! Collected ${data.records ? data.records.length : 0} live records. Injected into Evidence Explorer!</span>`;
+        }
+        if(data.records && data.records.length) {
+          data.records.forEach(newRec => {
+            if(!RECORDS.find(r => r.record_id === newRec.record_id)) {
+              RECORDS.unshift(newRec);
+            }
+          });
+          renderExplorer();
+        }
+      } else {
+        throw new Error('API server returned ' + res.status);
+      }
+    } catch(err) {
+      if(liveStatus) {
+        liveStatus.innerHTML = `<div style="color:var(--amber);margin-bottom:6px">⚡ <em>Dashboard is currently running in standalone file mode.</em></div>
+        <div style="color:var(--text-body);margin-bottom:4px">To execute this manual search against live Reddit right now:</div>
+        <div style="font-family:monospace;color:var(--emerald);margin:6px 0;background:#040711;padding:8px;border-radius:4px;word-break:break-all">
+          .venv\\Scripts\\python.exe scripts/manual_search.py --query "${q}" --subreddit ${sub} --limit ${lim}
+        </div>
+        <div style="color:var(--text-muted);font-size:11px">Query also populated into your Evidence Explorer search box!</div>`;
+      }
+      state.search = q;
+      const expInput = document.getElementById('explorer-search');
+      if(expInput) expInput.value = q;
+      renderExplorer();
+    }
+  };
+}
+
+// ════════════════════════════════════════════
+// INIT & AUTO-LOAD COLLECTED DATASET
+// ════════════════════════════════════════════
+async function loadCollectedDataset() {
+  try {
+    const res = await fetch('/api/records');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.records && data.records.length > 0) {
+        RECORDS.length = 0;
+        data.records.forEach(r => RECORDS.push(r));
+        const badge = document.querySelector('#nav-explorer .nav-badge');
+        if (badge) badge.textContent = RECORDS.length;
+        const pageDesc = document.querySelector('#page-explorer .page-desc');
+        if (pageDesc) pageDesc.textContent = `All ${RECORDS.length} collected records, searchable and filterable. Click any record to inspect the original evidence and AI analysis side-by-side.`;
+        if (state.page === 'explorer') renderExplorer();
+      }
+    }
+  } catch (e) {
+    // In standalone file mode, fallback to embedded records
+  }
+}
+
+navigate('overview');
+loadCollectedDataset();
+</script>
+</body>
+</html>

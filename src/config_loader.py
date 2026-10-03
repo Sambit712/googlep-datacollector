@@ -78,6 +78,13 @@ class LoggingConfig:
 
 
 @dataclass(frozen=True)
+class SchedulerConfig:
+    interval_hours: float = 1.0
+    auto_analyze: bool = True
+    incremental: bool = True
+
+
+@dataclass(frozen=True)
 class AppConfig:
     reddit: RedditConfig
     search: SearchConfig
@@ -85,6 +92,7 @@ class AppConfig:
     groq: GroqConfig
     logging: LoggingConfig
     privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
+    scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
 
     @property
     def queries(self) -> dict[str, list[str]]:
@@ -395,6 +403,17 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         log_file=str(logging_raw.get("log_file", "logs/run.log")),
     )
 
+    # --- 7. Scheduler Section ---
+    scheduler_raw = data.get("scheduler", {})
+    if not isinstance(scheduler_raw, dict):
+        scheduler_raw = {}
+
+    scheduler_cfg = SchedulerConfig(
+        interval_hours=float(scheduler_raw.get("interval_hours", 1.0)),
+        auto_analyze=bool(scheduler_raw.get("auto_analyze", True)),
+        incremental=bool(scheduler_raw.get("incremental", True)),
+    )
+
     return AppConfig(
         reddit=reddit_cfg,
         search=search_cfg,
@@ -402,6 +421,7 @@ def load_config(config_path: str | Path = "config/queries.yaml") -> AppConfig:
         groq=groq_cfg,
         logging=logging_cfg,
         privacy=privacy_cfg,
+        scheduler=scheduler_cfg,
     )
 
 

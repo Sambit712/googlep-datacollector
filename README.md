@@ -1,7 +1,7 @@
 # Google Photos Vague-Memory Research Engine (V0 Collector + V1 AI Analyzer)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests Passing](https://img.shields.io/badge/tests-129%20passed-brightgreen.svg)](tests/)
+[![Tests Passing](https://img.shields.io/badge/tests-140%20passed-brightgreen.svg)](tests/)
 [![Architecture](https://img.shields.io/badge/architecture-V0%20%2B%20V1%20End--to--End-purple.svg)](Docs/architecture.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -191,6 +191,18 @@ Validates configuration files, Reddit connectivity, and Groq API health without 
 python main.py --dry-run
 ```
 
+### 5. Run Scheduled Recurring Search & AI Analysis (Every 1 Hour)
+Triggers periodic automated Reddit evidence collection every hour, deduplicates against historical records, classifies relevance using Groq AI analysis, extracts cognitive breakdown stages, and incrementally updates all research reports and datasets:
+```bash
+# Default: triggers every 1 hour continuously
+python main.py --mode schedule --interval-hours 1.0
+
+# Custom intervals or bounded runs
+python main.py --mode schedule --interval-minutes 30
+python main.py --mode schedule --interval-seconds 3600 --limit 10
+python main.py --mode schedule --interval-seconds 300 --max-cycles 5
+```
+
 ---
 
 ## Automated Test Suite (129 Tests)
@@ -219,7 +231,8 @@ pytest tests/ -v
 | `tests/test_config_loader.py` | 10 | **Config Loader**: Environment substitution, validation rules. |
 | `tests/test_edge_cases.py` | 4 | **Edge Cases**: Unicode, emoji preservation, very long post text. |
 | `tests/test_groq_client.py` | 4 | **Groq Client**: API initialization and health checks. |
-| **Total** | **129** | **100% Passing** |
+| `tests/test_scheduler.py` | 10 | **Scheduled Research Engine**: Periodic hourly search trigger, deduplication, relevance filtering, and continuous analysis. |
+| **Total** | **140** | **100% Passing** |
 
 ---
 

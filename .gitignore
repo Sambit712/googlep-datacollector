@@ -4,13 +4,17 @@
 # Credentials
 .env
 
-# Output data (large raw files ignored, report artifacts tracked)
+# Output data (tracked evidence artifacts)
 data/output/*
 !data/output/.gitkeep
 !data/output/collection_report.json
 !data/output/insight_report.json
 !data/output/analyzed_evidence.json
 !data/output/analyzed_evidence.csv
+!data/output/reddit_evidence.json
+!data/output/reddit_evidence.csv
+!data/output/posts.json
+!data/output/posts.csv
 data/seen_ids.json
 
 # Logs

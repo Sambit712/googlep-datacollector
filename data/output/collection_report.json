@@ -1,41 +1,57 @@
 {
-  "run_id": "run_20260918_150938_77d666",
-  "generated_at": "2026-09-18T15:25:03Z",
-  "duration_seconds": 925.07,
+  "run_id": "run_20261003_143109_c9c56d",
+  "generated_at": "2026-10-03T18:25:07Z",
+  "duration_seconds": 14037.27,
   "is_dry_run": false,
   "summary": {
-    "queries_executed": 3,
-    "tasks_completed": 16,
-    "tasks_failed": 0,
-    "raw_results": 400,
-    "unique_records": 381,
-    "duplicates_removed": 19,
-    "posts": 381,
+    "queries_executed": 6,
+    "tasks_completed": 95,
+    "tasks_failed": 1,
+    "raw_results": 2206,
+    "unique_records": 1746,
+    "duplicates_removed": 460,
+    "posts": 1746,
     "comments": 0,
-    "records_successfully_saved": 381
+    "records_successfully_saved": 1746
   },
   "data_quality": {
-    "records_with_missing_text": 46,
+    "records_with_missing_text": 143,
     "records_with_missing_urls": 0,
-    "text_completeness_rate": 0.8793,
+    "text_completeness_rate": 0.9181,
     "url_completeness_rate": 1.0
   },
   "breakdown_by_subreddit": {
-    "googlephotos": 62,
-    "GooglePixel": 74,
-    "Android": 49,
-    "iphone": 49,
-    "photography": 50,
-    "techsupport": 49,
-    "AskReddit": 48
+    "googlephotos": 125,
+    "GooglePixel": 131,
+    "Android": 111,
+    "iphone": 118,
+    "ios": 123,
+    "apple": 103,
+    "photography": 104,
+    "techsupport": 110,
+    "AskTechnology": 83,
+    "google": 104,
+    "u/google": 3,
+    "pics": 59,
+    "Smartphones": 83,
+    "DataHoarder": 79,
+    "degoogle": 101,
+    "applehelp": 107,
+    "iphonehelp": 92,
+    "AndroidQuestions": 108,
+    "PixelPhones": 2
   },
   "breakdown_by_subreddit_tier": {
-    "primary": 234,
-    "discovery": 147
+    "primary": 711,
+    "discovery": 546,
+    "niche": 489
   },
   "breakdown_by_query": {
-    "Google Photos search": 175,
-    "Google Photos can't find photo": 170,
-    "Google Photos old photo": 46
+    "Google Photos search": 427,
+    "Google Photos screenshot search": 425,
+    "Google Photos old photo": 402,
+    "Google Photos search not working": 150,
+    "Google Photos can't find photo": 427,
+    "Google Photos search problem": 375
   }
 }

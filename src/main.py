@@ -38,6 +38,7 @@ from src.models import EvidenceRecord
 from src.query_engine import QueryEngine
 from src.reddit_client import RedditClient, RedditClientError
 from src.reporter import CollectionReporter
+from src.scheduler import ScheduledResearchEngine
 from src.structurer import DataStructurer
 
 # Load environment variables (.env)
@@ -60,9 +61,33 @@ def parse_cli_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=["collect", "analyze", "both"],
+        choices=["collect", "analyze", "both", "schedule"],
         default="collect",
-        help="Pipeline execution mode: 'collect' (V0), 'analyze' (V1), or 'both' (default: collect)",
+        help="Pipeline execution mode: 'collect' (V0), 'analyze' (V1), 'both', or 'schedule' (default: collect)",
+    )
+    parser.add_argument(
+        "--interval-hours",
+        type=float,
+        default=1.0,
+        help="Recurring schedule interval in hours (default: 1.0 = every 1 hour)",
+    )
+    parser.add_argument(
+        "--interval-minutes",
+        type=float,
+        default=None,
+        help="Recurring schedule interval in minutes (e.g. --interval-minutes 60)",
+    )
+    parser.add_argument(
+        "--interval-seconds",
+        type=float,
+        default=None,
+        help="Recurring schedule interval in seconds (e.g. --interval-seconds 3600)",
+    )
+    parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Maximum recurring cycles to run before exiting (default: None = run indefinitely)",
     )
     parser.add_argument(
         "--config",
@@ -497,19 +522,27 @@ def main(
     input_path: str = "data/output/reddit_evidence.json",
     sample: int | None = None,
     output_dir: str | None = None,
+    interval_hours: float | None = None,
+    interval_minutes: float | None = None,
+    interval_seconds: float | None = None,
+    max_cycles: int | None = None,
 ) -> dict[str, Any]:
-    """Unified entry point for both V0 Collection and V1 Analysis pipelines.
+    """Unified entry point for V0 Collection, V1 Analysis, and Scheduled Search pipelines.
 
     Args:
         config_path: Path to queries configuration file.
         limit_override: Override max results per query for sample runs.
         dry_run: If True, execute pipeline without persisting files to disk.
         max_records: Stop collection early after reaching record count threshold.
-        mode: Execution mode ('collect', 'analyze', or 'both').
+        mode: Execution mode ('collect', 'analyze', 'both', or 'schedule').
         taxonomy_path: Path to taxonomy configuration file.
         input_path: Path to V0 evidence JSON file for analysis.
         sample: Limit analysis to first N records for rapid validation.
         output_dir: Output directory for generated artifacts.
+        interval_hours: Search and analysis interval in hours (default: 1.0).
+        interval_minutes: Optional override in minutes.
+        interval_seconds: Optional override in seconds.
+        max_cycles: Optional maximum cycles to execute before halting.
 
     Returns:
         Report dictionary corresponding to executed mode.
@@ -551,9 +584,46 @@ def main(
             "collection": collection_report,
             "analysis": analysis_report,
         }
+    elif normalized_mode in ("schedule", "scheduler", "daemon", "recurring"):
+        # Determine recurring interval in seconds
+        interval_sec = 3600.0  # default 1 hour
+        if interval_seconds is not None:
+            interval_sec = float(interval_seconds)
+        elif interval_minutes is not None:
+            interval_sec = float(interval_minutes) * 60.0
+        elif interval_hours is not None:
+            interval_sec = float(interval_hours) * 3600.0
+        else:
+            try:
+                cfg = load_config(config_path)
+                interval_sec = cfg.scheduler.interval_hours * 3600.0
+            except Exception:
+                interval_sec = 3600.0
+
+        logger.info(
+            f"Executing Mode: SCHEDULE (repeats every {interval_sec:.0f}s / {interval_sec / 3600:.2f}h)"
+        )
+        engine = ScheduledResearchEngine(
+            config_path=config_path,
+            taxonomy_path=taxonomy_path,
+            interval_seconds=interval_sec,
+            limit_override=limit_override,
+            max_records=max_records,
+            dry_run=dry_run,
+            output_dir=output_dir or "data/output",
+            auto_analyze=True,
+            incremental=True,
+        )
+        history = engine.start(max_cycles=max_cycles)
+        return {
+            "mode": "schedule",
+            "interval_seconds": interval_sec,
+            "cycles_completed": len(history),
+            "history": history,
+        }
     else:
         raise ValueError(
-            f"Invalid mode: '{mode}'. Must be one of: 'collect', 'analyze', 'both'."
+            f"Invalid mode: '{mode}'. Must be one of: 'collect', 'analyze', 'both', 'schedule'."
         )
 
 
@@ -568,4 +638,8 @@ if __name__ == "__main__":
         taxonomy_path=args.taxonomy,
         input_path=args.input,
         sample=args.sample,
+        interval_hours=getattr(args, "interval_hours", None),
+        interval_minutes=getattr(args, "interval_minutes", None),
+        interval_seconds=getattr(args, "interval_seconds", None),
+        max_cycles=getattr(args, "max_cycles", None),
     )

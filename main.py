@@ -31,4 +31,8 @@ if __name__ == "__main__":
         input_path=args.input,
         sample=args.sample,
         output_dir=getattr(args, "output_dir", None),
+        interval_hours=getattr(args, "interval_hours", None),
+        interval_minutes=getattr(args, "interval_minutes", None),
+        interval_seconds=getattr(args, "interval_seconds", None),
+        max_cycles=getattr(args, "max_cycles", None),
     )

@@ -1,191 +1,30 @@
 {
   "report_metadata": {
-    "generated_at": "2026-09-26T15:38:46Z",
+    "generated_at": "2026-10-02T12:18:14Z",
     "v0_source_file": "data/output/reddit_evidence.json",
-    "total_records_ingested": 25,
-    "relevant_evidence_count": 12,
-    "relevance_rate": 0.48,
+    "total_records_ingested": 2,
+    "relevant_evidence_count": 0,
+    "relevance_rate": 0.0,
     "groq_model_used": "llama-3.3-70b-versatile"
   },
   "research_question": "Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?",
-  "executive_summary": "Out of 25 ingested evidence records, 12 (48.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'object', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
+  "executive_summary": "Out of 2 ingested evidence records, 0 (0.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'temporal_epoch', while the dominant retrieval breakdown was 'temporal_fuzziness'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 0 recurring failure patterns with full citation traceability.",
   "distributions": {
     "relevance_classes": {
-      "irrelevant": 13,
-      "possibly_relevant": 7,
-      "relevant": 5
+      "irrelevant": 2
     },
-    "retrieval_failure_stages": {
-      "memory_to_query": 5,
-      "system_to_candidate": 5,
-      "query_to_system": 2
-    },
-    "top_memory_cues": {
-      "object": 5,
-      "person": 5,
-      "text_in_image": 2,
-      "temporal_epoch": 1
-    },
-    "retrieval_failure_points": {
-      "vocabulary_mismatch": 9,
-      "volume_overload": 2,
-      "missing_metadata": 1
-    },
-    "top_workarounds": {
-      "endless_scrolling": 3,
-      "abandonment": 1
-    },
-    "target_media_types": {
-      "personal_photo": 11,
-      "document_receipt": 1
-    },
-    "friction_types": {
-      "frustration_with_search_tool": 5,
-      "time_wasted": 3,
-      "cognitive_overload": 2,
-      "fear_of_memory_loss": 1
-    }
+    "retrieval_failure_stages": {},
+    "top_memory_cues": {},
+    "retrieval_failure_points": {},
+    "top_workarounds": {},
+    "target_media_types": {},
+    "friction_types": {}
   },
   "cross_tabulations": {
-    "failure_stages_vs_failure_points": {
-      "memory_to_query": {
-        "vocabulary_mismatch": 5
-      },
-      "query_to_system": {
-        "vocabulary_mismatch": 2
-      },
-      "system_to_candidate": {
-        "missing_metadata": 1,
-        "vocabulary_mismatch": 2,
-        "volume_overload": 2
-      }
-    },
-    "memory_cues_vs_failure_stages": {
-      "object": {
-        "memory_to_query": 2,
-        "system_to_candidate": 3
-      },
-      "person": {
-        "memory_to_query": 2,
-        "query_to_system": 1,
-        "system_to_candidate": 2
-      },
-      "temporal_epoch": {
-        "query_to_system": 1
-      },
-      "text_in_image": {
-        "system_to_candidate": 2
-      }
-    },
-    "memory_cues_vs_failure_points": {
-      "object": {
-        "vocabulary_mismatch": 4,
-        "volume_overload": 1
-      },
-      "person": {
-        "vocabulary_mismatch": 3,
-        "volume_overload": 2
-      },
-      "temporal_epoch": {
-        "vocabulary_mismatch": 1
-      },
-      "text_in_image": {
-        "vocabulary_mismatch": 2
-      }
-    },
-    "target_media_vs_workarounds": {
-      "personal_photo": {
-        "abandonment": 1,
-        "endless_scrolling": 3
-      }
-    }
+    "failure_stages_vs_failure_points": {},
+    "memory_cues_vs_failure_stages": {},
+    "memory_cues_vs_failure_points": {},
+    "target_media_vs_workarounds": {}
   },
-  "recurring_patterns": [
-    {
-      "pattern_id": "PAT_002",
-      "name": "Vocabulary & Semantic Label Mismatch",
-      "prevalence_count": 9,
-      "prevalence_percentage": 75.0,
-      "summary": "Users search using abstract concepts, emotions, or everyday descriptions that do not match the system's metadata or image labels.",
-      "supporting_evidence": [
-        {
-          "record_id": "RD_000012",
-          "url": "https://reddit.com/r/googlephotos/comments/1lyo0fc/i_just_noticed_google_has_deleted_years_worth_of/",
-          "quote": "Hi, I have no idea where to start. I went to look up photos of my grandma, and I noticed most are now missing with no cl"
-        },
-        {
-          "record_id": "RD_000014",
-          "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
-          "quote": "Now I search any of the above and it shows be thousands of photos with absolutely no relevance."
-        },
-        {
-          "record_id": "RD_000021",
-          "url": "https://reddit.com/r/googlephotos/comments/1l1ssr7/whoa_google_photos_seriously_wtf/",
-          "quote": "no_date_filter"
-        }
-      ]
-    },
-    {
-      "pattern_id": "PAT_001",
-      "name": "Chronological Fatigue in Large Galleries",
-      "prevalence_count": 4,
-      "prevalence_percentage": 33.3,
-      "summary": "Users retain episodic memory (who, where, rough era) but lack exact timestamps; timeline search forces hours of manual scrolling that leads to fatigue or abandonment.",
-      "supporting_evidence": [
-        {
-          "record_id": "RD_000023",
-          "url": "https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/",
-          "quote": "I've always been able to search by date, for example \"July 2016,\" but now when I do that it says I can't search using those terms."
-        },
-        {
-          "record_id": "RD_000025",
-          "url": "https://reddit.com/r/googlephotos/comments/1vu4zfx/google_photos_missing_features/",
-          "quote": "it's a pain to search through large albums (some of mine have over 1,000 photos!) Adding a dedicated search bar inside individual albums would make finding specific photos of people or tags much faster."
-        },
-        {
-          "record_id": "RD_000033",
-          "url": "https://reddit.com/r/googlephotos/comments/1tirpw1/finding_the_unrecognized_or_face_available_to_add/",
-          "quote": "Google Photos has completely failed to manage all faces... You can't search, filter or even use the AI Ask photos feature. The manually clicking through 85,000 photos to find which ones have an 'Available to add' tag is a literal prison sentence."
-        }
-      ]
-    },
-    {
-      "pattern_id": "PAT_003",
-      "name": "Untagged Screenshot & Document Clutter",
-      "prevalence_count": 2,
-      "prevalence_percentage": 16.7,
-      "summary": "Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.",
-      "supporting_evidence": [
-        {
-          "record_id": "RD_000014",
-          "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
-          "quote": "Now I search any of the above and it shows be thousands of photos with absolutely no relevance."
-        },
-        {
-          "record_id": "RD_000035",
-          "url": "https://reddit.com/r/googlephotos/comments/1u2729t/what_did_google_do_to_photos_overnight/",
-          "quote": "now when i search for them it doesnt pull anything up"
-        }
-      ]
-    },
-    {
-      "pattern_id": "PAT_004",
-      "name": "Missing Metadata & Device Migration Loss",
-      "prevalence_count": 2,
-      "prevalence_percentage": 16.7,
-      "summary": "Photos transferred across devices, platforms, or cloud syncs lose timestamps or geotags, breaking timeline navigation and causing search abandonment.",
-      "supporting_evidence": [
-        {
-          "record_id": "RD_000023",
-          "url": "https://reddit.com/r/googlephotos/comments/1v3gsds/i_can_no_longer_search_for_photos_by_date/",
-          "quote": "I've always been able to search by date, for example \"July 2016,\" but now when I do that it says I can't search using those terms."
-        },
-        {
-          "record_id": "RD_000036",
-          "url": "https://reddit.com/r/googlephotos/comments/1uwcxgs/google_photos_app_vs_website_showing_different/",
-          "quote": "Now, I can no longer see those photos in the main Photos tab of the app, but I can still find them if I specifically search for them using the search tab. Strangely, all the photos appear perfectly fine on the Google Photos website."
-        }
-      ]
-    }
-  ]
+  "recurring_patterns": []
 }

@@ -1,4 +1,4 @@
-# Reddit Evidence-Collection Configuration — V0
+# Reddit Evidence-Collection Configuration — V0 (2000-Record Target)
 # Environment variables (${VAR}) are substituted at load time via .env
 
 reddit:
@@ -7,18 +7,31 @@ reddit:
   user_agent: "${REDDIT_USER_AGENT}"
 
 search:
-  # Subreddits categorized by research tier (prioritized)
+  # Subreddits categorized by research tier (expanded for 2000-record target)
   subreddits:
     primary:
       - "googlephotos"
       - "GooglePixel"
       - "Android"
       - "iphone"
+      - "ios"
+      - "apple"
     discovery:
       - "photography"
       - "techsupport"
+      - "AskTechnology"
+      - "google"
+      - "pics"
+      - "smartphones"
+    niche:
+      - "DataHoarder"
+      - "degoogle"
+      - "applehelp"
+      - "iphonehelp"
+      - "AndroidQuestions"
+      - "pixelphones"
 
-  # Queries categorized by research strategy
+  # Queries categorized by research strategy (expanded for comprehensive coverage)
   queries:
     product_specific:
       - "Google Photos search"
@@ -32,6 +45,22 @@ search:
       - "Google Photos search face"
       - "Google Photos search text"
       - "Google Photos search album"
+      - "Google Photos search by location"
+      - "Google Photos search by date"
+      - "Google Photos search results wrong"
+      - "Google Photos search missing photos"
+      - "Google Photos search filter"
+      - "Google Photos search tips"
+      - "Google Photos AI search"
+      - "Google Photos image recognition"
+      - "Google Photos visual search"
+      - "Google Photos search bar"
+      - "Google Photos search suggestions"
+      - "Google Photos object search"
+      - "Google Photos scene search"
+      - "Google Photos search quality"
+      - "Google Photos Lens search library"
+      - "Google Photos identify photo"
     behavior_specific:
       - "can't find old photo"
       - "looking for old photo"
@@ -45,17 +74,53 @@ search:
       - "vague memory of a photo"
       - "searching photo by description"
       - "lost picture in library"
+      - "search photos by what's in them"
+      - "find photo by describing it"
+      - "search my photos for"
+      - "how to find a specific photo"
+      - "search photos by content"
+      - "photo search by keyword"
+      - "find photo without knowing date"
+      - "browse thousands of photos"
+      - "organize photos to find them"
+      - "photo too many results"
+      - "photo search frustrating"
+      - "photo app search useless"
+      - "I know I have a photo but"
+      - "impossible to find photo"
+      - "needle in haystack photos"
+      - "dig through photos"
+      - "sifting through photos"
+      - "photo library too big to search"
+    competitor_comparison:
+      - "Apple Photos search vs Google Photos"
+      - "iCloud Photos search problems"
+      - "Apple Photos can't find"
+      - "iPhone photo search not working"
+      - "Samsung Gallery search"
+      - "photo manager search feature"
+      - "best photo search app"
+      - "photo search AI app"
+      - "photo organizer search"
+    workaround_queries:
+      - "workaround photo search"
+      - "trick to find old photo"
+      - "manual scroll photos find"
+      - "tag photos manually"
+      - "photo search hack"
+      - "better way to search photos"
+      - "alternative photo search"
 
   sort: "relevance"                  # relevance | hot | top | new
   time_filter: "all"                 # all | year | month | week | day | hour
-  limit_per_query: 25                # max results per search task
+  limit_per_query: 50               # max results per search task (increased for 2000 target)
 
 pipeline:
   deduplicate_by: "id"
   output_format: "both"              # json | csv | both
   output_dir: "data/output"
-  request_delay_seconds: 2.0         # delay between queries to respect rate limits
-  max_comments_per_post: 3           # top-level comments to extract per post
+  request_delay_seconds: 5.0         # delay between queries to respect rate limits (5s to avoid 429s)
+  max_comments_per_post: 5           # top-level comments to extract per post (increased)
 
 privacy:
   anonymize_authors: false           # set to true to hash/mask usernames for research ethics
@@ -68,3 +133,8 @@ groq:
 logging:
   level: "INFO"
   log_file: "logs/run.log"
+
+scheduler:
+  interval_hours: 1.0                # Periodic collection and analysis interval (default: 1 hour)
+  auto_analyze: true                 # Automatically run AI analysis on new evidence found in cycle
+  incremental: true                  # Process only new unseen records and merge findings

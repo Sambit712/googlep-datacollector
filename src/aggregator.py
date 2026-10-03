@@ -183,7 +183,7 @@ class PatternAggregator:
         # 2. memory_cues vs failure_stages
         try:
             df_cue_stages = self.df_relevant[["memory_cues_present", "retrieval_failure_stage"]].explode("memory_cues_present")
-            df_cue_stages = df_cue_stages.dropna()
+            df_cue_stages = df_cue_stages.dropna().reset_index(drop=True)
             df_cue_stages = df_cue_stages[(df_cue_stages["memory_cues_present"] != "") & (df_cue_stages["retrieval_failure_stage"] != "")]
             if not df_cue_stages.empty:
                 crosstab_cue_stages = pd.crosstab(df_cue_stages["memory_cues_present"], df_cue_stages["retrieval_failure_stage"])
@@ -197,7 +197,7 @@ class PatternAggregator:
         # 3. memory_cues vs retrieval_failure_point
         try:
             df_cues = self.df_relevant[["memory_cues_present", "retrieval_failure_point"]].explode("memory_cues_present")
-            df_cues = df_cues.dropna()
+            df_cues = df_cues.dropna().reset_index(drop=True)
             df_cues = df_cues[(df_cues["memory_cues_present"] != "") & (df_cues["retrieval_failure_point"] != "")]
             if not df_cues.empty:
                 crosstab_cues = pd.crosstab(df_cues["memory_cues_present"], df_cues["retrieval_failure_point"])
@@ -211,7 +211,7 @@ class PatternAggregator:
         # 4. target_media vs workarounds_used
         try:
             df_work = self.df_relevant[["target_media", "workarounds_used"]].explode("workarounds_used")
-            df_work = df_work.dropna()
+            df_work = df_work.dropna().reset_index(drop=True)
             df_work = df_work[(df_work["target_media"] != "") & (df_work["workarounds_used"] != "")]
             if not df_work.empty:
                 crosstab_work = pd.crosstab(df_work["target_media"], df_work["workarounds_used"])
