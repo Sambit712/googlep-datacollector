@@ -656,6 +656,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(root_dir / "frontend"), **kwargs)
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
 
@@ -796,18 +803,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             client = RedditClient(cfg)
             target_sub = None if sub.lower() in ("all", "global", "none") else sub
 
-            # Collect candidates across search variations to fulfill target relevant records
-            candidate_queries = [
-                q,
-                f"{q} search",
-                f"{q} photo",
-                f"can't find {q}",
-            ]
+            # Fast search: Query Reddit with primary query and query Google Discussions
+            candidate_queries = [q, f"{q} search"]
             collected_relevant = []
             seen_cand_ids = set()
 
             for query_var in candidate_queries:
-                if len(collected_relevant) >= target_relevant_count:
+                if len(collected_relevant) >= 50:
                     break
                 try:
                     posts = client.search(
@@ -815,7 +817,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         subreddit=target_sub,
                         sort="relevance",
                         time_filter="all",
-                        limit=min(50, target_relevant_count - len(collected_relevant)),
+                        limit=min(35, target_relevant_count - len(collected_relevant)),
                     )
                     for p in posts:
                         if p.id in seen_cand_ids:
@@ -823,7 +825,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         seen_cand_ids.add(p.id)
 
                         analysis = classify_evidence(p.title, p.selftext)
-                        # Filter strictly for relevant / possibly_relevant records
                         if analysis["is_relevant"]:
                             collected_relevant.append({
                                 "source_id": p.id,
@@ -843,7 +844,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
             # Also scrape Google discussion and support forums for the query
             try:
-                google_cands = scrape_google_discussions(q, max_results=25)
+                google_cands = scrape_google_discussions(q, max_results=20)
                 for g in google_cands:
                     if len(collected_relevant) >= target_relevant_count:
                         break
@@ -910,14 +911,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(resp).encode("utf-8"))
 
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            logger.info("[API] Client closed connection before search response was sent.")
         except Exception as e:
             logger.exception("Error executing search")
-            resp = {"status": "error", "message": str(e)}
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            try:
+                resp = {"status": "error", "message": str(e)}
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("utf-8"))
+            except Exception:
+                pass
 
 
 # Global background worker reference

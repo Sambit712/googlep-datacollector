@@ -951,6 +951,11 @@
 
 <script>
 // ════════════════════════════════════════════
+// API BASE (Connects to localhost:8000 when opened via file://)
+// ════════════════════════════════════════════
+const API_BASE = (window.location.protocol === 'file:') ? 'http://localhost:8000' : '';
+
+// ════════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════════
 const RECORDS = [
@@ -1871,7 +1876,7 @@ if(btnExecuteLive) {
     }
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&subreddit=${encodeURIComponent(sub)}&limit=${lim}`);
+      const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q)}&subreddit=${encodeURIComponent(sub)}&limit=${lim}`);
       if(res.ok) {
         const data = await res.json();
         if(liveStatus) {
@@ -1917,7 +1922,7 @@ if (btnDualScrape) {
       fb.innerHTML = `<span>⏳ <strong>Harvesting Web Data:</strong> Scraping fresh posts from Reddit and discussions from Google & Google Support Forums...</span>`;
     }
     try {
-      const res = await fetch('/api/scrape-now');
+      const res = await fetch(`${API_BASE}/api/scrape-now`);
       if (res.ok) {
         const d = await res.json();
         if (fb) {
@@ -1944,7 +1949,7 @@ if (btnDualScrape) {
 // ════════════════════════════════════════════
 async function loadCollectedDataset() {
   try {
-    const res = await fetch('/api/records');
+    const res = await fetch(`${API_BASE}/api/records`);
     if (res.ok) {
       const data = await res.json();
       if (data.records && data.records.length > 0) {
@@ -1968,7 +1973,7 @@ async function loadCollectedDataset() {
 let lastPolledTotal = 0;
 async function pollLiveStatusAndSync() {
   try {
-    const res = await fetch('/api/status');
+    const res = await fetch(`${API_BASE}/api/status`);
     if (res.ok) {
       const st = await res.json();
       const sysPill = document.getElementById('system-live-pill');
