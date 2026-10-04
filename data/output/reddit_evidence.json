@@ -71673,7 +71673,46 @@
       "ai_relevance": "relevant",
       "relevance_confidence": 0.85,
       "evidence_status": "verified"
+    },
+    {
+      "record_id": "RD_001827",
+      "source": "reddit",
+      "source_type": "reddit",
+      "content_type": "post",
+      "source_id": "1wxohrl",
+      "post_id": "1wxohrl",
+      "subreddit": "googlephotos",
+      "subreddit_tier": "primary",
+      "title": "Google Photos doesn't recognize faces since I uninstalled and re-installed the app couple of weeks ago in iPhone",
+      "raw_text": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come back. \n \nIt's worse because I have partner sharing on, and it's supposed to automatically share pictures containing a certain face to another person. \n \nI tried uninstalling and reinstalling again, clearing some cache from app settings and keeping the phone charged with Wi-Fi on for a couple of hours. Admittedly, I haven't done the same overnight. Anyone got any solution?",
+      "selftext": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come back. \n \nIt's worse because I have partner sharing on, and it's supposed to automatically share pictures containing a certain face to another person. \n \nI tried uninstalling and reinstalling again, clearing some cache from app settings and keeping the phone charged with Wi-Fi on for a couple of hours. Admittedly, I haven't done the same overnight. Anyone got any solution?",
+      "cleaned_text": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come back. \n \nIt's worse because I have partner sharing on, and it's supposed to automatically share pictures containing a certain face to another person. \n \nI tried uninstalling and reinstalling again, clearing some cache from app settings and keeping the phone charged with Wi-Fi on for a couple of hours. Admittedly, I haven't done the same overnight. Anyone got any solution?",
+      "preview_text": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come ",
+      "text_preview": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come ",
+      "author": "kochurshak",
+      "created_at": "2026-10-04T19:57:06.047360+00:00",
+      "created_utc": 1791142674.0,
+      "retrieved_at": "2026-10-04T19:57:06.047360+00:00",
+      "collected_at": "2026-10-04T19:57:06.047360+00:00",
+      "url": "https://www.reddit.com/r/googlephotos/comments/1wxohrl/google_photos_doesnt_recognize_faces_since_i/",
+      "permalink": "https://www.reddit.com/r/googlephotos/comments/1wxohrl/google_photos_doesnt_recognize_faces_since_i/",
+      "queries_matched": [
+        "DualScrape: Reddit+Google (19:57)"
+      ],
+      "query_used": "DualScrape: Reddit+Google (19:57)",
+      "search_query": "DualScrape: Reddit+Google (19:57)",
+      "run_id": "live_search_ingest",
+      "parent_id": null,
+      "parent_post_title": null,
+      "parent_post_text": null,
+      "comment_text": null,
+      "score": 0,
+      "num_comments": 0,
+      "top_comments": [],
+      "ai_relevance": "relevant",
+      "relevance_confidence": 0.85,
+      "evidence_status": "verified"
     }
   ],
-  "count": 1826
+  "count": 1827
 }

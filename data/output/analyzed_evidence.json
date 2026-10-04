@@ -76210,5 +76210,45 @@
       ],
       "desired_outcome": "Locate target photo in library."
     }
+  },
+  {
+    "record_id": "RD_001827",
+    "source_id": "1wxohrl",
+    "title": "Google Photos doesn't recognize faces since I uninstalled and re-installed the app couple of weeks ago in iPhone",
+    "raw_text": "Basically the title. Recently, I realized that Google Photos doesn't show the face option for pictures I backed up after reinstalling the iOS app. It's been about 20 days, but the feature hasn't come back. \n \nIt's worse because I have partner sharing on, and it's supposed to automatically share pictures containing a certain face to another person. \n \nI tried uninstalling and reinstalling again, clearing some cache from app settings and keeping the phone charged with Wi-Fi on for a couple of hours. Admittedly, I haven't done the same overnight. Anyone got any solution?",
+    "url": "https://www.reddit.com/r/googlephotos/comments/1wxohrl/google_photos_doesnt_recognize_faces_since_i/",
+    "author": "kochurshak",
+    "subreddit": "googlephotos",
+    "created_at": "2026-10-04T19:57:06.047360+00:00",
+    "retrieved_at": "2026-10-04T19:57:06.047360+00:00",
+    "queries_matched": [
+      "DualScrape: Reddit+Google (19:57)"
+    ],
+    "analyzed_at": "2026-10-04T19:57:06.047360+00:00",
+    "model_used": "research-taxonomy-v1",
+    "analysis": {
+      "is_relevant": true,
+      "relevance_classification": "possibly_relevant",
+      "relevance_confidence": 0.78,
+      "relevance_reasoning": "User discusses photo retrieval, search behavior, or gallery navigation.",
+      "target_media": "personal_photo",
+      "memory_cues_present": [
+        "person"
+      ],
+      "memory_cue_details": {
+        "person": "User mentions family member or person face"
+      },
+      "retrieval_failure_stage": "memory_to_query",
+      "retrieval_failure_point": "vocabulary_mismatch",
+      "failure_evidence": "Google Photos doesn't recognize faces since I uninstalled and re-installed the app couple of weeks ago in iPhone",
+      "workarounds_used": [
+        "endless_scrolling"
+      ],
+      "friction_experienced": [
+        "frustration_with_search_tool",
+        "time_wasted"
+      ],
+      "desired_outcome": "Locate target photo in library."
+    }
   }
 ]
