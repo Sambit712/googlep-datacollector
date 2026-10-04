@@ -70,37 +70,85 @@ def manual_search(query: str, subreddit: str = "googlephotos", limit: int = 10, 
         print(f"\n[{rec_id}] r/{p.subreddit} — u/{p.author}")
         print(f"  Title: {p.title}")
         print(f"  URL:   {p.url}")
-        text = p.selftext.strip()
+        text = (p.selftext or "").strip()
         preview = (text[:200] + "...") if len(text) > 200 else (text or "[No self text]")
         print(f"  Preview:\n    {preview.replace(chr(10), chr(10) + '    ')}")
         records.append({
-            "record_id": rec_id,
+            "source_id": p.id,
             "title": p.title,
-            "raw_text": p.selftext,
+            "raw_text": p.selftext or "",
             "url": p.url,
             "author": p.author,
-            "subreddit": p.subreddit,
-            "created_at": str(p.created_utc),
+            "subreddit": p.subreddit or sub,
+            "created_utc": p.created_utc,
         })
 
+    out_dir = root_dir / "data" / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     if save:
-        out_dir = root_dir / "data" / "output"
-        out_dir.mkdir(parents=True, exist_ok=True)
         out_file = out_dir / "manual_search_results.json"
         with open(out_file, "w", encoding="utf-8") as f:
             json.dump({"query": query, "subreddit": subreddit, "count": len(records), "records": records}, f, indent=2)
-        print(f"\n💾 Saved {len(records)} results to {out_file}")
+        print(f"\n💾 Saved {len(records)} raw search results to {out_file}")
+
+    # Analyze and append to the cumulative stored database
+    try:
+        from scripts.serve_dashboard import classify_evidence, persist_new_relevant_records, refresh_global_stats, SEARCH_STATE
+
+        refresh_global_stats()
+        prev_total = SEARCH_STATE.get("total_records", 0)
+
+        # Classify and filter for relevant records
+        relevant_candidates = []
+        for r in records:
+            analysis = classify_evidence(r["title"], r["raw_text"])
+            if analysis["is_relevant"]:
+                relevant_candidates.append({
+                    "source_id": r["source_id"],
+                    "title": r["title"],
+                    "raw_text": r["raw_text"],
+                    "url": r["url"],
+                    "author": r["author"],
+                    "subreddit": r["subreddit"],
+                    "created_utc": r.get("created_utc"),
+                    "analysis": analysis,
+                })
+
+        print("\n" + "=" * 80)
+        print("  🔬 COGNITIVE TAXONOMY ANALYSIS & CUMULATIVE DATABASE SYNC")
+        print("=" * 80)
+        print(f"  Total Candidates Analyzed from Reddit: {len(records)}")
+        print(f"  Relevant Failure Signals Identified:  {len(relevant_candidates)}")
+
+        if not relevant_candidates:
+            print(f"\n  ⚠️  0 relevant records found for '{query}'. (Strict Relevance Guard Active)")
+            print(f"  📊 Cumulative Analyzed Database Intact at: {prev_total:,} records.")
+        else:
+            added = persist_new_relevant_records(relevant_candidates, query_label=f"Manual CLI: {query}")
+            refresh_global_stats()
+            new_total = SEARCH_STATE.get("total_records", 0)
+            if added > 0:
+                print(f"\n  ✅ Added +{added} newly analyzed non-duplicate records to persistent database!")
+                print(f"  🏆 NEW Cumulative Total Analyzed Records Stored: {new_total:,} (was {prev_total:,})")
+            else:
+                print(f"\n  ℹ️  All {len(relevant_candidates)} candidates were already present in historical database.")
+                print(f"  📊 Cumulative Total Analyzed Records Stored: {new_total:,}")
+        print("=" * 80)
+
+    except Exception as e:
+        print(f"\n⚠️  Could not automatically sync to cumulative database: {e}")
 
     print("=" * 80)
     return records
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Trigger a manual search query on Reddit")
+    parser = argparse.ArgumentParser(description="Trigger a manual search query on Reddit and store to cumulative analyzed database")
     parser.add_argument("--query", "-q", required=True, help="Search query string")
     parser.add_argument("--subreddit", "-s", default="googlephotos", help="Target subreddit (default: googlephotos)")
     parser.add_argument("--limit", "-l", type=int, default=10, help="Number of records to fetch (default: 10)")
-    parser.add_argument("--no-save", action="store_true", help="Do not save results to disk")
+    parser.add_argument("--no-save", action="store_true", help="Do not save raw search JSON to disk")
     args = parser.parse_args()
 
     manual_search(query=args.query, subreddit=args.subreddit, limit=args.limit, save=not args.no_save)

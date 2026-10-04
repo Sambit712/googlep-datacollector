@@ -1,133 +1,133 @@
 {
   "report_metadata": {
-    "generated_at": "2026-10-03T19:57:11Z",
+    "generated_at": "2026-10-04T19:28:06Z",
     "v0_source_file": "data/output/reddit_evidence.json",
-    "total_records_ingested": 1754,
-    "relevant_evidence_count": 1514,
-    "relevance_rate": 0.8632,
+    "total_records_ingested": 1782,
+    "relevant_evidence_count": 1542,
+    "relevance_rate": 0.8653,
     "groq_model_used": "research-taxonomy-v1"
   },
   "research_question": "Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?",
-  "executive_summary": "Out of 1754 ingested evidence records, 1514 (86.3%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'object', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
+  "executive_summary": "Out of 1782 ingested evidence records, 1542 (86.5%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'object', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
   "distributions": {
     "relevance_classes": {
-      "possibly_relevant": 1301,
+      "possibly_relevant": 1315,
       "irrelevant": 240,
-      "relevant": 213
+      "relevant": 227
     },
     "retrieval_failure_stages": {
-      "query_to_system": 664,
-      "memory_to_query": 622,
-      "system_to_candidate": 228
+      "query_to_system": 670,
+      "memory_to_query": 634,
+      "system_to_candidate": 238
     },
     "top_memory_cues": {
-      "object": 903,
-      "temporal_epoch": 831,
-      "person": 645,
-      "text_in_image": 583,
-      "place_location": 459,
-      "event_occasion": 300
+      "object": 920,
+      "temporal_epoch": 839,
+      "person": 650,
+      "text_in_image": 589,
+      "place_location": 460,
+      "event_occasion": 303
     },
     "retrieval_failure_points": {
-      "vocabulary_mismatch": 1286,
-      "missing_metadata": 146,
+      "vocabulary_mismatch": 1304,
+      "missing_metadata": 156,
       "volume_overload": 82
     },
     "top_workarounds": {
-      "endless_scrolling": 1287,
-      "abandonment": 254,
+      "endless_scrolling": 1312,
+      "abandonment": 257,
       "keyword_guessing": 27
     },
     "target_media_types": {
-      "personal_photo": 1514
+      "personal_photo": 1542
     },
     "friction_types": {
-      "frustration_with_search_tool": 1514,
-      "time_wasted": 671,
+      "frustration_with_search_tool": 1542,
+      "time_wasted": 676,
       "fear_of_memory_loss": 49
     }
   },
   "cross_tabulations": {
     "failure_stages_vs_failure_points": {
       "memory_to_query": {
-        "vocabulary_mismatch": 622
+        "vocabulary_mismatch": 634
       },
       "query_to_system": {
-        "vocabulary_mismatch": 664
+        "vocabulary_mismatch": 670
       },
       "system_to_candidate": {
-        "missing_metadata": 146,
+        "missing_metadata": 156,
         "volume_overload": 82
       }
     },
     "memory_cues_vs_failure_stages": {
       "event_occasion": {
         "memory_to_query": 54,
-        "query_to_system": 203,
-        "system_to_candidate": 43
+        "query_to_system": 204,
+        "system_to_candidate": 45
       },
       "object": {
-        "memory_to_query": 371,
-        "query_to_system": 390,
-        "system_to_candidate": 142
+        "memory_to_query": 378,
+        "query_to_system": 392,
+        "system_to_candidate": 150
       },
       "person": {
-        "memory_to_query": 170,
+        "memory_to_query": 173,
         "query_to_system": 372,
-        "system_to_candidate": 103
+        "system_to_candidate": 105
       },
       "place_location": {
         "memory_to_query": 123,
-        "query_to_system": 277,
+        "query_to_system": 278,
         "system_to_candidate": 59
       },
       "temporal_epoch": {
-        "memory_to_query": 119,
-        "query_to_system": 637,
+        "memory_to_query": 121,
+        "query_to_system": 643,
         "system_to_candidate": 75
       },
       "text_in_image": {
-        "memory_to_query": 175,
-        "query_to_system": 324,
+        "memory_to_query": 177,
+        "query_to_system": 328,
         "system_to_candidate": 84
       }
     },
     "memory_cues_vs_failure_points": {
       "event_occasion": {
-        "missing_metadata": 19,
-        "vocabulary_mismatch": 257,
+        "missing_metadata": 21,
+        "vocabulary_mismatch": 258,
         "volume_overload": 24
       },
       "object": {
-        "missing_metadata": 88,
-        "vocabulary_mismatch": 761,
+        "missing_metadata": 96,
+        "vocabulary_mismatch": 770,
         "volume_overload": 54
       },
       "person": {
-        "missing_metadata": 60,
-        "vocabulary_mismatch": 542,
+        "missing_metadata": 62,
+        "vocabulary_mismatch": 545,
         "volume_overload": 43
       },
       "place_location": {
         "missing_metadata": 33,
-        "vocabulary_mismatch": 400,
+        "vocabulary_mismatch": 401,
         "volume_overload": 26
       },
       "temporal_epoch": {
         "missing_metadata": 36,
-        "vocabulary_mismatch": 756,
+        "vocabulary_mismatch": 764,
         "volume_overload": 39
       },
       "text_in_image": {
         "missing_metadata": 49,
-        "vocabulary_mismatch": 499,
+        "vocabulary_mismatch": 505,
         "volume_overload": 35
       }
     },
     "target_media_vs_workarounds": {
       "personal_photo": {
-        "abandonment": 254,
-        "endless_scrolling": 1287,
+        "abandonment": 257,
+        "endless_scrolling": 1312,
         "keyword_guessing": 27
       }
     }
@@ -136,7 +136,7 @@
     {
       "pattern_id": "PAT_001",
       "name": "Chronological Fatigue in Large Galleries",
-      "prevalence_count": 1468,
+      "prevalence_count": 1495,
       "prevalence_percentage": 97.0,
       "summary": "Users retain episodic memory (who, where, rough era) but lack exact timestamps; timeline search forces hours of manual scrolling that leads to fatigue or abandonment.",
       "supporting_evidence": [
@@ -160,8 +160,8 @@
     {
       "pattern_id": "PAT_002",
       "name": "Vocabulary & Semantic Label Mismatch",
-      "prevalence_count": 1289,
-      "prevalence_percentage": 85.1,
+      "prevalence_count": 1307,
+      "prevalence_percentage": 84.8,
       "summary": "Users search using abstract concepts, emotions, or everyday descriptions that do not match the system's metadata or image labels.",
       "supporting_evidence": [
         {
@@ -184,8 +184,8 @@
     {
       "pattern_id": "PAT_003",
       "name": "Untagged Screenshot & Document Clutter",
-      "prevalence_count": 583,
-      "prevalence_percentage": 38.5,
+      "prevalence_count": 589,
+      "prevalence_percentage": 38.2,
       "summary": "Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.",
       "supporting_evidence": [
         {
@@ -208,8 +208,8 @@
     {
       "pattern_id": "PAT_004",
       "name": "Missing Metadata & Device Migration Loss",
-      "prevalence_count": 378,
-      "prevalence_percentage": 25.0,
+      "prevalence_count": 391,
+      "prevalence_percentage": 25.4,
       "summary": "Photos transferred across devices, platforms, or cloud syncs lose timestamps or geotags, breaking timeline navigation and causing search abandonment.",
       "supporting_evidence": [
         {

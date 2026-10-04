@@ -1,9 +1,9 @@
 # Executive Research Insight Report: Google Photos Vague-Memory Retrieval Failures
 
-**Generated Date:** 2026-10-03T19:56:39Z  
+**Generated Date:** 2026-10-04T18:34:12Z  
 **AI Analysis Model:** llama-3.3-70b-versatile  
-**Source Dataset:** `C:\Users\kumar\AppData\Local\Temp\pytest-of-kumar\pytest-158\test_v0_source_data_immutabili0\reddit_evidence.json` (V0 Evidence Collection Layer)  
-**Total Ingested Sample:** 1 records | **Relevant Evidence:** 1 records (**100.0% Relevance Rate**)  
+**Source Dataset:** `C:\Users\kumar\AppData\Local\Temp\pytest-of-kumar\pytest-159\test_run_analysis_pipeline_wri0\reddit_evidence.json` (V0 Evidence Collection Layer)  
+**Total Ingested Sample:** 2 records | **Relevant Evidence:** 2 records (**100.0% Relevance Rate**)  
 **Traceability Status:** Fully verified (Unbroken citation chain to source Reddit URLs)
 
 ---
@@ -16,7 +16,7 @@
 
 ## 2. Executive Summary
 
-Out of 1 ingested evidence records, 1 (100.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'temporal_epoch', while the dominant retrieval breakdown was 'temporal_fuzziness'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 0 recurring failure patterns with full citation traceability.
+Out of 2 ingested evidence records, 2 (100.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'text_in_image', while the dominant retrieval breakdown was 'screenshot_clutter'. Users frequently resorted to coping strategies such as 'keyword_guessing'. Synthesized analysis identified 2 recurring failure patterns with full citation traceability.
 
 When searching personal photo libraries, users do not formulate queries using exact filenames, timestamps, or rigid metadata. Instead, human visual memory recall is anchored in **episodic context and perceptual memory cues**—such as remembered people, places, events, physical objects, activities, visual details, or text on signs. Current photo retrieval systems fail when this natural memory representation cannot be translated into system queries, when systems misunderstand natural language intent, or when thousands of noisy candidates overwhelm the user.
 
@@ -28,7 +28,7 @@ Public user complaints were classified into a tri-state relevance rubric to filt
 
 | Relevance Classification | Count | Percentage | Research Meaning |
 |---|---|---|---|
-| `relevant` | 1 | 100.0% | User describes difficulty retrieving a remembered visual item via vague cues |
+| `relevant` | 2 | 100.0% | User describes difficulty retrieving a remembered visual item via vague cues |
 
 ---
 
@@ -50,7 +50,7 @@ How the search is adjusted        (5. Search Refinement)
 
 | Failure Stage | Count | Percentage | Research Question & Cognitive Breakdown |
 |---|---|---|---|
-| `memory_to_query` (Memory → Query) | 1 | 100.0% | Can users translate their memory into a searchable representation? (Mental model vs. keyword gap) |
+| `memory_to_query` (Memory → Query) | 2 | 100.0% | Can users translate their memory into a searchable representation? (Mental model vs. keyword gap) |
 | `query_to_system` (Query → System) | 0 | 0.0% | Does the system understand natural language descriptions? (Semantic parsing & intent mismatch) |
 | `system_to_candidate` (System → Candidate) | 0 | 0.0% | Can the system narrow the search space? (Flooding with irrelevant images or zero hits) |
 | `candidate_to_recognition` (Candidate → Recognition) | 0 | 0.0% | Does result presentation help users identify the item? (Small thumbnails, visually indistinguishable) |
@@ -64,6 +64,7 @@ Analysis of what users spontaneously recall about their missing visual memories 
 
 | Memory Cue | Frequency | Percentage of Relevant | Cognitive Dimension |
 |---|---|---|---|
+| `text_in_image` | 2 | 100.0% | Textual / OCR Feature (signboard, recipe text, document title, label) |
 
 ---
 
@@ -72,16 +73,41 @@ Analysis of what users spontaneously recall about their missing visual memories 
 ### 6.1 Coping Workarounds (When System Fails)
 | Workaround Strategy | Count | Percentage |
 |---|---|---|
+| `keyword_guessing` | 2 | 100.0% |
 
 ### 6.2 User Friction Experienced
 | Friction Type | Count | Percentage |
 |---|---|---|
+| `time_wasted` | 2 | 100.0% |
 
 ---
 
 ## 7. Synthesized Recurring Patterns & Evidence Citations
 
-*No recurring patterns synthesized from the current dataset.*
+### Pattern: Vocabulary & Semantic Label Mismatch (`PAT_001`)
+* **Prevalence:** 2 / 2 relevant records (**100.0%**)
+* **Synthesis:** Users search using abstract concepts, emotions, or everyday descriptions that do not match the system's metadata or image labels.
+* **Direct Evidence Citations:**
+  > *"could not find screenshot"*  
+  > — **Record ID:** `RD_000001` | **Source URL:** [https://reddit.com/r/googlephotos/comments/test1/](https://reddit.com/r/googlephotos/comments/test1/)
+
+  > *"could not find screenshot"*  
+  > — **Record ID:** `RD_000002` | **Source URL:** [https://reddit.com/r/googlephotos/comments/test2/](https://reddit.com/r/googlephotos/comments/test2/)
+
+---
+
+### Pattern: Untagged Screenshot & Document Clutter (`PAT_002`)
+* **Prevalence:** 2 / 2 relevant records (**100.0%**)
+* **Synthesis:** Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.
+* **Direct Evidence Citations:**
+  > *"could not find screenshot"*  
+  > — **Record ID:** `RD_000001` | **Source URL:** [https://reddit.com/r/googlephotos/comments/test1/](https://reddit.com/r/googlephotos/comments/test1/)
+
+  > *"could not find screenshot"*  
+  > — **Record ID:** `RD_000002` | **Source URL:** [https://reddit.com/r/googlephotos/comments/test2/](https://reddit.com/r/googlephotos/comments/test2/)
+
+---
+
 ## 8. Strategic Research Takeaways for Photo Retrieval
 
 1. **Episodic Context Indexing**: Photos must be retrievable using loose associations (who was there, rough time period, visual characteristics) rather than exact dates or technical keywords.

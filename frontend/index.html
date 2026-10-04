@@ -718,19 +718,23 @@
     <div class="search-container">
       <div class="search-input-wrapper">
         <span class="search-icon">🔍</span>
-        <input type="text" id="explorer-search" placeholder="Search titles, evidence text, record IDs, subreddits, memory cues…" autocomplete="off" />
+        <input type="text" id="explorer-search" placeholder="Filter titles, evidence text, IDs, subreddits, memory cues…" autocomplete="off" />
         <button type="button" id="clear-search-btn" class="clear-search-btn" title="Clear search input" style="display:none">✕</button>
       </div>
-      <button type="button" id="btn-trigger-search" class="btn-search-trigger" title="Click to manually execute search">
+      <button type="button" id="btn-trigger-search" class="btn-search-trigger" title="Filter existing records in database">
         <span class="btn-icon">⚡</span>
-        <span>Trigger Search</span>
+        <span>Filter Dataset</span>
       </button>
       <button type="button" id="btn-reset-filters" class="btn-search-reset" title="Reset search & filters">
         <span>Reset</span>
       </button>
-      <button type="button" id="btn-live-reddit-modal" class="btn-live-trigger" title="Trigger a live manual search on Reddit">
+      <button type="button" id="btn-live-reddit-modal" class="btn-live-trigger" title="Scrape live Reddit to discover and add new records">
         <span class="btn-icon">🌐</span>
-        <span>Manual Reddit Search</span>
+        <span>Scrape Reddit (Add Records)</span>
+      </button>
+      <button type="button" id="btn-trigger-dual-scrape" class="btn-live-trigger" style="background:rgba(16,185,129,0.14);border-color:var(--emerald);color:var(--emerald)" title="Run 60-min cycle now: Scrape Reddit AND Google discussions immediately">
+        <span class="btn-icon">⚡</span>
+        <span>Run 60m Cycle (Reddit + Google)</span>
       </button>
     </div>
 
@@ -985,16 +989,16 @@ const PATTERNS = [
 ];
 
 const INSIGHT = {
-  total: 1746,
+  total: 1754,
   relevant: 213,
-  possibly_relevant: 1293,
+  possibly_relevant: 1301,
   irrelevant: 240,
   subredditsCount: 19,
-  failure_stages: { memory_to_query: 617, query_to_system: 662, system_to_candidate: 227, candidate_to_recognition: 0, search_refinement: 0 },
+  failure_stages: { memory_to_query: 617, query_to_system: 662, system_to_candidate: 235, candidate_to_recognition: 0, search_refinement: 0 },
   memory_cues: { object: 899, temporal_epoch: 827, person: 642, text_in_image: 583, place_location: 459, event_occasion: 300 },
   workarounds: { endless_scrolling: 1279, abandonment: 254, keyword_guessing: 27 },
-  friction: { frustration_with_search_tool: 1506, time_wasted: 668, fear_of_memory_loss: 49 },
-  failure_points: { vocabulary_mismatch: 1279, missing_metadata: 145, volume_overload: 82 }
+  friction: { frustration_with_search_tool: 1514, time_wasted: 668, fear_of_memory_loss: 49 },
+  failure_points: { vocabulary_mismatch: 1279, missing_metadata: 153, volume_overload: 82 }
 };
 
 function updateInsightFromRecords() {
@@ -1076,6 +1080,7 @@ function cueList(cues){
 }
 function pct(n,t){ return t?Math.round(n/t*100):0; }
 function truncate(s,n){ return s&&s.length>n?s.slice(0,n)+'…':s||''; }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ════════════════════════════════════════════
 // NAVIGATION
@@ -1124,7 +1129,7 @@ function renderOverview(){
 
   // KPI
   const kpis = [
-    {label:'Total Records',val:INSIGHT.total.toLocaleString(),unit:'collected',accent:'#6366f1'},
+    {label:'Total Records Analyzed',val:INSIGHT.total.toLocaleString(),unit:'cumulative stored in database',accent:'#6366f1'},
     {label:'Strict Relevant',val:INSIGHT.relevant.toLocaleString(),unit:'explicit retrieval breakdowns',accent:'#10b981'},
     {label:'Possibly Relevant',val:INSIGHT.possibly_relevant.toLocaleString(),unit:'retrieval & cue signals',accent:'#f59e0b'},
     {label:'Relevance Rate',val:relRate + '%',unit:'combined relevance signal',accent:'#8b5cf6'},
@@ -1217,12 +1222,12 @@ function renderOverview(){
 
   // Data quality
   document.getElementById('data-quality').innerHTML = [
-    ['Records collected', `${INSIGHT.total.toLocaleString()} (2,206 raw queried)`],
+    ['Total records analyzed', `${INSIGHT.total.toLocaleString()} cumulative stored in database`],
     ['Subreddits queried', `${INSIGHT.subredditsCount || 19} (r/googlephotos, r/GooglePixel, r/ios, etc.)`],
     ['Text completeness', '91.8%'],
     ['URL completeness', '100.0%'],
-    ['Deduplication', '460 duplicates removed'],
-    ['Live Dataset', 'data/output/reddit_evidence.json']
+    ['Deduplication', 'Persistent cross-run index'],
+    ['Live Analyzed Dataset', 'data/output/analyzed_evidence.json']
   ].map(([k,v])=>`<div class="quality-row"><span class="quality-key">${k}</span><span class="quality-val">${v}</span></div>`).join('');
 
   // Overview patterns (mini)
@@ -1326,12 +1331,25 @@ function renderExplorer(){
     if(feedback) {
       const count = getFilteredRecords().length;
       if(val) {
-        feedback.innerHTML = `<span>⚡ <strong>Manual Search Triggered:</strong> Found <strong>${count}</strong> record${count === 1 ? '' : 's'} matching "<em>${val}</em>"</span><span style="font-size:11px;color:var(--primary-light)">Manual Query Active</span>`;
+        feedback.innerHTML = `<span>🔍 <strong>Filtered Local Database:</strong> Showing <strong>${count}</strong> existing record${count === 1 ? '' : 's'} matching "<em>${escapeHtml(val)}</em>"</span>
+          <button type="button" id="btn-banner-scrape-reddit" style="background:var(--primary);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;margin-left:12px;display:inline-flex;align-items:center;gap:4px">
+            🌐 Scrape Reddit for "${escapeHtml(val)}" & Add to Database
+          </button>`;
+        const bannerScrapeBtn = document.getElementById('btn-banner-scrape-reddit');
+        if (bannerScrapeBtn) {
+          bannerScrapeBtn.onclick = () => {
+            if (manualQueryInput) manualQueryInput.value = val;
+            if (liveModal) {
+              liveModal.classList.add('active');
+              updateCmdPreview();
+            }
+          };
+        }
       } else {
-        feedback.innerHTML = `<span>⚡ <strong>Manual Search Triggered:</strong> Reset query, showing all <strong>${count}</strong> records</span>`;
+        feedback.innerHTML = `<span>⚡ Filter reset, showing all <strong>${count}</strong> records</span>`;
       }
       feedback.style.display = 'flex';
-      setTimeout(() => { feedback.style.display = 'none'; }, 4000);
+      setTimeout(() => { if (feedback && !val) feedback.style.display = 'none'; }, 6000);
     }
   }
 
@@ -1807,6 +1825,9 @@ if(manualLimitSelect) manualLimitSelect.onchange = updateCmdPreview;
 
 if(btnLiveModal && liveModal) {
   btnLiveModal.onclick = () => {
+    if (state.search && manualQueryInput) {
+      manualQueryInput.value = state.search;
+    }
     liveModal.classList.add('active');
     updateCmdPreview();
   };
@@ -1855,25 +1876,15 @@ if(btnExecuteLive) {
         const data = await res.json();
         if(liveStatus) {
           if (data.added > 0) {
-            liveStatus.innerHTML = `<span style="color:var(--emerald)">✓ Success! Found ${data.count} relevant records (+${data.added} new records added). Database numbers updated to ${data.total_records.toLocaleString()}!</span>`;
+            liveStatus.innerHTML = `<span style="color:var(--emerald)">✓ Success! Found ${data.count} relevant records (+${data.added} new records added). Cumulative Database Updated to <strong>${data.total_records.toLocaleString()} total analyzed records</strong>!</span>`;
           } else if (data.count > 0) {
-            liveStatus.innerHTML = `<span style="color:var(--sky)">ℹ Found ${data.count} relevant records (all already in database). Numbers remain at ${data.total_records.toLocaleString()}.</span>`;
+            liveStatus.innerHTML = `<span style="color:var(--sky)">ℹ Found ${data.count} relevant records (already in database). Cumulative total preserved at <strong>${data.total_records.toLocaleString()} analyzed records</strong>.</span>`;
           } else {
-            liveStatus.innerHTML = `<span style="color:var(--amber)">⚠️ No relevant records found for "${q}". Database numbers were NOT updated (Strict Relevance Guard).</span>`;
+            liveStatus.innerHTML = `<span style="color:var(--amber)">⚠️ No relevant records found for "${q}". Database total preserved at <strong>${data.total_records.toLocaleString()} analyzed records</strong> (Strict Relevance Guard).</span>`;
           }
         }
-        if(data.records && data.records.length && data.added > 0) {
-          data.records.forEach(newRec => {
-            if(!RECORDS.find(r => r.record_id === newRec.record_id)) {
-              RECORDS.unshift(newRec);
-            }
-          });
-          updateInsightFromRecords();
-          const badge = document.querySelector('#nav-explorer .nav-badge');
-          if (badge) badge.textContent = RECORDS.length.toLocaleString();
-          if (state.page === 'overview') renderOverview();
-          else if (state.page === 'explorer') renderExplorer();
-        }
+        // Always reload the complete cumulative dataset from server so the total count and all records are displayed
+        await loadCollectedDataset();
       } else {
         throw new Error('API server returned ' + res.status);
       }
@@ -1890,6 +1901,40 @@ if(btnExecuteLive) {
       const expInput = document.getElementById('explorer-search');
       if(expInput) expInput.value = q;
       renderExplorer();
+    }
+  };
+}
+
+const btnDualScrape = document.getElementById('btn-trigger-dual-scrape');
+if (btnDualScrape) {
+  btnDualScrape.onclick = async () => {
+    const originalText = btnDualScrape.innerHTML;
+    btnDualScrape.disabled = true;
+    btnDualScrape.innerHTML = `<span class="btn-icon">⏳</span> <span>Scraping Reddit & Google...</span>`;
+    const fb = document.getElementById('search-feedback-banner');
+    if (fb) {
+      fb.style.display = 'flex';
+      fb.innerHTML = `<span>⏳ <strong>Harvesting Web Data:</strong> Scraping fresh posts from Reddit and discussions from Google & Google Support Forums...</span>`;
+    }
+    try {
+      const res = await fetch('/api/scrape-now');
+      if (res.ok) {
+        const d = await res.json();
+        if (fb) {
+          fb.innerHTML = `<span>✓ <strong>Dual Scrape Complete!</strong> Harvested ${d.reddit_scraped} Reddit + ${d.google_scraped} Google threads (+${d.added} new records added). Database updated to <strong>${d.total_records.toLocaleString()} total records</strong> (${d.total_relevant.toLocaleString()} relevant)!</span>`;
+          setTimeout(() => { if (fb) fb.style.display = 'none'; }, 9000);
+        }
+        await loadCollectedDataset();
+      } else {
+        throw new Error('Server returned ' + res.status);
+      }
+    } catch (err) {
+      if (fb) {
+        fb.innerHTML = `<span style="color:var(--amber)">⚠️ Could not connect to live backend server. Run <code>python scripts/serve_dashboard.py --port 8000</code> in your terminal.</span>`;
+      }
+    } finally {
+      btnDualScrape.disabled = false;
+      btnDualScrape.innerHTML = originalText;
     }
   };
 }
@@ -1929,13 +1974,13 @@ async function pollLiveStatusAndSync() {
       const sysPill = document.getElementById('system-live-pill');
       if (sysPill) {
         const h = st.hourly_scheduler || {};
-        let timeDesc = 'Every 1h';
+        let timeDesc = 'Every 60m';
         if (h.next_run) {
           const diffMs = new Date(h.next_run) - new Date();
           const diffMin = Math.max(1, Math.round(diffMs / 60000));
           timeDesc = `Next in ~${diffMin}m`;
         }
-        sysPill.innerHTML = `⏱️ Hourly Auto-Search: Active (${timeDesc}, target 50) | 🎯 Manual: 200 Relevant Target | 📊 Total: ${st.total_records.toLocaleString()} (${st.total_relevant.toLocaleString()} relevant)`;
+        sysPill.innerHTML = `⏱️ 60-Min Dual Scraper: Active (Reddit + Google, ${timeDesc}) | 📊 Total Analyzed: ${st.total_records.toLocaleString()} (${st.total_relevant.toLocaleString()} relevant)`;
       }
 
       if (st.total_records && st.total_records !== lastPolledTotal && lastPolledTotal !== 0) {

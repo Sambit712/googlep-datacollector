@@ -15,15 +15,19 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import html
 import json
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 import threading
 import time
 import urllib.parse
+import urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from bs4 import BeautifulSoup
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -60,6 +64,8 @@ SEARCH_STATE = {
     "hourly_next_run": None,
     "hourly_last_status": "initialized",
     "hourly_last_added": 0,
+    "hourly_last_reddit": 0,
+    "hourly_last_google": 0,
     "manual_target_relevant": 200,
     "last_search_time": None,
     "total_records": 0,
@@ -348,6 +354,19 @@ def persist_new_relevant_records(new_records: list[dict], query_label: str) -> i
         with open(evidence_file, "w", encoding="utf-8") as f:
             json.dump({"records": existing_raw, "count": len(existing_raw)}, f, indent=2, ensure_ascii=False)
 
+        # Also write/update raw CSV
+        try:
+            raw_csv = root_dir / "data" / "output" / "reddit_evidence.csv"
+            import csv
+            from src.structurer import CSV_COLUMNS
+            with open(raw_csv, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS, extrasaction="ignore")
+                writer.writeheader()
+                for item in existing_raw:
+                    writer.writerow(item)
+        except Exception as e:
+            logger.debug(f"Could not update reddit_evidence.csv: {e}")
+
         # Load and append analyzed file
         existing_analyzed_objs = []
         if analyzed_file.exists():
@@ -375,121 +394,259 @@ def persist_new_relevant_records(new_records: list[dict], query_label: str) -> i
             v0_source_file="data/output/reddit_evidence.json",
         )
 
+        # Synchronize reports/ directory if it exists
+        reports_dir = root_dir / "reports"
+        if reports_dir.exists():
+            try:
+                canonical_rep = InsightReporter(output_dir=reports_dir)
+                canonical_rep.write_insight_report(
+                    aggregations_or_summary=summary,
+                    patterns=patterns,
+                    groq_model="research-taxonomy-v1",
+                    v0_source_file="data/output/reddit_evidence.json",
+                )
+            except Exception as e:
+                logger.debug(f"Could not mirror insight report to reports/: {e}")
+
         refresh_global_stats()
         SEARCH_STATE["last_search_time"] = now_iso
         logger.info(
             f"[DATASET UPDATED] Appended {len(to_add_raw)} new relevant records. "
-            f"New total: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})"
+            f"New cumulative total: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})"
         )
         return len(to_add_raw)
 
 
+def scrape_google_discussions(query: str, max_results: int = 25) -> list[dict]:
+    """Scrape web discussions (Google Support Community, blogs, forums) for photo retrieval problems."""
+    encoded = urllib.parse.quote(f"{query} (site:support.google.com/photos OR site:reddit.com OR site:androidpolice.com OR site:xda-developers.com)")
+    url = f"https://html.duckduckgo.com/html/?q={encoded}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+    req = urllib.request.Request(url, headers=headers)
+    candidates = []
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            page = resp.read().decode("utf-8", errors="ignore")
+        soup = BeautifulSoup(page, "html.parser")
+        results = soup.find_all("div", class_="result")
+        for r in results:
+            title_tag = r.find("a", class_="result__a")
+            snippet_tag = r.find("a", class_="result__snippet")
+            if not title_tag:
+                continue
+            title = title_tag.get_text(strip=True)
+            snippet = snippet_tag.get_text(strip=True) if snippet_tag else ""
+            raw_url = title_tag.get("href", "")
+            parsed_url = ""
+            if "uddg=" in raw_url:
+                try:
+                    match = re.search(r'uddg=([^&]+)', raw_url)
+                    if match:
+                        parsed_url = urllib.parse.unquote(match.group(1))
+                except Exception:
+                    pass
+            if not parsed_url:
+                parsed_url = raw_url
+
+            if title and (snippet or len(title) > 10):
+                sub_label = "google_support" if "support.google.com" in parsed_url else ("googlephotos" if "r/googlephotos" in parsed_url else "web_forum")
+                # Generate clean unique source id
+                url_hash = abs(hash(parsed_url)) % 10000000
+                source_id = f"GGL_{url_hash:07d}"
+                candidates.append({
+                    "source": "google_web_search",
+                    "source_id": source_id,
+                    "title": title,
+                    "raw_text": snippet or title,
+                    "url": parsed_url,
+                    "author": "GoogleCommunityUser" if "support.google.com" in parsed_url else "WebContributor",
+                    "subreddit": sub_label,
+                    "created_utc": time.time(),
+                })
+            if len(candidates) >= max_results:
+                break
+    except Exception as e:
+        logger.warning(f"[Dual Scraper] Error scraping Google discussions: {e}")
+    return candidates
+
+
+def scrape_reddit_batch(queries: list[str], subreddits: list[str], target_records: int = 40) -> list[dict]:
+    """Scrape candidate posts from Reddit across multiple queries and subreddits."""
+    cfg = load_config("config/queries.yaml")
+    client = RedditClient(cfg)
+    candidates = []
+    seen_ids = set()
+
+    for query in queries:
+        if len(candidates) >= target_records:
+            break
+        for sub in subreddits:
+            if len(candidates) >= target_records:
+                break
+            try:
+                posts = client.search(
+                    query=query,
+                    subreddit=sub,
+                    sort="new",
+                    time_filter="all",
+                    limit=min(20, target_records - len(candidates)),
+                )
+                for p in posts:
+                    if p.id in seen_ids:
+                        continue
+                    seen_ids.add(p.id)
+                    candidates.append({
+                        "source": "reddit",
+                        "source_id": p.id,
+                        "title": p.title,
+                        "raw_text": p.selftext or "",
+                        "url": p.url,
+                        "author": p.author,
+                        "subreddit": p.subreddit or sub,
+                        "created_utc": p.created_utc,
+                    })
+                    if len(candidates) >= target_records:
+                        break
+            except Exception as e:
+                logger.warning(f"[Dual Scraper] Error querying Reddit ({query} in r/{sub}): {e}")
+            time.sleep(1.2)
+    return candidates
+
+
+SCRAPE_LOCK = threading.Lock()
+
+
+def execute_dual_scrape(query_hint: str = None) -> dict:
+    """Execute a 60-minute harvest cycle: scrapes fresh data from Reddit AND Google, analyzes, and saves to database."""
+    if not SCRAPE_LOCK.acquire(blocking=False):
+        logger.info("[Dual Scraper] A scrape is already actively running. Returning current metrics.")
+        return {
+            "status": "busy",
+            "message": "A scraping harvest is already currently running. Please wait a moment.",
+            "reddit_scraped": SEARCH_STATE.get("hourly_last_reddit", 0),
+            "google_scraped": SEARCH_STATE.get("hourly_last_google", 0),
+            "relevant_found": 0,
+            "added": 0,
+            "total_records": SEARCH_STATE["total_records"],
+            "total_relevant": SEARCH_STATE["total_relevant"],
+        }
+
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        SEARCH_STATE["hourly_last_run"] = now_iso
+        next_epoch = time.time() + SEARCH_STATE["hourly_interval_seconds"]
+        SEARCH_STATE["hourly_next_run"] = datetime.fromtimestamp(next_epoch, tz=timezone.utc).isoformat()
+
+        reddit_queries = [
+            query_hint or "Google Photos can't find photo",
+            "Google Photos search not working",
+            "Google Photos lost photos",
+            "Google Photos screenshot search",
+            "Google Photos face search",
+            "Google Photos date search",
+            "Google Photos old photo",
+        ]
+        google_queries = [
+            query_hint or "Google Photos cannot find photos",
+            "Google Photos search missing photos",
+            "Google Photos face recognition not finding",
+            "Google Photos search date failure",
+        ]
+        subs = ["googlephotos", "GooglePixel", "Android", "iphone", "ios", "photography"]
+
+        logger.info("=" * 70)
+        logger.info("  [*] DUAL SCRAPER CYCLE STARTING: Scraping Reddit & Google...")
+        logger.info("=" * 70)
+
+        # 1. Scrape Reddit
+        reddit_raw = scrape_reddit_batch(reddit_queries, subs, target_records=30)
+        logger.info(f"[Dual Scraper] Scraped {len(reddit_raw)} candidate posts from Reddit.")
+
+        # 2. Scrape Google
+        google_raw = []
+        for gq in google_queries:
+            if len(google_raw) >= 20:
+                break
+            res = scrape_google_discussions(gq, max_results=12)
+            google_raw.extend(res)
+            time.sleep(0.5)
+        logger.info(f"[Dual Scraper] Scraped {len(google_raw)} discussion threads from Google.")
+
+        # 3. Analyze candidates using cognitive taxonomy
+        combined = reddit_raw + google_raw
+        relevant_candidates = []
+        for item in combined:
+            analysis = classify_evidence(item["title"], item.get("raw_text", ""))
+            if analysis["is_relevant"]:
+                item["analysis"] = analysis
+                relevant_candidates.append(item)
+
+        logger.info(f"[Dual Scraper] Identified {len(relevant_candidates)} relevant failure signals from harvested data.")
+
+        # 4. Persist to cumulative files
+        added = 0
+        if relevant_candidates:
+            added = persist_new_relevant_records(
+                relevant_candidates,
+                query_label=f"DualScrape: Reddit+Google ({datetime.now(timezone.utc).strftime('%H:%M')})"
+            )
+
+        SEARCH_STATE["hourly_last_reddit"] = len(reddit_raw)
+        SEARCH_STATE["hourly_last_google"] = len(google_raw)
+        SEARCH_STATE["hourly_last_added"] = added
+        SEARCH_STATE["last_search_time"] = now_iso
+
+        if added > 0:
+            SEARCH_STATE["hourly_last_status"] = f"Harvested {len(reddit_raw)} Reddit + {len(google_raw)} Google -> Added +{added} relevant records"
+            logger.info(f"[Dual Scraper] SUCCESS: Database incremented by +{added} records! (Total: {SEARCH_STATE['total_records']})")
+        else:
+            SEARCH_STATE["hourly_last_status"] = f"Harvested {len(reddit_raw)} Reddit + {len(google_raw)} Google (Candidates already in dataset)"
+            logger.info("[Dual Scraper] Harvested candidates already existed in dataset. Numbers preserved.")
+
+        return {
+            "status": "ok",
+            "reddit_scraped": len(reddit_raw),
+            "google_scraped": len(google_raw),
+            "relevant_found": len(relevant_candidates),
+            "added": added,
+            "total_records": SEARCH_STATE["total_records"],
+            "total_relevant": SEARCH_STATE["total_relevant"],
+            "message": f"Scraped {len(reddit_raw)} Reddit posts & {len(google_raw)} Google discussion threads. Added +{added} new records to database.",
+        }
+    finally:
+        SCRAPE_LOCK.release()
+
+
 class HourlySearchWorker(threading.Thread):
-    """Daemon thread that triggers a search every 1 hour trying to find 50 records."""
+    """Daemon thread that triggers a dual scraping harvest every 60 minutes from Reddit AND Google."""
 
     def __init__(self, interval_seconds: int = 3600, target_records: int = 50):
         super().__init__(daemon=True, name="HourlySearchWorker")
         self.interval_seconds = interval_seconds
         self.target_records = target_records
         self.running = True
-        self.queries_pool = [
-            "Google Photos search",
-            "Google Photos can't find photo",
-            "Google Photos lost photos",
-            "Google Photos search not working",
-            "Google Photos screenshot search",
-            "Google Photos old photo",
-        ]
-        self.subreddits_pool = [
-            "googlephotos",
-            "GooglePixel",
-            "Android",
-            "ios",
-            "iphone",
-            "photography",
-        ]
-        self.query_index = 0
 
     def run(self):
         logger.info(
-            f"[Hourly Scheduler] Initialized. Will run every {self.interval_seconds}s "
-            f"(Target: {self.target_records} records per cycle)."
+            f"[Hourly Scheduler] Initialized. Will scrape Reddit AND Google every {self.interval_seconds}s (60 min)."
         )
         # Initial sleep so server starts cleanly before first background cycle
-        time.sleep(15)
+        time.sleep(30)
 
         while self.running:
             start_ts = time.time()
-            now_iso = datetime.now(timezone.utc).isoformat()
-            SEARCH_STATE["hourly_last_run"] = now_iso
-            next_run_epoch = start_ts + self.interval_seconds
-            SEARCH_STATE["hourly_next_run"] = datetime.fromtimestamp(next_run_epoch, tz=timezone.utc).isoformat()
-
-            query = self.queries_pool[self.query_index % len(self.queries_pool)]
-            sub = self.subreddits_pool[self.query_index % len(self.subreddits_pool)]
-            self.query_index += 1
-
-            logger.info(
-                f"[Hourly Scheduler] Cycle started: Searching '{query}' in r/{sub} "
-                f"(Target: {self.target_records} records)..."
-            )
-
             try:
-                cfg = load_config("config/queries.yaml")
-                client = RedditClient(cfg)
-                raw_posts = client.search(
-                    query=query,
-                    subreddit=sub,
-                    sort="new",
-                    time_filter="all",
-                    limit=self.target_records,
-                )
-
-                logger.info(f"[Hourly Scheduler] Retrieved {len(raw_posts)} candidate posts from Reddit.")
-
-                # Filter strictly for relevant records
-                relevant_candidates = []
-                for p in raw_posts:
-                    analysis = classify_evidence(p.title, p.selftext)
-                    if analysis["is_relevant"]:
-                        relevant_candidates.append({
-                            "source_id": p.id,
-                            "title": p.title,
-                            "raw_text": p.selftext or "",
-                            "url": p.url,
-                            "author": p.author,
-                            "subreddit": p.subreddit or sub,
-                            "created_at": datetime.fromtimestamp(p.created_utc, tz=timezone.utc).isoformat() if p.created_utc else now_iso,
-                            "created_utc": p.created_utc,
-                            "analysis": analysis,
-                        })
-
-                # Check relevance requirement:
-                # "if from all the searches no relevant records are found it will not update the nuumber"
-                if not relevant_candidates:
-                    logger.info(
-                        f"[Hourly Scheduler] 0 relevant records found for '{query}' in r/{sub}. "
-                        f"Dataset numbers were NOT updated."
-                    )
-                    SEARCH_STATE["hourly_last_status"] = "0 relevant records found - numbers unchanged"
-                    SEARCH_STATE["hourly_last_added"] = 0
-                else:
-                    added = persist_new_relevant_records(relevant_candidates, query_label=f"Hourly: {query}")
-                    SEARCH_STATE["hourly_last_added"] = added
-                    if added > 0:
-                        SEARCH_STATE["hourly_last_status"] = f"Success: added {added} relevant records"
-                        logger.info(f"[Hourly Scheduler] Numbers successfully updated (+{added} records).")
-                    else:
-                        SEARCH_STATE["hourly_last_status"] = "Candidates already in dataset - numbers unchanged"
-                        logger.info("[Hourly Scheduler] All candidates already existed in dataset. Numbers unchanged.")
-
+                execute_dual_scrape()
             except Exception as e:
                 logger.error(f"[Hourly Scheduler] Error in background cycle: {e}")
                 SEARCH_STATE["hourly_last_status"] = f"Error: {e}"
 
-            # Wait for remainder of the 1 hour interval
+            # Wait for remainder of the 60 min (3600s) interval
             elapsed = time.time() - start_ts
-            sleep_remaining = max(10, self.interval_seconds - elapsed)
+            sleep_remaining = max(15, self.interval_seconds - elapsed)
             time.sleep(sleep_remaining)
 
 
@@ -501,6 +658,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
+
+        if parsed.path == "/api/scrape-now":
+            self.handle_api_scrape_now()
+            return
 
         if parsed.path == "/api/search":
             self.handle_api_search(parsed.query)
@@ -516,6 +677,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         # Default: serve static files from frontend directory
         super().do_GET()
+
+    def handle_api_scrape_now(self):
+        """Immediately trigger the 60-min dual scraper cycle to pull fresh records from Reddit & Google."""
+        logger.info("[API] Immediate Dual Scrape Triggered via /api/scrape-now")
+        try:
+            result = execute_dual_scrape()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode("utf-8"))
+        except Exception as e:
+            logger.exception("Error executing manual dual scrape")
+            self.send_response(500)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode("utf-8"))
 
     def handle_api_records(self, query_str: str):
         """Serve complete analyzed records directly from analyzed_evidence.json."""
@@ -566,21 +745,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         resp = {
             "status": "ok",
             "total_records": total,
+            "total_analyzed": total,
             "strict_relevant": SEARCH_STATE["strict_relevant"],
             "possibly_relevant": SEARCH_STATE["possibly_relevant"],
             "irrelevant": SEARCH_STATE["irrelevant"],
             "total_relevant": rel,
             "relevance_rate": rel_rate,
             "subreddits_count": 19,
+            "sources": ["reddit", "google_support", "google_web"],
             "last_search_time": SEARCH_STATE["last_search_time"],
             "hourly_scheduler": {
                 "active": SEARCH_STATE["hourly_enabled"],
                 "interval_seconds": SEARCH_STATE["hourly_interval_seconds"],
+                "interval_minutes": 60,
                 "target_records": SEARCH_STATE["hourly_target_records"],
                 "last_run": SEARCH_STATE["hourly_last_run"],
                 "next_run": SEARCH_STATE["hourly_next_run"],
                 "last_status": SEARCH_STATE["hourly_last_status"],
                 "last_added": SEARCH_STATE["hourly_last_added"],
+                "last_reddit": SEARCH_STATE.get("hourly_last_reddit", 0),
+                "last_google": SEARCH_STATE.get("hourly_last_google", 0),
             },
             "manual_search_target": SEARCH_STATE["manual_target_relevant"],
         }
@@ -657,6 +841,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 except Exception as var_err:
                     logger.warning(f"Error querying candidate variation '{query_var}': {var_err}")
 
+            # Also scrape Google discussion and support forums for the query
+            try:
+                google_cands = scrape_google_discussions(q, max_results=25)
+                for g in google_cands:
+                    if len(collected_relevant) >= target_relevant_count:
+                        break
+                    if g["source_id"] in seen_cand_ids:
+                        continue
+                    seen_cand_ids.add(g["source_id"])
+                    analysis = classify_evidence(g["title"], g["raw_text"])
+                    if analysis["is_relevant"]:
+                        g["analysis"] = analysis
+                        g["created_at"] = datetime.now(timezone.utc).isoformat()
+                        collected_relevant.append(g)
+            except Exception as g_err:
+                logger.warning(f"Error scraping Google for '{q}': {g_err}")
+
             # Enforce user requirement:
             # "if from all the searches no relevant records are found it will not update the nuumber"
             if not collected_relevant:
@@ -667,7 +868,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     "count": 0,
                     "added": 0,
                     "total_records": SEARCH_STATE["total_records"],
-                    "message": f"Search completed: No relevant records found for '{q}'. Dataset numbers were not updated.",
+                    "total_analyzed": SEARCH_STATE["total_records"],
+                    "total_relevant": SEARCH_STATE["total_relevant"],
+                    "message": f"Search completed: No relevant records found for '{q}'. Cumulative database intact at {SEARCH_STATE['total_records']} analyzed records.",
                     "records": [],
                 }
             else:
@@ -679,11 +882,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     "count": len(collected_relevant),
                     "added": added,
                     "total_records": SEARCH_STATE["total_records"],
+                    "total_analyzed": SEARCH_STATE["total_records"],
+                    "total_relevant": SEARCH_STATE["total_relevant"],
                     "message": (
-                        f"Search complete: Found {len(collected_relevant)} relevant records. "
-                        f"Numbers updated (+{added} new records, Total: {SEARCH_STATE['total_records']})."
+                        f"Search complete: Found {len(collected_relevant)} relevant records (+{added} added). Cumulative Total Stored: {SEARCH_STATE['total_records']} records analyzed."
                         if added > 0 else
-                        f"Found {len(collected_relevant)} relevant records (all already in database). Numbers unchanged."
+                        f"Found {len(collected_relevant)} relevant records (all already in database). Cumulative Total Stored: {SEARCH_STATE['total_records']} records analyzed."
                     ),
                     "records": [
                         {
@@ -735,8 +939,8 @@ def run(port: int = 8000, host: str = "0.0.0.0"):
     print("=" * 70, flush=True)
     print(f"  [*] Research Intelligence Server Running", flush=True)
     print(f"  URL: http://{host}:{port}", flush=True)
-    print(f"  Hourly Auto-Search: Active (Every 1h -> Target: 50 records)", flush=True)
-    print(f"  Manual Search: Target: 200 relevant records", flush=True)
+    print(f"  60-Min Dual Scraper: Active (Reddit + Google discussions harvest)", flush=True)
+    print(f"  Manual Search: Target: 200 relevant records (Reddit + Google)", flush=True)
     print(f"  Relevance Guard: Zero relevant records -> Numbers unchanged", flush=True)
     print(f"  Current Records: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})", flush=True)
     print("=" * 70, flush=True)
