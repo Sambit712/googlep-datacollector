@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -604,6 +606,36 @@
     .btn-ghost { background: transparent; color: var(--text-body); border: 1px solid var(--border); }
     .btn-ghost:hover { border-color: var(--primary); color: var(--primary-light); }
 
+    /* ── PDF Export button ── */
+    .btn-export-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(245,158,11,.1);
+      color: #fbbf24;
+      border: 1px solid rgba(245,158,11,.3);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all .2s ease;
+      white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-export-pdf:hover {
+      background: rgba(245,158,11,.22);
+      border-color: #f59e0b;
+      box-shadow: 0 0 12px rgba(245,158,11,.25);
+      transform: translateY(-1px);
+    }
+    .btn-export-pdf:active { transform: translateY(1px); }
+    .btn-export-pdf:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     /* ── Research note ── */
     .research-note { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 10px 0; border-top: 1px solid var(--border); margin-top: 16px; }
   </style>
@@ -735,6 +767,10 @@
       <button type="button" id="btn-trigger-dual-scrape" class="btn-live-trigger" style="background:rgba(16,185,129,0.14);border-color:var(--emerald);color:var(--emerald)" title="Run 60-min cycle now: Scrape Reddit AND Google discussions immediately">
         <span class="btn-icon">⚡</span>
         <span>Run 60m Cycle (Reddit + Google)</span>
+      </button>
+      <button type="button" id="btn-export-pdf" class="btn-export-pdf" title="Generate a PDF report of all analysed records">
+        <span>📄</span>
+        <span>Export PDF</span>
       </button>
     </div>
 
@@ -1800,6 +1836,333 @@ function renderPatterns(){
     </div>
   `).join('');
 }
+
+// ════════════════════════════════════════════
+// PDF EXPORT
+// ════════════════════════════════════════════
+function generatePDF() {
+  const btn = document.getElementById('btn-export-pdf');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span><span>Generating…</span>'; }
+
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210, H = 297;
+      const margin = 16;
+      const contentW = W - margin * 2;
+
+      // ── Colour palette (light-mode report) ──
+      const C = {
+        bg:        [6,  11,  24],
+        primary:   [99, 102, 241],
+        violet:    [139, 92, 246],
+        emerald:   [16, 185, 129],
+        amber:     [245, 158, 11],
+        rose:      [244, 63,  94],
+        sky:       [56, 189, 248],
+        heading:   [20,  20,  30],
+        body:      [55,  65,  81],
+        muted:     [107, 114, 128],
+        border:    [226, 232, 240],
+        surface:   [248, 250, 252],
+        white:     [255, 255, 255],
+      };
+
+      function setColor(arr, alpha) { doc.setTextColor(arr[0], arr[1], arr[2]); }
+      function setFill(arr)  { doc.setFillColor(arr[0], arr[1], arr[2]); }
+      function setDraw(arr)  { doc.setDrawColor(arr[0], arr[1], arr[2]); }
+
+      function addFooter(pageNum, totalPages) {
+        doc.setFontSize(8);
+        setColor(C.muted);
+        doc.text(`Google Photos — Vague Memory Retrieval Research  |  Page ${pageNum} of ${totalPages}`, margin, H - 8);
+        doc.text(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), W - margin, H - 8, { align: 'right' });
+      }
+
+      // ══════════════════════════════════════
+      // PAGE 1 — COVER
+      // ══════════════════════════════════════
+      // Dark hero band
+      setFill(C.bg);
+      doc.rect(0, 0, W, 72, 'F');
+
+      // Accent bar
+      doc.setFillColor(C.primary[0], C.primary[1], C.primary[2]);
+      doc.rect(0, 72, W, 2.5, 'F');
+
+      // Eyebrow
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(C.primary[0], C.primary[1], C.primary[2]);
+      doc.text('RESEARCH INTELLIGENCE DASHBOARD', margin, 22);
+
+      // Title
+      doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('Google Photos', margin, 36);
+      doc.text('Vague Memory Retrieval Study', margin, 46);
+
+      // Subtitle
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('Evidence collected from public Reddit discussions · AI-analysed using llama-3.3-70b-versatile', margin, 57);
+      doc.text('Subreddits: r/googlephotos, r/GooglePixel, r/Android, r/ios and 15 others', margin, 63);
+
+      // ── KPI boxes ──
+      const relevant   = RECORDS.filter(r => r.analysis.relevance_classification === 'relevant').length;
+      const possibly   = RECORDS.filter(r => r.analysis.relevance_classification === 'possibly_relevant').length;
+      const irrelevant = RECORDS.filter(r => r.analysis.relevance_classification === 'irrelevant').length;
+
+      const kpis = [
+        { label: 'Total Records', value: RECORDS.length.toString(), color: C.primary },
+        { label: 'Relevant',      value: relevant.toString(),        color: C.emerald },
+        { label: 'Poss. Relevant',value: possibly.toString(),        color: C.amber   },
+        { label: 'Irrelevant',    value: irrelevant.toString(),      color: C.muted   },
+        { label: 'Patterns Found',value: PATTERNS.length.toString(), color: C.violet  },
+      ];
+      const kpiW = contentW / kpis.length;
+      kpis.forEach((k, i) => {
+        const x = margin + i * kpiW;
+        const y = 80;
+        setFill(C.surface);
+        setDraw(C.border);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, y, kpiW - 3, 28, 3, 3, 'FD');
+        // accent top bar
+        doc.setFillColor(k.color[0], k.color[1], k.color[2]);
+        doc.roundedRect(x, y, kpiW - 3, 1.8, 1, 1, 'F');
+        // value
+        doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+        doc.setTextColor(k.color[0], k.color[1], k.color[2]);
+        doc.text(k.value, x + (kpiW - 3) / 2, y + 14, { align: 'center' });
+        // label
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+        setColor(C.muted);
+        doc.text(k.label.toUpperCase(), x + (kpiW - 3) / 2, y + 21, { align: 'center' });
+      });
+
+      // ── Patterns summary ──
+      let cy = 116;
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      setColor(C.heading);
+      doc.text('Recurring Research Patterns', margin, cy); cy += 5;
+      setDraw(C.border); doc.setLineWidth(0.3);
+      doc.line(margin, cy, W - margin, cy); cy += 5;
+
+      PATTERNS.forEach(p => {
+        if (cy > H - 30) { doc.addPage(); cy = margin + 8; }
+        // Pattern ID chip
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+        doc.setFillColor(C.primary[0], C.primary[1], C.primary[2]);
+        doc.setTextColor(255, 255, 255);
+        const chipW = doc.getTextWidth(p.id) + 6;
+        doc.roundedRect(margin, cy - 3.5, chipW, 5, 1.5, 1.5, 'F');
+        doc.text(p.id, margin + 3, cy);
+        // Name
+        doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+        setColor(C.heading);
+        doc.text(p.name, margin + chipW + 4, cy);
+        cy += 5;
+        // Stats
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+        setColor(C.muted);
+        doc.text(`${p.prevalence} supporting records · ${p.pct}% of relevant evidence · Failure: ${fmt(p.stage)} · Point: ${fmt(p.failure_point)}`, margin, cy);
+        cy += 4;
+        // Summary wrap
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'normal');
+        setColor(C.body);
+        const summaryLines = doc.splitTextToSize(p.summary, contentW - 4);
+        doc.text(summaryLines, margin, cy);
+        cy += summaryLines.length * 4 + 5;
+      });
+
+      // ══════════════════════════════════════
+      // PAGE 2 — ALL RECORDS TABLE
+      // ══════════════════════════════════════
+      doc.addPage();
+
+      // Section header
+      setFill(C.bg);
+      doc.rect(0, 0, W, 18, 'F');
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('Evidence Records — Complete Dataset', margin, 12);
+
+      const relClass = v => ({ relevant: 'Relevant', possibly_relevant: 'Poss.', irrelevant: 'Irrel.' }[v] || v || '—');
+      const stageLbl = v => ({ memory_to_query: 'Mem→Q', query_to_system: 'Q→Sys', system_to_candidate: 'Sys→C', search_refinement: 'Refine', candidate_to_recognition: 'C→Rec' }[v] || v || '—');
+
+      doc.autoTable({
+        startY: 22,
+        margin: { left: margin, right: margin },
+        head: [['ID', 'Title', 'Relevance', 'Stage', 'Failure Point', 'Cues', 'Subreddit']],
+        body: RECORDS.map(r => [
+          r.record_id,
+          r.title.length > 52 ? r.title.substring(0, 52) + '…' : r.title,
+          relClass(r.analysis.relevance_classification),
+          stageLbl(r.analysis.retrieval_failure_stage),
+          fmt(r.analysis.retrieval_failure_point) || '—',
+          (r.analysis.memory_cues_present || []).map(c => fmt(c)).join(', ') || '—',
+          'r/' + r.subreddit,
+        ]),
+        styles: { fontSize: 7.5, cellPadding: 2.5, overflow: 'linebreak', lineColor: C.border, lineWidth: 0.2 },
+        headStyles: { fillColor: C.primary, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8 },
+        alternateRowStyles: { fillColor: C.surface },
+        columnStyles: {
+          0: { cellWidth: 22, fontStyle: 'bold', textColor: C.primary },
+          1: { cellWidth: 68 },
+          2: { cellWidth: 18, halign: 'center' },
+          3: { cellWidth: 22, halign: 'center' },
+          4: { cellWidth: 26 },
+          5: { cellWidth: 26 },
+          6: { cellWidth: 22, halign: 'center' },
+        },
+        didParseCell(data) {
+          if (data.section === 'body' && data.column.index === 2) {
+            const v = RECORDS[data.row.index]?.analysis?.relevance_classification;
+            if (v === 'relevant')          { data.cell.styles.textColor = C.emerald; data.cell.styles.fontStyle = 'bold'; }
+            else if (v === 'possibly_relevant') { data.cell.styles.textColor = C.amber;   data.cell.styles.fontStyle = 'bold'; }
+            else                           { data.cell.styles.textColor = C.muted; }
+          }
+        },
+      });
+
+      // ══════════════════════════════════════
+      // PAGES 3+ — PER-RECORD DETAIL PAGES
+      //   (relevant + possibly_relevant only)
+      // ══════════════════════════════════════
+      const detailRecs = RECORDS.filter(r =>
+        ['relevant', 'possibly_relevant'].includes(r.analysis.relevance_classification)
+      );
+
+      detailRecs.forEach((r, idx) => {
+        doc.addPage();
+        const a = r.analysis;
+        let y = margin;
+
+        // Top accent stripe
+        const stripeColor = a.relevance_classification === 'relevant' ? C.emerald : C.amber;
+        doc.setFillColor(stripeColor[0], stripeColor[1], stripeColor[2]);
+        doc.rect(0, 0, W, 1.5, 'F');
+
+        // Record ID + relevance badge
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+        doc.setFillColor(C.primary[0], C.primary[1], C.primary[2]);
+        doc.setTextColor(255, 255, 255);
+        const idW = doc.getTextWidth(r.record_id) + 8;
+        doc.roundedRect(margin, y, idW, 6, 2, 2, 'F');
+        doc.text(r.record_id, margin + 4, y + 4.2);
+
+        const relLabel = a.relevance_classification === 'relevant' ? 'RELEVANT' : 'POSSIBLY RELEVANT';
+        doc.setFillColor(stripeColor[0], stripeColor[1], stripeColor[2]);
+        const relW = doc.getTextWidth(relLabel) + 8;
+        doc.roundedRect(margin + idW + 3, y, relW, 6, 2, 2, 'F');
+        doc.text(relLabel, margin + idW + 7, y + 4.2);
+        y += 10;
+
+        // Title
+        doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+        setColor(C.heading);
+        const titleLines = doc.splitTextToSize(r.title, contentW);
+        doc.text(titleLines, margin, y);
+        y += titleLines.length * 5.5 + 2;
+
+        // Meta line
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+        setColor(C.muted);
+        const dateStr = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        doc.text(`r/${r.subreddit}  ·  u/${r.author}  ·  ${dateStr}  ·  ${r.url}`, margin, y);
+        y += 5;
+
+        // Divider
+        setDraw(C.border); doc.setLineWidth(0.3);
+        doc.line(margin, y, W - margin, y); y += 5;
+
+        // Two-column layout: Original Text | AI Analysis
+        const colW = (contentW - 6) / 2;
+        const leftX = margin;
+        const rightX = margin + colW + 6;
+
+        // ── Left: Original Text ──
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'bold');
+        doc.setFillColor(C.sky[0], C.sky[1], C.sky[2]);
+        doc.setTextColor(255, 255, 255);
+        doc.roundedRect(leftX, y, colW, 5.5, 1.5, 1.5, 'F');
+        doc.text('ORIGINAL EVIDENCE', leftX + colW / 2, y + 3.8, { align: 'center' });
+
+        // ── Right: AI Analysis header ──
+        doc.setFillColor(C.violet[0], C.violet[1], C.violet[2]);
+        doc.roundedRect(rightX, y, colW, 5.5, 1.5, 1.5, 'F');
+        doc.text('AI ANALYSIS', rightX + colW / 2, y + 3.8, { align: 'center' });
+        y += 8;
+
+        const columnStartY = y;
+
+        // Left column content
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+        setColor(C.body);
+        const rawLines = doc.splitTextToSize(r.raw_text || '—', colW);
+        // Cap at ~55 lines to avoid overflow
+        const cappedRaw = rawLines.slice(0, 52);
+        doc.text(cappedRaw, leftX, y);
+        const leftEndY = y + cappedRaw.length * 3.5 + (rawLines.length > 52 ? 0 : 0);
+        if (rawLines.length > 52) {
+          doc.setFontSize(7); setColor(C.muted);
+          doc.text('[text truncated for length]', leftX, leftEndY);
+        }
+
+        // Right column content — analysis fields
+        let ry = columnStartY;
+        const field = (label, value) => {
+          if (ry > H - 14) return;
+          doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+          setColor(C.muted);
+          doc.text(label.toUpperCase(), rightX, ry); ry += 3.5;
+          doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+          setColor(C.body);
+          const lines = doc.splitTextToSize(value || '—', colW);
+          const shown = lines.slice(0, 3);
+          doc.text(shown, rightX, ry);
+          ry += shown.length * 3.5 + 3;
+        };
+
+        field('Relevance Confidence', `${Math.round((a.relevance_confidence || 0) * 100)}%`);
+        if (a.relevance_reasoning) field('Relevance Reasoning', a.relevance_reasoning);
+        field('Failure Stage',   fmt(a.retrieval_failure_stage)  || 'None mapped');
+        field('Failure Point',   fmt(a.retrieval_failure_point)  || '—');
+        field('Memory Cues',     (a.memory_cues_present || []).map(c => fmt(c)).join(', ') || 'None');
+        if (a.failure_evidence && a.failure_evidence !== 'None') {
+          field('Supporting Evidence Quote', `"${a.failure_evidence}"`);
+        }
+        field('Workarounds Used',   (a.workarounds_used   || []).map(w => fmt(w)).join(', ') || 'None');
+        field('Friction Experienced',(a.friction_experienced || []).map(f => fmt(f)).join(', ') || 'None');
+        if (a.desired_outcome) field('Desired Outcome', a.desired_outcome);
+
+        // Divider between columns
+        setDraw(C.border); doc.setLineWidth(0.2);
+        doc.line(margin + colW + 3, columnStartY - 2, margin + colW + 3, Math.max(leftEndY, ry) + 4);
+      });
+
+      // ── Add footers to all pages ──
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        addFooter(p, totalPages);
+      }
+
+      // ── Save ──
+      const filename = `google-photos-retrieval-research_${new Date().toISOString().slice(0,10)}.pdf`;
+      doc.save(filename);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('PDF generation failed: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span>📄</span><span>Export PDF</span>'; }
+    }
+  }, 80); // let UI update first
+}
+
+const btnExportPdf = document.getElementById('btn-export-pdf');
+if (btnExportPdf) btnExportPdf.onclick = generatePDF;
 
 // ════════════════════════════════════════════
 // MANUAL LIVE REDDIT SEARCH MODAL HANDLERS
