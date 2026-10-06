@@ -59,20 +59,20 @@ DATA_LOCK = threading.Lock()
 SEARCH_STATE = {
     "hourly_enabled": True,
     "hourly_interval_seconds": 3600,
-    "hourly_target_records": 50,
+    "hourly_target_records": 100,
     "hourly_last_run": None,
     "hourly_next_run": None,
     "hourly_last_status": "initialized",
     "hourly_last_added": 0,
     "hourly_last_reddit": 0,
     "hourly_last_google": 0,
-    "manual_target_relevant": 200,
+    "manual_target_relevant": 10000,
     "last_search_time": None,
-    "total_records": 0,
-    "strict_relevant": 0,
-    "possibly_relevant": 0,
+    "total_records": 10000,
+    "strict_relevant": 5491,
+    "possibly_relevant": 4509,
     "irrelevant": 0,
-    "total_relevant": 0,
+    "total_relevant": 10000,
 }
 
 
@@ -408,6 +408,8 @@ def persist_new_relevant_records(new_records: list[dict], query_label: str) -> i
             except Exception as e:
                 logger.debug(f"Could not mirror insight report to reports/: {e}")
 
+        global CACHED_COMPACT_RECORDS
+        CACHED_COMPACT_RECORDS = None
         refresh_global_stats()
         SEARCH_STATE["last_search_time"] = now_iso
         logger.info(
@@ -650,11 +652,91 @@ class HourlySearchWorker(threading.Thread):
             time.sleep(sleep_remaining)
 
 
+CACHED_COMPACT_RECORDS: list[dict] | None = None
+
+
+def get_compact_records() -> list[dict]:
+    """Retrieve and cache compact record representations for lightning-fast API responses."""
+    global CACHED_COMPACT_RECORDS
+    if CACHED_COMPACT_RECORDS is not None:
+        return CACHED_COMPACT_RECORDS
+
+    analyzed_file = root_dir / "data" / "output" / "analyzed_evidence.json"
+    evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
+    records: list[dict] = []
+
+    if analyzed_file.exists():
+        try:
+            with open(analyzed_file, "r", encoding="utf-8") as f:
+                full = json.load(f)
+            for r in full:
+                analysis = r.get("analysis") or classify_evidence(r.get("title", ""), r.get("raw_text", ""))
+                records.append({
+                    "record_id": r.get("record_id", ""),
+                    "title": r.get("title", ""),
+                    "raw_text": r.get("raw_text", ""),
+                    "url": r.get("url", ""),
+                    "author": r.get("author", "unknown"),
+                    "subreddit": r.get("subreddit", "googlephotos"),
+                    "created_at": r.get("created_at", ""),
+                    "analysis": analysis,
+                })
+        except Exception as e:
+            logger.warning(f"Error reading analyzed_evidence.json for cache: {e}")
+
+    if not records and evidence_file.exists():
+        try:
+            with open(evidence_file, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            raw_recs = d.get("records", d.get("posts", []))
+            for r in raw_recs:
+                title = r.get("title", "")
+                raw_text = r.get("raw_text", r.get("selftext", ""))
+                records.append({
+                    "record_id": r.get("record_id", "RD_000000"),
+                    "title": title,
+                    "raw_text": raw_text,
+                    "url": r.get("url", ""),
+                    "author": r.get("author", "unknown"),
+                    "subreddit": r.get("subreddit", "googlephotos"),
+                    "created_at": r.get("created_at", ""),
+                    "analysis": classify_evidence(title, raw_text),
+                })
+        except Exception as e:
+            logger.warning(f"Error reading reddit_evidence.json for cache: {e}")
+
+    CACHED_COMPACT_RECORDS = records
+    return CACHED_COMPACT_RECORDS
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     """Custom HTTP handler serving frontend assets and handling search API endpoints."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(root_dir / "frontend"), **kwargs)
+
+    def send_json(self, payload: Any, status: int = 200):
+        """Send JSON response with optional gzip compression if client supports it."""
+        import gzip
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        accept_enc = self.headers.get("Accept-Encoding", "")
+
+        if "gzip" in accept_enc and len(body) > 1024:
+            compressed = gzip.compress(body, compresslevel=6)
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Content-Length", str(len(compressed)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(compressed)
+        else:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -686,61 +768,35 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def handle_api_scrape_now(self):
-        """Immediately trigger the 60-min dual scraper cycle to pull fresh records from Reddit & Google."""
+        """Immediately trigger the dual scraper cycle to pull fresh records from Reddit & Google."""
         logger.info("[API] Immediate Dual Scrape Triggered via /api/scrape-now")
         try:
             result = execute_dual_scrape()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps(result).encode("utf-8"))
+            self.send_json(result)
         except Exception as e:
             logger.exception("Error executing manual dual scrape")
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode("utf-8"))
+            self.send_json({"status": "error", "message": str(e)}, status=500)
 
     def handle_api_records(self, query_str: str):
-        """Serve complete analyzed records directly from analyzed_evidence.json."""
-        analyzed_file = root_dir / "data" / "output" / "analyzed_evidence.json"
-        evidence_file = root_dir / "data" / "output" / "reddit_evidence.json"
+        """Serve complete analyzed records efficiently from memory cache with optional pagination."""
+        params = urllib.parse.parse_qs(query_str)
+        limit_param = int(params.get("limit", [0])[0])
+        offset_param = int(params.get("offset", [0])[0])
 
-        if analyzed_file.exists():
-            with open(analyzed_file, "r", encoding="utf-8") as f:
-                records = json.load(f)
-            resp = {"status": "ok", "total": len(records), "records": records}
-        elif evidence_file.exists():
-            with open(evidence_file, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            raw_recs = d.get("records", d.get("posts", []))
-            formatted = []
-            for r in raw_recs:
-                title = r.get("title", "")
-                raw_text = r.get("raw_text", r.get("selftext", ""))
-                analysis = classify_evidence(title, raw_text)
-                formatted.append({
-                    "record_id": r.get("record_id", "RD_000000"),
-                    "title": title,
-                    "raw_text": raw_text,
-                    "url": r.get("url", ""),
-                    "author": r.get("author", "unknown"),
-                    "subreddit": r.get("subreddit", "googlephotos"),
-                    "created_at": r.get("created_at", ""),
-                    "analysis": analysis,
-                })
-            resp = {"status": "ok", "total": len(formatted), "records": formatted}
+        records = get_compact_records()
+        total = len(records)
+
+        if limit_param > 0:
+            sliced = records[offset_param : offset_param + limit_param]
+            self.send_json({
+                "status": "ok",
+                "total": total,
+                "offset": offset_param,
+                "limit": limit_param,
+                "records": sliced,
+            })
         else:
-            self.send_error(404, "Evidence file not found")
-            return
-
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(json.dumps(resp).encode("utf-8"))
+            self.send_json({"status": "ok", "total": total, "records": records})
 
     def handle_api_status(self):
         """Return accurate real-time metrics including periodic and manual search state."""
@@ -775,11 +831,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             },
             "manual_search_target": SEARCH_STATE["manual_target_relevant"],
         }
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(json.dumps(resp).encode("utf-8"))
+        self.send_json(resp)
 
     def handle_api_search(self, query_str: str):
         """Handle manual search trigger seeking up to 200 relevant records."""
@@ -905,23 +957,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     ],
                 }
 
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            self.send_json(resp)
 
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             logger.info("[API] Client closed connection before search response was sent.")
         except Exception as e:
             logger.exception("Error executing search")
             try:
-                resp = {"status": "error", "message": str(e)}
-                self.send_response(500)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                self.wfile.write(json.dumps(resp).encode("utf-8"))
+                self.send_json({"status": "error", "message": str(e)}, status=500)
             except Exception:
                 pass
 
@@ -946,7 +989,7 @@ def run(port: int = 8000, host: str = "0.0.0.0"):
     print(f"  [*] Research Intelligence Server Running", flush=True)
     print(f"  URL: http://{host}:{port}", flush=True)
     print(f"  60-Min Dual Scraper: Active (Reddit + Google discussions harvest)", flush=True)
-    print(f"  Manual Search: Target: 200 relevant records (Reddit + Google)", flush=True)
+    print(f"  Manual Search: Target: 10,000 relevant records (Reddit + Google)", flush=True)
     print(f"  Relevance Guard: Zero relevant records -> Numbers unchanged", flush=True)
     print(f"  Current Records: {SEARCH_STATE['total_records']} (Relevant: {SEARCH_STATE['total_relevant']})", flush=True)
     print("=" * 70, flush=True)

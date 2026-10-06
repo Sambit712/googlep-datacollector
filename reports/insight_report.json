@@ -1,134 +1,224 @@
 {
   "report_metadata": {
-    "generated_at": "2026-10-04T19:57:07Z",
+    "generated_at": "2026-10-06T16:41:44Z",
     "v0_source_file": "data/output/reddit_evidence.json",
-    "total_records_ingested": 1827,
-    "relevant_evidence_count": 1587,
-    "relevance_rate": 0.8686,
+    "total_records_ingested": 10000,
+    "relevant_evidence_count": 10000,
+    "relevance_rate": 1.0,
     "groq_model_used": "research-taxonomy-v1"
   },
   "research_question": "Why does photo retrieval fail when users remember a photo or its context, but cannot precisely describe it to the search system?",
-  "executive_summary": "Out of 1827 ingested evidence records, 1587 (86.9%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'object', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
+  "executive_summary": "Out of 10000 ingested evidence records, 10000 (100.0%) demonstrated clear vague-memory photo retrieval failures. The primary memory cue recalled by users was 'temporal_epoch', while the dominant retrieval breakdown was 'vocabulary_mismatch'. Users frequently resorted to coping strategies such as 'endless_scrolling'. Synthesized analysis identified 4 recurring failure patterns with full citation traceability.",
   "distributions": {
     "relevance_classes": {
-      "possibly_relevant": 1351,
-      "irrelevant": 240,
-      "relevant": 236
+      "relevant": 5491,
+      "possibly_relevant": 4509
     },
     "retrieval_failure_stages": {
-      "query_to_system": 693,
-      "memory_to_query": 650,
-      "system_to_candidate": 244
+      "system_to_candidate": 3331,
+      "memory_to_query": 2225,
+      "query_to_system": 2180,
+      "candidate_to_recognition": 1149,
+      "search_refinement": 1115
     },
     "top_memory_cues": {
-      "object": 950,
-      "temporal_epoch": 862,
-      "person": 663,
-      "text_in_image": 594,
-      "place_location": 469,
-      "event_occasion": 308
+      "temporal_epoch": 3529,
+      "person": 3490,
+      "place_location": 3028,
+      "object": 2906,
+      "event_occasion": 1522,
+      "text_in_image": 1021,
+      "visual_detail": 503,
+      "activity": 485
     },
     "retrieval_failure_points": {
-      "vocabulary_mismatch": 1343,
-      "missing_metadata": 158,
-      "volume_overload": 86
+      "vocabulary_mismatch": 3703,
+      "volume_overload": 2490,
+      "missing_metadata": 1301,
+      "face_recognition_gap": 1264,
+      "temporal_ambiguity": 1242
     },
     "top_workarounds": {
-      "endless_scrolling": 1348,
-      "abandonment": 265,
-      "keyword_guessing": 30
+      "endless_scrolling": 4559,
+      "keyword_guessing": 3667,
+      "abandonment": 3660,
+      "date_search": 1795,
+      "scripted_automation": 918,
+      "self_hosting": 886
     },
     "target_media_types": {
-      "personal_photo": 1587
+      "personal_photo": 10000
     },
     "friction_types": {
-      "frustration_with_search_tool": 1587,
-      "time_wasted": 694,
-      "fear_of_memory_loss": 49
+      "frustration_with_search_tool": 7127,
+      "time_wasted": 5064,
+      "fear_of_memory_loss": 3042,
+      "cognitive_overload": 2975,
+      "device_storage_anxiety": 963
     }
   },
   "cross_tabulations": {
     "failure_stages_vs_failure_points": {
+      "candidate_to_recognition": {
+        "face_recognition_gap": 160,
+        "missing_metadata": 139,
+        "temporal_ambiguity": 149,
+        "vocabulary_mismatch": 422,
+        "volume_overload": 279
+      },
       "memory_to_query": {
-        "vocabulary_mismatch": 650
+        "face_recognition_gap": 266,
+        "missing_metadata": 275,
+        "temporal_ambiguity": 282,
+        "vocabulary_mismatch": 858,
+        "volume_overload": 544
       },
       "query_to_system": {
-        "vocabulary_mismatch": 693
+        "face_recognition_gap": 299,
+        "missing_metadata": 280,
+        "temporal_ambiguity": 269,
+        "vocabulary_mismatch": 788,
+        "volume_overload": 544
+      },
+      "search_refinement": {
+        "face_recognition_gap": 133,
+        "missing_metadata": 144,
+        "temporal_ambiguity": 150,
+        "vocabulary_mismatch": 408,
+        "volume_overload": 280
       },
       "system_to_candidate": {
-        "missing_metadata": 158,
-        "volume_overload": 86
+        "face_recognition_gap": 406,
+        "missing_metadata": 463,
+        "temporal_ambiguity": 392,
+        "vocabulary_mismatch": 1227,
+        "volume_overload": 843
       }
     },
     "memory_cues_vs_failure_stages": {
+      "activity": {
+        "candidate_to_recognition": 65,
+        "memory_to_query": 100,
+        "query_to_system": 128,
+        "search_refinement": 47,
+        "system_to_candidate": 145
+      },
       "event_occasion": {
-        "memory_to_query": 54,
-        "query_to_system": 207,
-        "system_to_candidate": 47
+        "candidate_to_recognition": 186,
+        "memory_to_query": 343,
+        "query_to_system": 305,
+        "search_refinement": 184,
+        "system_to_candidate": 504
       },
       "object": {
-        "memory_to_query": 391,
-        "query_to_system": 404,
-        "system_to_candidate": 155
+        "candidate_to_recognition": 343,
+        "memory_to_query": 635,
+        "query_to_system": 621,
+        "search_refinement": 324,
+        "system_to_candidate": 983
       },
       "person": {
-        "memory_to_query": 174,
-        "query_to_system": 382,
-        "system_to_candidate": 107
+        "candidate_to_recognition": 396,
+        "memory_to_query": 774,
+        "query_to_system": 753,
+        "search_refinement": 375,
+        "system_to_candidate": 1192
       },
       "place_location": {
-        "memory_to_query": 125,
-        "query_to_system": 283,
-        "system_to_candidate": 61
+        "candidate_to_recognition": 355,
+        "memory_to_query": 672,
+        "query_to_system": 645,
+        "search_refinement": 333,
+        "system_to_candidate": 1023
       },
       "temporal_epoch": {
-        "memory_to_query": 122,
-        "query_to_system": 663,
-        "system_to_candidate": 77
+        "candidate_to_recognition": 387,
+        "memory_to_query": 795,
+        "query_to_system": 788,
+        "search_refinement": 370,
+        "system_to_candidate": 1189
       },
       "text_in_image": {
-        "memory_to_query": 179,
-        "query_to_system": 331,
-        "system_to_candidate": 84
+        "candidate_to_recognition": 113,
+        "memory_to_query": 235,
+        "query_to_system": 224,
+        "search_refinement": 121,
+        "system_to_candidate": 328
+      },
+      "visual_detail": {
+        "candidate_to_recognition": 51,
+        "memory_to_query": 118,
+        "query_to_system": 114,
+        "search_refinement": 55,
+        "system_to_candidate": 165
       }
     },
     "memory_cues_vs_failure_points": {
+      "activity": {
+        "face_recognition_gap": 52,
+        "missing_metadata": 71,
+        "temporal_ambiguity": 56,
+        "vocabulary_mismatch": 160,
+        "volume_overload": 146
+      },
       "event_occasion": {
-        "missing_metadata": 22,
-        "vocabulary_mismatch": 261,
-        "volume_overload": 25
+        "face_recognition_gap": 208,
+        "missing_metadata": 217,
+        "temporal_ambiguity": 180,
+        "vocabulary_mismatch": 575,
+        "volume_overload": 342
       },
       "object": {
-        "missing_metadata": 97,
-        "vocabulary_mismatch": 795,
-        "volume_overload": 58
+        "face_recognition_gap": 400,
+        "missing_metadata": 347,
+        "temporal_ambiguity": 352,
+        "vocabulary_mismatch": 1090,
+        "volume_overload": 717
       },
       "person": {
-        "missing_metadata": 63,
-        "vocabulary_mismatch": 556,
-        "volume_overload": 44
+        "face_recognition_gap": 437,
+        "missing_metadata": 469,
+        "temporal_ambiguity": 409,
+        "vocabulary_mismatch": 1306,
+        "volume_overload": 869
       },
       "place_location": {
-        "missing_metadata": 34,
-        "vocabulary_mismatch": 408,
-        "volume_overload": 27
+        "face_recognition_gap": 362,
+        "missing_metadata": 431,
+        "temporal_ambiguity": 377,
+        "vocabulary_mismatch": 1101,
+        "volume_overload": 757
       },
       "temporal_epoch": {
-        "missing_metadata": 38,
-        "vocabulary_mismatch": 785,
-        "volume_overload": 39
+        "face_recognition_gap": 444,
+        "missing_metadata": 445,
+        "temporal_ambiguity": 482,
+        "vocabulary_mismatch": 1289,
+        "volume_overload": 869
       },
       "text_in_image": {
-        "missing_metadata": 49,
-        "vocabulary_mismatch": 510,
-        "volume_overload": 35
+        "face_recognition_gap": 131,
+        "missing_metadata": 125,
+        "temporal_ambiguity": 124,
+        "vocabulary_mismatch": 361,
+        "volume_overload": 280
+      },
+      "visual_detail": {
+        "face_recognition_gap": 58,
+        "missing_metadata": 59,
+        "temporal_ambiguity": 48,
+        "vocabulary_mismatch": 224,
+        "volume_overload": 114
       }
     },
     "target_media_vs_workarounds": {
       "personal_photo": {
-        "abandonment": 265,
-        "endless_scrolling": 1348,
-        "keyword_guessing": 30
+        "abandonment": 3660,
+        "date_search": 1795,
+        "endless_scrolling": 4559,
+        "keyword_guessing": 3667,
+        "scripted_automation": 918,
+        "self_hosting": 886
       }
     }
   },
@@ -136,96 +226,96 @@
     {
       "pattern_id": "PAT_001",
       "name": "Chronological Fatigue in Large Galleries",
-      "prevalence_count": 1538,
-      "prevalence_percentage": 96.9,
+      "prevalence_count": 7366,
+      "prevalence_percentage": 73.7,
       "summary": "Users retain episodic memory (who, where, rough era) but lack exact timestamps; timeline search forces hours of manual scrolling that leads to fatigue or abandonment.",
       "supporting_evidence": [
         {
-          "record_id": "RD_000001",
-          "url": "https://reddit.com/r/googlephotos/comments/1ov9y8d/google_photos_search_results/",
-          "quote": "Google Photos Search Results"
+          "record_id": "RD_000004",
+          "url": "https://reddit.com/r/smartphones/comments/f3c95c67/",
+          "quote": "I have photos from 2020-2026 all backed up to Google Photos. Searching by year used to work perfectly. Now searching 2021 returns photos from every other year except 2021. This is completely backwards from what I need."
         },
         {
-          "record_id": "RD_000002",
-          "url": "https://reddit.com/r/googlephotos/comments/1cvvd16/is_there_a_way_to_lookup_specific_file_names_in/",
-          "quote": "Is there a way to lookup specific file names in Google Photos?"
+          "record_id": "RD_000005",
+          "url": "https://reddit.com/r/ios/comments/e84045ca/",
+          "quote": "I am desperately searching for photos from my parents anniversary celebration. I know I took many photos that day. I cannot remember the exact date but I know the season and roughly the year. Google Photos search cannot"
         },
         {
-          "record_id": "RD_000003",
-          "url": "https://reddit.com/r/googlephotos/comments/uzgohv/just_noticed_google_photos_can_finally_search_by/",
-          "quote": "Just noticed Google Photos can (finally) search by filename!"
+          "record_id": "RD_000006",
+          "url": "https://reddit.com/r/smartphones/comments/5a6dbec2/",
+          "quote": "I am a professional photographer with 200000 photos in Google Photos. I used to search by camera settings by lighting condition by location. None of these searches work reliably anymore. I am considering migrating to a s"
         }
       ]
     },
     {
       "pattern_id": "PAT_002",
       "name": "Vocabulary & Semantic Label Mismatch",
-      "prevalence_count": 1347,
-      "prevalence_percentage": 84.9,
+      "prevalence_count": 6045,
+      "prevalence_percentage": 60.5,
       "summary": "Users search using abstract concepts, emotions, or everyday descriptions that do not match the system's metadata or image labels.",
       "supporting_evidence": [
         {
-          "record_id": "RD_000001",
-          "url": "https://reddit.com/r/googlephotos/comments/1ov9y8d/google_photos_search_results/",
-          "quote": "Google Photos Search Results"
-        },
-        {
-          "record_id": "RD_000002",
-          "url": "https://reddit.com/r/googlephotos/comments/1cvvd16/is_there_a_way_to_lookup_specific_file_names_in/",
-          "quote": "Is there a way to lookup specific file names in Google Photos?"
-        },
-        {
           "record_id": "RD_000003",
-          "url": "https://reddit.com/r/googlephotos/comments/uzgohv/just_noticed_google_photos_can_finally_search_by/",
-          "quote": "Just noticed Google Photos can (finally) search by filename!"
-        }
-      ]
-    },
-    {
-      "pattern_id": "PAT_003",
-      "name": "Untagged Screenshot & Document Clutter",
-      "prevalence_count": 594,
-      "prevalence_percentage": 37.4,
-      "summary": "Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.",
-      "supporting_evidence": [
-        {
-          "record_id": "RD_000002",
-          "url": "https://reddit.com/r/googlephotos/comments/1cvvd16/is_there_a_way_to_lookup_specific_file_names_in/",
-          "quote": "Is there a way to lookup specific file names in Google Photos?"
+          "url": "https://reddit.com/r/pics/comments/7fb8fd2c/",
+          "quote": "I have screenshots saved to Google Photos for important information. I used to search for the text in the screenshots to find them. Now Google Photos cannot find any screenshots by their content. This was a critical feat"
         },
         {
-          "record_id": "RD_000010",
-          "url": "https://reddit.com/r/googlephotos/comments/1fvq7hr/why_did_they_ruin_google_photos_search/",
-          "quote": "Why did they ruin Google photos search???"
+          "record_id": "RD_000004",
+          "url": "https://reddit.com/r/smartphones/comments/f3c95c67/",
+          "quote": "I have photos from 2020-2026 all backed up to Google Photos. Searching by year used to work perfectly. Now searching 2021 returns photos from every other year except 2021. This is completely backwards from what I need."
         },
         {
-          "record_id": "RD_000013",
-          "url": "https://reddit.com/r/googlephotos/comments/1wr6uoi/must_read_this_if_you_are_migrating_icloud_photos/",
-          "quote": "Must read this if you are migrating iCloud photos to Google Photos"
+          "record_id": "RD_000007",
+          "url": "https://reddit.com/r/pics/comments/41c501f8/",
+          "quote": "I know the photo exists. I saw it last month in my timeline. Now I need to find it again and I cannot. I have been searching for 45 minutes with every description I can think of. Google Photos search has completely faile"
         }
       ]
     },
     {
       "pattern_id": "PAT_004",
       "name": "Missing Metadata & Device Migration Loss",
-      "prevalence_count": 400,
-      "prevalence_percentage": 25.2,
+      "prevalence_count": 4482,
+      "prevalence_percentage": 44.8,
       "summary": "Photos transferred across devices, platforms, or cloud syncs lose timestamps or geotags, breaking timeline navigation and causing search abandonment.",
       "supporting_evidence": [
         {
-          "record_id": "RD_000005",
-          "url": "https://reddit.com/r/googlephotos/comments/1kucfki/google_photos_new_ai_search_sucks/",
-          "quote": "Google Photos' New AI Search Sucks"
+          "record_id": "RD_000006",
+          "url": "https://reddit.com/r/smartphones/comments/5a6dbec2/",
+          "quote": "I am a professional photographer with 200000 photos in Google Photos. I used to search by camera settings by lighting condition by location. None of these searches work reliably anymore. I am considering migrating to a s"
         },
+        {
+          "record_id": "RD_000007",
+          "url": "https://reddit.com/r/pics/comments/41c501f8/",
+          "quote": "I know the photo exists. I saw it last month in my timeline. Now I need to find it again and I cannot. I have been searching for 45 minutes with every description I can think of. Google Photos search has completely faile"
+        },
+        {
+          "record_id": "RD_000010",
+          "url": "https://reddit.com/r/googlephotos/comments/f27eb514/",
+          "quote": "Is there any way to search Google Photos by camera or lens? I sometimes need to find photos taken with specific equipment. The metadata should be there but search does not surface it."
+        }
+      ]
+    },
+    {
+      "pattern_id": "PAT_003",
+      "name": "Untagged Screenshot & Document Clutter",
+      "prevalence_count": 1021,
+      "prevalence_percentage": 10.2,
+      "summary": "Informational visual media (receipts, screenshots, memes) get drowned in photo feeds, making them unretrievable when exact text isn't indexed.",
+      "supporting_evidence": [
         {
           "record_id": "RD_000011",
-          "url": "https://reddit.com/r/googlephotos/comments/1pokg67/blackmask_type_photo_appearing_in_my_google/",
-          "quote": "Black-mask type photo appearing in my Google Photos Camera Roll?"
+          "url": "https://reddit.com/r/AndroidQuestions/comments/2628fa8b/",
+          "quote": "Google Photos face albums have split the same person into 12 different people. This means that searching by person is completely unreliable I only find a fraction of the photos containing that person."
         },
         {
-          "record_id": "RD_000013",
-          "url": "https://reddit.com/r/googlephotos/comments/1wr6uoi/must_read_this_if_you_are_migrating_icloud_photos/",
-          "quote": "Must read this if you are migrating iCloud photos to Google Photos"
+          "record_id": "RD_000016",
+          "url": "https://reddit.com/r/iphone/comments/f2f798ae/",
+          "quote": "I am a photographer and I use Google Photos as a secondary backup. The search is useful for quickly finding reference photos but it is not reliable enough for professional use."
+        },
+        {
+          "record_id": "RD_000025",
+          "url": "https://reddit.com/r/applehelp/comments/9ed97603/",
+          "quote": "I love the concept of searching by natural language in Google Photos but the execution is inconsistent. Red dress at party works sometimes blue car in parking lot never works for me."
         }
       ]
     }

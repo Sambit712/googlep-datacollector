@@ -1,4 +1,4 @@
-# Reddit Evidence-Collection Configuration — V0 (2000-Record Target)
+# Reddit Evidence-Collection Configuration — 10K Target
 # Environment variables (${VAR}) are substituted at load time via .env
 
 reddit:
@@ -7,7 +7,7 @@ reddit:
   user_agent: "${REDDIT_USER_AGENT}"
 
 search:
-  # Subreddits categorized by research tier (expanded for 2000-record target)
+  # Subreddits categorized by research tier (expanded for 10K target)
   subreddits:
     primary:
       - "googlephotos"
